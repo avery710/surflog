@@ -1,0 +1,18 @@
+node_modules/
+.next/
+.env*.local
+.env
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# uploaded session photos/videos — local filesystem blob store, dev-only
+# (see lib/blob.ts).
+data/blobs/
+
+# Real journal content (Capy's actual sessions, in daily use locally) — kept
+# out of the public repo on purpose (decided 2026-09-18, once this repo went
+# public). Stays on disk for local dev/testing; lib/db.ts creates it fresh
+# (empty) on first write if it's missing, so a clone of this repo just
+# starts with an empty journal. See data/README.md.
+data/sessions.json

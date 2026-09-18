@@ -1,0 +1,1067 @@
+<title>Surflog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<style>
+  /* Single light theme, on purpose: white ground, black text. */
+  :root{
+    color-scheme:light;
+    --ground:#FFFFFF; --surface:#FFFFFF; --surface-2:#F2F5F5; --surface-3:#E6EDED;
+    --ink:#000000; --muted:#59696C; --faint:#8A9699;
+    --line:#E4EAEA; --line-soft:#EFF3F3;
+    --accent:#0E7C86; --accent-ink:#FFFFFF; --accent-soft:#E0EFF0;
+    --warm:#B35A28; --warm-soft:#FBEADF;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+    --shadow:0 1px 2px rgba(0,0,0,.04), 0 10px 28px -20px rgba(0,0,0,.28);
+    --r-card:24px; --r-tile:16px; --r-input:14px; --r-pill:999px;
+    --ui:"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --body:"Newsreader", Georgia, "Times New Roman", serif;
+    --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:var(--body); font-size:16px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding-inline:18px; padding-block:0 72px}
+
+  /* ---------- header ---------- */
+  .masthead{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding-block:30px 20px; flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+  .brand h1{
+    font-family:var(--ui); font-weight:800; font-size:30px; line-height:1.1;
+    letter-spacing:-.025em; margin:0;
+  }
+  .brand .tag{
+    font-family:var(--ui); font-size:13px; font-weight:500; color:var(--muted);
+  }
+  .masthead .count{
+    font-family:var(--ui); font-size:13px; font-weight:600; color:var(--muted);
+    background:var(--surface-2); padding:7px 15px; border-radius:var(--r-pill);
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+
+  /* ---------- generic ---------- */
+  .eyebrow{
+    font-family:var(--ui); font-size:13px; font-weight:700; color:var(--muted);
+    letter-spacing:-.005em; padding-left:4px;
+  }
+  section{margin-top:26px}
+  .panel{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r-card);
+    box-shadow:var(--shadow);
+  }
+  button{font:inherit; cursor:pointer}
+  .btn{
+    font-family:var(--ui); font-weight:700; font-size:15px; letter-spacing:-.01em;
+    padding:12px 24px; border-radius:var(--r-pill); border:none;
+    background:var(--accent); color:var(--accent-ink);
+    transition:transform .12s ease, filter .12s ease, background .12s ease;
+  }
+  .btn:hover{filter:brightness(1.07)}
+  .btn:active{transform:scale(.975)}
+  .btn.ghost{background:var(--accent-soft); color:var(--accent)}
+  .btn.ghost:hover{background:var(--accent-soft); filter:brightness(1.04)}
+  .btn.quiet{background:var(--surface-2); color:var(--ink)}
+  .btn.quiet:hover{background:var(--surface-3); filter:none}
+  .btn:disabled{opacity:.45; cursor:not-allowed; filter:none; transform:none}
+  @media (prefers-reduced-motion:reduce){ .btn{transition:none} .btn:active{transform:none} }
+  :focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:var(--r-input)}
+
+  label.f, .f{display:flex; flex-direction:column; gap:7px; min-width:0}
+  label.f > span, .f > .lbl{
+    font-family:var(--ui); font-size:12px; font-weight:600; color:var(--muted);
+    letter-spacing:.005em; padding-left:2px;
+  }
+  input, select, textarea{
+    font-family:var(--ui); font-size:15px; font-weight:500; color:var(--ink);
+    background:var(--surface-2); border:1.5px solid transparent;
+    border-radius:var(--r-input); padding:13px 15px; width:100%; min-width:0;
+    appearance:none; -webkit-appearance:none;
+  }
+  select{
+    background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+    background-position:calc(100% - 20px) calc(50% + 2px), calc(100% - 15px) calc(50% + 2px);
+    background-size:5px 5px, 5px 5px; background-repeat:no-repeat; padding-right:40px;
+  }
+  textarea{font-family:var(--body); font-size:16.5px; line-height:1.6; resize:vertical}
+  input:focus, select:focus, textarea:focus{
+    border-color:var(--accent); outline:none; background:var(--surface);
+    box-shadow:0 0 0 4px var(--accent-soft);
+  }
+  input::placeholder, textarea::placeholder{color:var(--faint)}
+
+  /* ---------- log form ---------- */
+  .logform{padding:24px}
+  .grid3{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:14px}
+  @media (max-width:560px){ .grid3{grid-template-columns:1fr} }
+  .logform .notes{margin-top:16px}
+  .formfoot{display:flex; align-items:center; gap:12px; margin-top:20px; flex-wrap:wrap}
+  .formfoot .spacer{flex:1}
+  .hint{font-family:var(--ui); font-size:13px; font-weight:500; color:var(--faint)}
+
+  /* ---------- entries ---------- */
+  .entry{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r-card);
+    margin-top:14px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  .entry-head{display:flex; align-items:center; gap:12px; padding:22px 24px 14px; flex-wrap:wrap}
+  .entry-spot{
+    font-family:var(--ui); font-weight:700; font-size:21px;
+    letter-spacing:-.02em; line-height:1.2;
+  }
+  .entry-when{
+    font-family:var(--ui); font-size:13px; font-weight:500; color:var(--muted);
+    background:var(--surface-2); padding:5px 12px; border-radius:var(--r-pill);
+    font-variant-numeric:tabular-nums;
+  }
+  .entry-head .spacer{flex:1}
+  .rowbtns{display:flex; gap:6px}
+  .iconbtn{
+    background:var(--surface-2); border:none; color:var(--muted); font-family:var(--ui);
+    font-size:13px; font-weight:600; padding:6px 14px; border-radius:var(--r-pill);
+  }
+  .iconbtn:hover{color:var(--ink); background:var(--surface-3)}
+
+  /* condition tiles */
+  .strip{
+    display:flex; gap:10px; padding:2px 24px 6px; overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .strip::-webkit-scrollbar{display:none}
+  .cell{
+    flex:1 0 auto; min-width:118px; padding:14px 16px;
+    background:var(--surface-2); border-radius:var(--r-tile);
+  }
+  .cell .k{
+    font-family:var(--ui); font-size:11px; font-weight:600; color:var(--faint);
+    display:block; margin-bottom:4px; letter-spacing:.01em;
+  }
+  .cell .v{
+    font-family:var(--mono); font-size:16px; font-weight:500; font-variant-numeric:tabular-nums;
+    white-space:nowrap; letter-spacing:-.02em;
+  }
+  .cell .v .u{font-size:11px; color:var(--muted); font-weight:400}
+  .cell .sub{font-family:var(--ui); font-size:11.5px; font-weight:500; color:var(--muted); white-space:nowrap; display:block; margin-top:2px}
+
+  .pending{
+    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+    margin:2px 24px 8px; padding:16px 18px;
+    background:var(--warm-soft); border-radius:var(--r-tile);
+  }
+  .pending p{margin:0; font-family:var(--ui); font-size:14.5px; font-weight:500; color:var(--ink); flex:1; min-width:180px}
+  .pending .btn{font-size:13.5px; padding:9px 18px}
+
+  .entry-notes{padding:10px 24px 6px; font-size:17px; line-height:1.62}
+  .entry-notes:empty{display:none}
+  .shots{display:flex; gap:10px; flex-wrap:wrap; padding:12px 24px 6px}
+  .shots img{
+    width:96px; height:96px; object-fit:cover; border-radius:var(--r-tile);
+    display:block;
+  }
+  .entry-foot{padding:10px 24px 20px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .src{
+    font-family:var(--ui); font-size:11.5px; font-weight:600;
+    color:var(--muted); background:var(--surface-2);
+    border-radius:var(--r-pill); padding:5px 13px;
+  }
+  .src.swelleye{color:var(--accent); background:var(--accent-soft)}
+  .src.example{color:var(--warm); background:var(--warm-soft)}
+
+  /* ---------- empty state ---------- */
+  .empty{padding:32px 26px}
+  .empty h3{font-family:var(--ui); font-weight:700; font-size:20px; letter-spacing:-.02em; margin:0 0 8px}
+  .empty p{font-family:var(--ui); font-size:15px; font-weight:500}
+  .empty ol{margin:12px 0 0; padding-left:22px; color:var(--muted); font-size:15.5px}
+  .empty li{margin-bottom:7px}
+
+  /* ---------- patterns ---------- */
+  .tablewrap{overflow-x:auto; padding:8px}
+  table{border-collapse:separate; border-spacing:0 4px; width:100%; min-width:480px}
+  th, td{text-align:left; padding:10px 16px}
+  th{
+    font-family:var(--ui); font-size:12px; font-weight:600; color:var(--faint);
+    padding-bottom:2px;
+  }
+  td{font-family:var(--mono); font-size:13.5px; font-variant-numeric:tabular-nums; background:var(--surface-2)}
+  td:first-child{border-radius:var(--r-tile) 0 0 var(--r-tile)}
+  td:last-child{border-radius:0 var(--r-tile) var(--r-tile) 0}
+  td.spotname{font-family:var(--ui); font-size:15px; font-weight:700; letter-spacing:-.015em}
+
+  .notice{
+    padding:18px 20px; background:var(--warm-soft); border-radius:var(--r-card);
+    font-family:var(--ui); font-size:14.5px; font-weight:500; color:var(--muted);
+  }
+  .notice strong{color:var(--ink); font-weight:700}
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:26px;
+    background:var(--ink); color:var(--ground); font-family:var(--ui);
+    font-size:14px; font-weight:600;
+    padding:13px 24px; border-radius:var(--r-pill); z-index:50;
+    box-shadow:0 8px 28px -12px rgba(0,0,0,.5);
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .toast{animation:pop .2s ease-out}
+    @keyframes pop{from{opacity:0; transform:translate(-50%,8px)}}
+  }
+  .fillrow{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(96px,1fr)); gap:12px;
+    margin:0 24px 16px; padding:18px; background:var(--surface-2); border-radius:var(--r-tile);
+  }
+  .fillrow .act{grid-column:1/-1; display:flex; gap:8px}
+  .fillrow input{background:var(--surface)}
+
+  /* ---------- rich text notes ---------- */
+  .editor-shell{
+    background:var(--surface-2); border:1.5px solid transparent;
+    border-radius:var(--r-input); overflow:hidden;
+  }
+  .editor-shell:focus-within{
+    border-color:var(--accent); background:var(--surface);
+    box-shadow:0 0 0 4px var(--accent-soft);
+  }
+  .toolbar{display:flex; gap:4px; padding:8px 8px 0; flex-wrap:wrap}
+  .tbtn{
+    background:transparent; border:none; border-radius:var(--r-pill);
+    padding:6px 13px; font-family:var(--ui); font-size:13px; font-weight:600;
+    color:var(--muted); line-height:1.2;
+  }
+  .tbtn:hover{background:var(--surface-3); color:var(--ink)}
+  .tbtn.on{background:var(--accent-soft); color:var(--accent)}
+  .editor{
+    font-family:var(--body); font-size:16.5px; line-height:1.62;
+    padding:10px 16px 14px; min-height:104px; outline:none;
+    overflow-wrap:break-word; word-break:break-word;
+  }
+  .editor:empty::before{content:attr(data-placeholder); color:var(--faint)}
+  .editor ul, .editor ol, .entry-notes ul, .entry-notes ol{margin:7px 0; padding-left:24px}
+  .editor li, .entry-notes li{margin-bottom:4px}
+  .editor p, .entry-notes p{margin:0 0 8px}
+  .editor p:last-child, .entry-notes p:last-child{margin-bottom:0}
+  .entry-notes.plain{white-space:pre-wrap}
+  .noteedit{margin:6px 24px 16px}
+  .noteedit .act{display:flex; gap:8px; margin-top:12px}
+  .noteedit .editor{min-height:120px}
+
+  /* ---------- edit panel ---------- */
+  .editpanel{
+    margin:4px 24px 20px; padding:20px;
+    background:var(--surface-2); border-radius:var(--r-tile);
+    display:flex; flex-direction:column; gap:18px;
+  }
+  .editpanel input, .editpanel select, .editpanel .editor-shell{background:var(--surface)}
+  .editpanel .sub-lbl{
+    font-family:var(--ui); font-size:12px; font-weight:600; color:var(--muted);
+    padding-left:2px; margin-bottom:8px;
+  }
+  .editpanel .act{display:flex; gap:8px; flex-wrap:wrap}
+  .condgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(98px,1fr)); gap:12px}
+
+  /* ---------- media ---------- */
+  .shot{position:relative; width:96px; height:96px}
+  .shot.vid{width:150px}
+  .shot img, .shot video{
+    width:100%; height:100%; object-fit:cover;
+    border-radius:var(--r-tile); display:block; background:#000;
+  }
+  .shot .rm{
+    position:absolute; top:5px; right:5px; width:24px; height:24px; padding:0;
+    border:none; border-radius:var(--r-pill); background:rgba(0,0,0,.55);
+    color:#fff; font-size:15px; line-height:1; opacity:0; transition:opacity .12s ease;
+  }
+  .shot:hover .rm, .shot:focus-within .rm{opacity:1}
+  @media (hover:none){ .shot .rm{opacity:.9} }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <h1>Surflog</h1>
+      <span class="tag">Surf log &middot; Taiwan</span>
+    </div>
+    <div class="count" id="count">&mdash;</div>
+  </header>
+
+  <section>
+    <div class="eyebrow">Log a session</div>
+    <div class="panel logform" style="margin-top:10px">
+      <div class="grid3">
+        <label class="f">
+          <span>Spot</span>
+          <select id="f-spot"></select>
+        </label>
+        <label class="f">
+          <span>Date</span>
+          <input type="date" id="f-date">
+        </label>
+        <label class="f">
+          <span>Time in the water</span>
+          <select id="f-time"></select>
+        </label>
+      </div>
+      <div class="f notes">
+        <span class="lbl">Notes</span>
+        <div class="editor-shell">
+          <div class="toolbar" data-target="f-notes">
+            <button type="button" class="tbtn" data-cmd="insertUnorderedList">&bull; Bullets</button>
+            <button type="button" class="tbtn" data-cmd="insertOrderedList">1. Numbered</button>
+            <button type="button" class="tbtn" data-cmd="bold"><b>B</b></button>
+            <button type="button" class="tbtn" data-cmd="italic"><i>I</i></button>
+          </div>
+          <div id="f-notes" class="editor" contenteditable="true" role="textbox" aria-multiline="true"
+               aria-label="Notes" data-placeholder="How it felt. What worked, what didn't. Type &quot;- &quot; for a bullet."></div>
+        </div>
+      </div>
+      <div class="formfoot">
+        <button class="btn" id="f-save">Save session</button>
+        <span class="hint" id="f-hint">Forecast reports every 2 hours &mdash; pick the closest slot</span>
+        <span class="spacer"></span>
+        <button class="btn quiet" id="f-export">Export CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="db-warning" hidden>
+    <div class="notice">
+      <strong>Saving is unavailable in this view.</strong> Entries you type here won't be kept. Open the artifact directly from your Claude sidebar to log sessions.
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Sessions</div>
+    <div id="entries"></div>
+  </section>
+
+  <section id="patterns-section" hidden>
+    <div class="eyebrow">What you've surfed</div>
+    <div class="panel tablewrap" style="margin-top:10px">
+      <table>
+        <thead>
+          <tr><th>Spot</th><th>Sessions</th><th>Swell</th><th>Period</th><th>Usual swell</th><th>Usual wind</th></tr>
+        </thead>
+        <tbody id="patterns"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- spots ---------------- */
+  var SPOTS = [
+    ["North","Shalun","shalun"],["North","Baishawan","baishawan"],["North","Restaurants","restaurants"],
+    ["North","Jinshan","jinshan"],["North","Green Bay","greenbay"],["North","Wanli","wanli"],["North","Fulong","fulong"],
+    ["Northeast","Daxi","daxi"],["Northeast","Gengfang","gengfang"],["Northeast","Double Lions","double-lions"],
+    ["Northeast","Wai'ao","waiao"],["Northeast","Wushi Harbor (North)","wushi-north"],["Northeast","Wushi Harbor (South)","wushi-south"],
+    ["Northeast","Chou Shui","choushui"],["Northeast","Zhu'an","zhuan"],["Northeast","Qing Shui","qingshui"],
+    ["Northeast","Su'ao - Wuwei Harbor","wuwei"],
+    ["East","Environmental Park","environmental-park"],["East","Hualien Beibin","beibin"],["East","Double Bridge","double-bridge"],
+    ["East","Gongs","gongs"],["East","Jiqi","jiqi"],["East","Baxian Dong","eight-immortals-cave"],["East","Yiwan","yiwan"],
+    ["East","Chenggong","chenggong"],["East","Duli","duli"],["East","Donghe","donghe"],["East","Jinzun","jinzun"],
+    ["East","Dulan","dulan"],["East","Taitung","taitung"],
+    ["South","Jiupeng","jiupeng"],["South","Jialeshui","jialeshui"],["South","Nanwan","nanwan"],["South","Sheliao","sheliao"],
+    ["West","Qijin","qijin"],["West","Yuguangdao","yuguangdao"],["West","Sicao Bridge","sicao-bridge"],
+    ["West","Shanshui","shanshui"],["West","Songbai Harbor","songbai"],["West","Waipu Fishing Harbor","waipu"],["West","Zhunan","zhunan"]
+  ];
+
+  var el = function(id){ return document.getElementById(id); };
+  var db = null, assets = null, downloads = null;
+  var sessions = [];
+  var loaded = false;
+
+  /* ---------------- form setup ---------------- */
+  (function buildSpotSelect(){
+    var sel = el("f-spot");
+    var regions = ["Northeast","North","East","South","West"];
+    regions.forEach(function(r){
+      var g = document.createElement("optgroup");
+      g.label = r;
+      SPOTS.filter(function(s){ return s[0] === r; }).forEach(function(s){
+        var o = document.createElement("option");
+        o.value = s[2]; o.textContent = s[1]; o.dataset.region = s[0];
+        g.appendChild(o);
+      });
+      sel.appendChild(g);
+    });
+    var other = document.createElement("optgroup");
+    other.label = "Elsewhere";
+    ["Siargao - Cloud 9","Siargao - Quicksilver","Siargao - Stimpy's","Somewhere else"].forEach(function(n){
+      var o = document.createElement("option");
+      o.value = "custom:" + n; o.textContent = n; o.dataset.region = "Overseas";
+      other.appendChild(o);
+    });
+    sel.appendChild(other);
+    sel.value = "waiao";
+  })();
+
+  (function buildTimeSelect(){
+    var sel = el("f-time");
+    for (var h = 0; h < 24; h += 2){
+      var hh = (h < 10 ? "0" : "") + h;
+      var o = document.createElement("option");
+      o.value = hh + ":00";
+      o.textContent = hh + ":00";
+      sel.appendChild(o);
+    }
+    var now = new Date();
+    var slot = Math.round(now.getHours() / 2) * 2;
+    if (slot > 22) slot = 22;
+    sel.value = (slot < 10 ? "0" : "") + slot + ":00";
+  })();
+
+  (function setToday(){
+    var n = new Date();
+    var p = function(x){ return (x < 10 ? "0" : "") + x; };
+    el("f-date").value = n.getFullYear() + "-" + p(n.getMonth() + 1) + "-" + p(n.getDate());
+  })();
+
+  /* ---------------- helpers ---------------- */
+  function spotLabel(slug){
+    if (slug && slug.indexOf("custom:") === 0) return slug.slice(7);
+    for (var i = 0; i < SPOTS.length; i++) if (SPOTS[i][2] === slug) return SPOTS[i][1];
+    return slug || "Unknown spot";
+  }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c];
+    });
+  }
+  function fmtWhen(when){
+    if (!when) return "";
+    var d = when.slice(0, 10), t = when.slice(11, 16);
+    var parts = d.split("-");
+    var dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    var days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return days[dt.getDay()] + " " + Number(parts[2]) + " " + months[Number(parts[1]) - 1] + " " + parts[0] + "  ·  " + t;
+  }
+  function num(v, dp){
+    if (v === null || v === undefined || v === "") return null;
+    var n = Number(v);
+    if (!isFinite(n)) return null;
+    return dp === undefined ? n : Number(n.toFixed(dp));
+  }
+  var ALLOWED = {P:1, BR:1, UL:1, OL:1, LI:1, B:1, STRONG:1, I:1, EM:1, U:1, DIV:1};
+
+  function sanitizeHtml(html){
+    if (!html) return "";
+    var src = new DOMParser().parseFromString("<div id='r'>" + html + "</div>", "text/html");
+    var root = src.getElementById("r");
+    if (!root) return "";
+    var outRoot = document.createElement("div");
+    (function copy(from, to){
+      Array.prototype.forEach.call(from.childNodes, function(ch){
+        if (ch.nodeType === 3){ to.appendChild(document.createTextNode(ch.nodeValue)); return; }
+        if (ch.nodeType !== 1) return;
+        if (ALLOWED[ch.tagName]){
+          var fresh = document.createElement(ch.tagName.toLowerCase());
+          to.appendChild(fresh);
+          copy(ch, fresh);
+        } else {
+          copy(ch, to);
+        }
+      });
+    })(root, outRoot);
+    return outRoot.innerHTML.slice(0, 20000);
+  }
+
+  function htmlToText(html){
+    var d = document.createElement("div");
+    d.innerHTML = sanitizeHtml(html);
+    var out = [];
+    Array.prototype.forEach.call(d.childNodes, function(n){
+      if (n.nodeType === 3){
+        var t = n.nodeValue.trim();
+        if (t) out.push(t);
+        return;
+      }
+      if (n.nodeType !== 1) return;
+      if (n.tagName === "UL" || n.tagName === "OL"){
+        Array.prototype.forEach.call(n.children, function(li){
+          var t = (li.textContent || "").trim();
+          if (t) out.push("- " + t);
+        });
+        return;
+      }
+      var t2 = (n.textContent || "").trim();
+      if (t2) out.push(t2);
+    });
+    return out.join("\n");
+  }
+
+  function textToHtml(txt){
+    return esc(txt).replace(/\n/g, "<br>");
+  }
+
+  function editorShell(editorId, initialHtml, placeholder){
+    return '<div class="editor-shell">' +
+      '<div class="toolbar" data-target="' + esc(editorId) + '">' +
+        '<button type="button" class="tbtn" data-cmd="insertUnorderedList">&bull; Bullets</button>' +
+        '<button type="button" class="tbtn" data-cmd="insertOrderedList">1. Numbered</button>' +
+        '<button type="button" class="tbtn" data-cmd="bold"><b>B</b></button>' +
+        '<button type="button" class="tbtn" data-cmd="italic"><i>I</i></button>' +
+      '</div>' +
+      '<div id="' + esc(editorId) + '" class="editor" contenteditable="true" role="textbox" aria-multiline="true" ' +
+      'aria-label="Notes" data-placeholder="' + esc(placeholder || "") + '">' + (initialHtml || "") + '</div>' +
+    '</div>';
+  }
+
+  function noteHtmlOf(s){
+    if (s.notesHtml) return sanitizeHtml(s.notesHtml);
+    if (s.notes) return textToHtml(s.notes);
+    return "";
+  }
+
+  function toast(msg){
+    var t = document.createElement("div");
+    t.className = "toast"; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 2200);
+  }
+
+  /* ---------------- rendering ---------------- */
+  function condCells(c){
+    var out = "";
+    var swell = [];
+    if (c.swellHeightM != null) swell.push(c.swellHeightM + '<span class="u"> m</span>');
+    if (c.swellPeriodS != null) swell.push('<span class="u">@ </span>' + c.swellPeriodS + '<span class="u"> s</span>');
+    out += '<div class="cell"><span class="k">Swell</span><span class="v">' +
+           (swell.length ? swell.join(" ") : "&mdash;") + '</span>' +
+           (c.swellDir ? '<span class="sub">from ' + esc(c.swellDir) + "</span>" : "") + "</div>";
+
+    if (c.swell2 && (c.swell2.heightM != null || c.swell2.periodS != null)){
+      out += '<div class="cell"><span class="k">2nd swell</span><span class="v">' +
+             (c.swell2.heightM != null ? c.swell2.heightM + '<span class="u"> m</span> ' : "") +
+             (c.swell2.periodS != null ? '<span class="u">@ </span>' + c.swell2.periodS + '<span class="u"> s</span>' : "") +
+             '</span>' + (c.swell2.dir ? '<span class="sub">from ' + esc(c.swell2.dir) + "</span>" : "") + "</div>";
+    }
+
+    var wind = c.windSpeedMs != null ? c.windSpeedMs + '<span class="u"> m/s</span>' : "&mdash;";
+    out += '<div class="cell"><span class="k">Wind</span><span class="v">' + wind + "</span>" +
+           '<span class="sub">' +
+           (c.windDir ? "from " + esc(c.windDir) : "") +
+           (c.windGustMs != null ? (c.windDir ? " · " : "") + "gust " + c.windGustMs : "") +
+           "</span></div>";
+
+    out += '<div class="cell"><span class="k">Tide</span><span class="v">' +
+           (c.tideM != null ? c.tideM + '<span class="u"> m</span>' : "&mdash;") + "</span>" +
+           (c.tideNote ? '<span class="sub">' + esc(c.tideNote) + "</span>" : "") + "</div>";
+
+    if (c.seaTempC != null || c.airTempC != null){
+      out += '<div class="cell"><span class="k">Temp</span><span class="v">' +
+             (c.seaTempC != null ? c.seaTempC + '<span class="u">&deg; sea</span>' : "&mdash;") + "</span>" +
+             (c.airTempC != null ? '<span class="sub">' + c.airTempC + "&deg; air" + (c.sky ? " · " + esc(c.sky) : "") + "</span>" : "") +
+             "</div>";
+    }
+    return out;
+  }
+
+  var COND_FIELDS = [
+    ["swellHeightM", "Swell m", "1.2"],
+    ["swellPeriodS", "Period s", "6.8"],
+    ["swellDir", "Swell from", "NE"],
+    ["windSpeedMs", "Wind m/s", "6"],
+    ["windGustMs", "Gust m/s", "8"],
+    ["windDir", "Wind from", "NNE"],
+    ["tideM", "Tide m", "1.6"],
+    ["seaTempC", "Sea °C", "29"],
+    ["airTempC", "Air °C", "26"]
+  ];
+
+  function condInputs(id, c){
+    c = c || {};
+    return COND_FIELDS.map(function(f){
+      var v = c[f[0]];
+      return '<label class="f"><span class="lbl">' + f[1] + "</span>" +
+        '<input data-k="' + f[0] + '" data-for="' + esc(id) + '" placeholder="' + f[2] + '" ' +
+        'value="' + esc(v === null || v === undefined ? "" : v) + '"></label>';
+    }).join("");
+  }
+
+  function spotOptionsHtml(selected){
+    var regions = ["Northeast", "North", "East", "South", "West"];
+    var seen = false;
+    var out = regions.map(function(r){
+      var opts = SPOTS.filter(function(x){ return x[0] === r; }).map(function(x){
+        var sel = x[2] === selected;
+        if (sel) seen = true;
+        return '<option value="' + esc(x[2]) + '"' + (sel ? " selected" : "") + ">" + esc(x[1]) + "</option>";
+      }).join("");
+      return '<optgroup label="' + r + '">' + opts + "</optgroup>";
+    }).join("");
+
+    var extras = ["Siargao - Cloud 9", "Siargao - Quicksilver", "Siargao - Stimpy's", "Somewhere else"];
+    var extraOpts = extras.map(function(n){
+      var val = "custom:" + n;
+      var sel = val === selected;
+      if (sel) seen = true;
+      return '<option value="' + esc(val) + '"' + (sel ? " selected" : "") + ">" + esc(n) + "</option>";
+    }).join("");
+    /* a spot saved before the list changed still has to be selectable */
+    if (!seen && selected){
+      extraOpts += '<option value="' + esc(selected) + '" selected>' + esc(spotLabel(selected)) + "</option>";
+    }
+    return out + '<optgroup label="Elsewhere">' + extraOpts + "</optgroup>";
+  }
+
+  function timeOptionsHtml(selected){
+    var out = "", found = false;
+    for (var h = 0; h < 24; h += 2){
+      var hh = (h < 10 ? "0" : "") + h + ":00";
+      var sel = hh === selected;
+      if (sel) found = true;
+      out += '<option value="' + hh + '"' + (sel ? " selected" : "") + ">" + hh + "</option>";
+    }
+    if (!found && selected){
+      out += '<option value="' + esc(selected) + '" selected>' + esc(selected) + "</option>";
+    }
+    return out;
+  }
+
+  function editPanel(s){
+    var id = s.id;
+    var date = (s.when || "").slice(0, 10);
+    var time = (s.when || "").slice(11, 16);
+    return '<div class="editpanel" data-edit="' + esc(id) + '" hidden>' +
+      '<div class="grid3">' +
+        '<label class="f"><span class="lbl">Spot</span><select data-e="spot" data-for="' + esc(id) + '">' +
+          spotOptionsHtml(s.spot) + "</select></label>" +
+        '<label class="f"><span class="lbl">Date</span><input type="date" data-e="date" data-for="' + esc(id) + '" value="' + esc(date) + '"></label>' +
+        '<label class="f"><span class="lbl">Time</span><select data-e="time" data-for="' + esc(id) + '">' +
+          timeOptionsHtml(time) + "</select></label>" +
+      "</div>" +
+      '<div><div class="sub-lbl">Conditions</div><div class="condgrid">' + condInputs(id, s.cond) + "</div></div>" +
+      '<div class="f"><span class="lbl">Notes</span>' +
+        editorShell("note-" + id, noteHtmlOf(s), 'How it felt. What worked, what didn\'t. Type "- " for a bullet.') +
+      "</div>" +
+      '<div class="act">' +
+        '<button class="btn" data-act="saveedit" data-id="' + esc(id) + '">Save changes</button>' +
+        '<button class="btn quiet" data-act="canceledit" data-id="' + esc(id) + '">Cancel</button>' +
+      "</div></div>";
+  }
+
+  function entryHTML(s){
+    var c = s.cond;
+    var h = '<article class="entry" data-id="' + esc(s.id) + '">';
+    h += '<div class="entry-head">';
+    h += '<span class="entry-spot">' + esc(spotLabel(s.spot)) + "</span>";
+    h += '<span class="entry-when">' + esc(fmtWhen(s.when)) + "</span>";
+    h += '<span class="spacer"></span><span class="rowbtns">';
+    h += '<button class="iconbtn" data-act="edit" data-id="' + esc(s.id) + '">Edit</button>';
+    h += '<button class="iconbtn" data-act="photo" data-id="' + esc(s.id) + '">+ Media</button>';
+    h += '<button class="iconbtn" data-act="delete" data-id="' + esc(s.id) + '">Delete</button>';
+    h += "</span></div>";
+
+    if (c){
+      h += '<div class="strip">' + condCells(c) + "</div>";
+    } else {
+      h += '<div class="pending"><p>Conditions not filled in yet.</p>' +
+           '<button class="btn" data-act="ask" data-id="' + esc(s.id) + '">Copy prompt for Claude</button>' +
+           '<button class="btn ghost" data-act="edit" data-id="' + esc(s.id) + '">Type them in</button></div>';
+    }
+
+    var nh = noteHtmlOf(s);
+    if (nh) h += '<div class="entry-notes">' + nh + "</div>";
+
+    if (s.photos && s.photos.length){
+      h += '<div class="shots">';
+      s.photos.forEach(function(ph){
+        var isVid = ph.type && ph.type.indexOf("video/") === 0;
+        h += '<div class="shot' + (isVid ? " vid" : "") + '">' +
+             (isVid
+               ? '<video src="/_blob/' + esc(ph.id) + '" controls preload="metadata" playsinline></video>'
+               : '<img src="/_blob/' + esc(ph.id) + '" alt="Surf photo from ' + esc(fmtWhen(s.when)) + '" loading="lazy">') +
+             '<button class="rm" data-act="rmphoto" data-id="' + esc(s.id) + '" data-photo="' + esc(ph.id) +
+             '" aria-label="Remove photo">&times;</button></div>';
+      });
+      h += "</div>";
+    }
+
+    h += editPanel(s);
+
+    h += '<div class="entry-foot">';
+    if (s.example) h += '<span class="src example">Example &mdash; delete when you like</span>';
+    if (c && c.source === "swelleye") h += '<span class="src swelleye">Swelleye forecast</span>';
+    else if (c) h += '<span class="src">Entered by hand</span>';
+    h += "</div></article>";
+    return h;
+  }
+
+  function render(){
+    var box = el("entries");
+    el("count").textContent = loaded ? (sessions.length + (sessions.length === 1 ? " session" : " sessions")) : "—";
+
+    if (!loaded){
+      box.innerHTML = '<div class="panel empty"><h3>Loading your log…</h3></div>';
+      return;
+    }
+    if (!sessions.length){
+      box.innerHTML = '<div class="panel empty"><h3>Nothing logged yet</h3>' +
+        '<p style="margin:6px 0 0; color:var(--muted); font-size:15px">Three steps, every time:</p>' +
+        "<ol><li>Save the session above &mdash; spot, date, the 2-hour slot you were out.</li>" +
+        "<li>Hit <em>Copy prompt for Claude</em> and paste it into your chat. Claude reads the forecast in your logged-in browser and fills the numbers in.</li>" +
+        "<li>Come back later and the conditions are sitting here with your notes.</li></ol></div>";
+      renderPatterns();
+      return;
+    }
+    box.innerHTML = sessions.map(entryHTML).join("");
+    renderPatterns();
+  }
+
+  function mode(arr){
+    var counts = {}, best = null, bestN = 0;
+    arr.forEach(function(v){
+      if (!v) return;
+      counts[v] = (counts[v] || 0) + 1;
+      if (counts[v] > bestN){ bestN = counts[v]; best = v; }
+    });
+    return best;
+  }
+  function median(arr){
+    var a = arr.filter(function(x){ return x != null; }).sort(function(p, q){ return p - q; });
+    if (!a.length) return null;
+    var m = Math.floor(a.length / 2);
+    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+  }
+
+  function renderPatterns(){
+    var withCond = sessions.filter(function(s){ return s.cond; });
+    var sec = el("patterns-section");
+    if (withCond.length < 2){ sec.hidden = true; return; }
+    sec.hidden = false;
+
+    var by = {};
+    withCond.forEach(function(s){
+      var k = s.spot || "?";
+      (by[k] = by[k] || []).push(s);
+    });
+    var rows = Object.keys(by).map(function(k){
+      var list = by[k];
+      var mh = median(list.map(function(s){ return num(s.cond.swellHeightM); }));
+      var mp = median(list.map(function(s){ return num(s.cond.swellPeriodS); }));
+      return {
+        spot: spotLabel(k),
+        n: list.length,
+        h: mh, p: mp,
+        sd: mode(list.map(function(s){ return s.cond.swellDir; })),
+        wd: mode(list.map(function(s){ return s.cond.windDir; }))
+      };
+    }).sort(function(a, b){ return b.n - a.n; });
+
+    el("patterns").innerHTML = rows.map(function(r){
+      return "<tr><td class='spotname'>" + esc(r.spot) + "</td><td>" + r.n + "</td>" +
+             "<td>" + (r.h != null ? r.h.toFixed(1) + " m" : "—") + "</td>" +
+             "<td>" + (r.p != null ? r.p.toFixed(1) + " s" : "—") + "</td>" +
+             "<td>" + esc(r.sd || "—") + "</td><td>" + esc(r.wd || "—") + "</td></tr>";
+    }).join("");
+  }
+
+  /* ---------------- data ---------------- */
+  function sortSessions(){
+    sessions.sort(function(a, b){ return (b.when || "").localeCompare(a.when || ""); });
+  }
+
+  function subscribe(){
+    db.collection("sessions").orderBy("when", "desc").limit(400).onSnapshot(function(snap){
+      /* snapshot bodies are frozen — copy before adding the id, or strict
+         mode throws and the whole list silently never renders */
+      sessions = snap.docs.map(function(d){
+        var src = d.data() || {};
+        var copy = {};
+        Object.keys(src).forEach(function(k){ copy[k] = src[k]; });
+        copy.id = d.id;
+        return copy;
+      });
+      sortSessions();
+      settled = true;
+      loaded = true;
+      el("db-warning").hidden = true;
+      try {
+        render();
+      } catch (e) {
+        el("db-warning").hidden = false;
+        el("db-warning").querySelector(".notice").innerHTML =
+          "<strong>Your sessions loaded but couldn't be drawn.</strong> " + esc(e && e.message ? e.message : e);
+      }
+    }, function(err){
+      settled = true;
+      loaded = true;
+      el("db-warning").hidden = false;
+      el("db-warning").querySelector(".notice").innerHTML =
+        "<strong>Your log couldn't load just now.</strong> Reload the page to try again. (" + esc(err.code) + ")";
+      render();
+    });
+  }
+
+  /* ---------------- actions ---------------- */
+  el("f-save").addEventListener("click", function(){
+    if (!db){ toast("Saving unavailable here"); return; }
+    var spot = el("f-spot").value;
+    var date = el("f-date").value;
+    var time = el("f-time").value;
+    if (!date){ toast("Pick a date"); return; }
+    var rawNotes = sanitizeHtml(el("f-notes").innerHTML);
+    var doc = {
+      spot: spot,
+      when: date + "T" + time,
+      notesHtml: rawNotes,
+      notes: htmlToText(rawNotes),
+      cond: null,
+      photos: [],
+      createdAt: new Date().toISOString()
+    };
+    var btn = el("f-save");
+    btn.disabled = true;
+    db.collection("sessions").add(doc).then(function(){
+      el("f-notes").innerHTML = "";
+      toast("Session saved");
+    }).catch(function(e){
+      if (e && e.code === "quota_exceeded") toast("Log is full — delete old entries");
+      else toast("Couldn't save" + (e && e.code ? " (" + e.code + ")" : ""));
+    }).then(function(){ btn.disabled = false; });
+  });
+
+  el("f-export").addEventListener("click", function(){
+    if (!sessions.length){ toast("Nothing to export yet"); return; }
+    var head = ["date","time","spot","swell_m","period_s","swell_from","wind_ms","gust_ms","wind_from","tide_m","sea_c","air_c","notes"];
+    var lines = [head.join(",")];
+    sessions.slice().reverse().forEach(function(s){
+      var c = s.cond || {};
+      var row = [
+        (s.when || "").slice(0, 10), (s.when || "").slice(11, 16), spotLabel(s.spot),
+        c.swellHeightM, c.swellPeriodS, c.swellDir, c.windSpeedMs, c.windGustMs, c.windDir,
+        c.tideM, c.seaTempC, c.airTempC, s.notes
+      ].map(function(v){
+        if (v == null) return "";
+        var t = String(v);
+        return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      });
+      lines.push(row.join(","));
+    });
+    var csv = lines.join("\n");
+    if (downloads){
+      downloads.save({ filename: "surflog.csv", data: csv }).then(function(){
+        toast("Exported");
+      }).catch(function(){ toast("Export declined"); });
+    } else {
+      toast("Export unavailable in this view");
+    }
+  });
+
+  /* toolbar: keep the caret in the editor, then run the command */
+  document.addEventListener("mousedown", function(ev){
+    if (ev.target.closest(".tbtn")) ev.preventDefault();
+  });
+  document.addEventListener("click", function(ev){
+    var t = ev.target.closest(".tbtn");
+    if (!t) return;
+    var bar = t.closest(".toolbar");
+    var target = bar && document.getElementById(bar.dataset.target);
+    if (target) target.focus();
+    try { document.execCommand(t.dataset.cmd, false, null); } catch (e) {}
+    if (target) target.focus();
+  });
+  /* markdown-ish shortcuts: "- " or "* " starts bullets, "1. " starts numbers */
+  document.addEventListener("keydown", function(ev){
+    if (ev.key !== " " && ev.key !== "Spacebar") return;
+    var ed = ev.target && ev.target.closest && ev.target.closest(".editor");
+    if (!ed) return;
+
+    var sel = window.getSelection();
+    if (!sel || !sel.isCollapsed || !sel.rangeCount) return;
+
+    var node = sel.anchorNode;
+    if (!node || node.nodeType !== 3) return;
+
+    /* already inside a list item — let the characters stay literal */
+    if (node.parentElement && node.parentElement.closest("li")) return;
+
+    var before = node.nodeValue.slice(0, sel.anchorOffset);
+    var cmd = null;
+    if (before === "-" || before === "*") cmd = "insertUnorderedList";
+    else if (/^\d+\.$/.test(before)) cmd = "insertOrderedList";
+    if (!cmd) return;
+
+    ev.preventDefault();
+    var r = document.createRange();
+    r.setStart(node, 0);
+    r.setEnd(node, sel.anchorOffset);
+    r.deleteContents();
+    /* deleteContents leaves the document selection unset in some browsers —
+       put the caret back before asking for a list, or the command no-ops */
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    try { document.execCommand(cmd, false, null); } catch (e) {}
+  });
+
+  /* contenteditable leaves a stray <br> behind — keep :empty placeholder honest */
+  document.addEventListener("input", function(ev){
+    var ed = ev.target.closest && ev.target.closest(".editor");
+    if (ed && !ed.textContent.trim() && !ed.querySelector("li")) ed.innerHTML = "";
+  });
+
+  document.addEventListener("click", function(ev){
+    var b = ev.target.closest("[data-act]");
+    if (!b) return;
+    var id = b.dataset.id;
+    var act = b.dataset.act;
+    var s = sessions.filter(function(x){ return x.id === id; })[0];
+
+    if (act === "ask" && s){
+      var prompt = "Fill in the Swelleye conditions for my " + spotLabel(s.spot) +
+        " session on " + (s.when || "").slice(0, 10) + " at " + (s.when || "").slice(11, 16) +
+        " in Surflog (entry id " + id + ").";
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(prompt).then(function(){
+          toast("Prompt copied — paste it to Claude");
+        }).catch(function(){ window.prompt("Copy this and send it to Claude:", prompt); });
+      } else {
+        window.prompt("Copy this and send it to Claude:", prompt);
+      }
+      return;
+    }
+
+    if (act === "edit"){
+      var pane = document.querySelector('[data-edit="' + id + '"]');
+      if (!pane) return;
+      pane.hidden = !pane.hidden;
+      if (!pane.hidden){
+        var first = pane.querySelector("select, input");
+        if (first) first.focus();
+      }
+      return;
+    }
+
+    if (act === "canceledit"){
+      /* nothing was written, so rebuilding from state is the clean reset */
+      render();
+      return;
+    }
+
+    if (act === "saveedit" && db){
+      var pane2 = document.querySelector('[data-edit="' + id + '"]');
+      if (!pane2) return;
+      var spotSel = pane2.querySelector('[data-e="spot"]');
+      var dateIn = pane2.querySelector('[data-e="date"]');
+      var timeSel = pane2.querySelector('[data-e="time"]');
+      if (!dateIn || !dateIn.value){ toast("Pick a date"); return; }
+
+      var next = { source: "manual", filledAt: new Date().toISOString() };
+      var any = false;
+      Array.prototype.forEach.call(pane2.querySelectorAll("input[data-k]"), function(i){
+        var v = i.value.trim();
+        if (!v) return;
+        any = true;
+        next[i.dataset.k] = /Dir$/.test(i.dataset.k) ? v.toUpperCase() : num(v);
+      });
+
+      var cond = null;
+      if (any){
+        var prev = s && s.cond;
+        /* untouched numbers keep the original reading and its Swelleye badge
+           instead of being relabelled as hand-typed */
+        var same = !!prev && COND_FIELDS.every(function(f){
+          var x = prev[f[0]], y = next[f[0]];
+          x = (x === undefined || x === null) ? "" : String(x);
+          y = (y === undefined || y === null) ? "" : String(y);
+          return x === y;
+        });
+        cond = same ? prev : next;
+      }
+
+      var ed = document.getElementById("note-" + id);
+      var html = ed ? sanitizeHtml(ed.innerHTML) : "";
+
+      db.doc("sessions/" + id).update({
+        spot: spotSel.value,
+        when: dateIn.value + "T" + timeSel.value,
+        cond: cond,
+        notesHtml: html,
+        notes: htmlToText(html)
+      }).then(function(){
+        pane2.hidden = true;
+        toast("Saved");
+      }).catch(function(e){
+        toast("Couldn't save" + (e && e.code ? " (" + e.code + ")" : ""));
+      });
+      return;
+    }
+
+    if (act === "rmphoto" && db){
+      var pid = b.dataset.photo;
+      if (!window.confirm("Remove this from the session?")) return;
+      var kept = (s && s.photos ? s.photos : []).filter(function(x){ return x.id !== pid; });
+      db.doc("sessions/" + id).update({ photos: kept }).then(function(){
+        if (assets && assets.delete) return assets.delete(pid).catch(function(){});
+      }).then(function(){
+        toast("Removed");
+      }).catch(function(){ toast("Couldn't remove"); });
+      return;
+    }
+
+    if (act === "delete" && db){
+      if (!window.confirm("Delete this session? This can't be undone.")) return;
+      db.doc("sessions/" + id).delete().then(function(){ toast("Deleted"); })
+        .catch(function(){ toast("Couldn't delete"); });
+      return;
+    }
+
+    if (act === "photo"){
+      if (!assets){ toast("Uploads unavailable in this view"); return; }
+      var input = document.createElement("input");
+      input.type = "file"; input.accept = "image/*,video/*"; input.multiple = true;
+      input.addEventListener("change", function(){
+        var files = Array.prototype.slice.call(input.files || []);
+        if (!files.length) return;
+        toast("Uploading…");
+        Promise.all(files.map(function(f){ return assets.upload(f); })).then(function(res){
+          var photos = (s && s.photos ? s.photos.slice() : []).concat(res.map(function(r){
+            return { id: r.id, type: r.contentType || "" };
+          }));
+          return db.doc("sessions/" + id).update({ photos: photos });
+        }).then(function(){ toast("Added"); })
+          .catch(function(){ toast("Upload failed"); });
+      });
+      input.click();
+      return;
+    }
+  });
+
+  /* ---------------- boot ---------------- */
+  var settled = false;
+  function giveUp(showWarning){
+    if (settled) return;
+    settled = true;
+    loaded = true;
+    if (showWarning) el("db-warning").hidden = false;
+    render();
+  }
+
+  render();
+
+  if (window.claude && window.claude.use){
+    /* use() can hang in a view that never answers — never sit on a spinner. */
+    setTimeout(function(){ if (!db) giveUp(true); }, 6000);
+    setTimeout(function(){ giveUp(false); }, 14000);
+
+    window.claude.use("db").then(function(d){
+      db = d;
+      if (!db){ giveUp(true); return; }
+      subscribe();
+    }, function(){ giveUp(true); });
+
+    window.claude.use("assets").then(function(a){ assets = a; }, function(){});
+    window.claude.use("downloads").then(function(d){ downloads = d; }, function(){});
+  } else {
+    giveUp(true);
+  }
+})();
+</script>
