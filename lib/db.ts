@@ -1,13 +1,14 @@
 /**
- * Storage for sessions. Backed by data/sessions.json today — a JSON file,
- * read/written whole, with a lockless write queue so concurrent saves don't
- * interleave.
+ * Storage for sessions — Supabase Postgres (table `sessions`, schema in
+ * supabase/migrations/). Replaces the old data/sessions.json file (removed
+ * 2026-09-18); every call site elsewhere in the app is unchanged, since the
+ * exported functions here kept their exact same signatures.
  *
- * THIS IS DEV-ONLY. On Vercel the filesystem is read-only outside /tmp and
- * nothing written there survives past the request (or across instances).
- * Before deploying, swap this module for a real database (Postgres via
- * Vercel Postgres/Neon/Supabase — see README) — every call site goes through
- * the functions below, so that's the only file that needs to change.
+ * Always goes through lib/supabase.ts's service-role client, server-side
+ * only (API routes / server components) — never import this from a client
+ * component. RLS is enabled on the table with no policies, so this key is
+ * what makes any access possible at all; ownership scoping happens in this
+ * file and in the API routes that call it, not in Postgres.
  *
  * Multi-user (2026-09-18): every session is scoped by `ownerId` (a Google
  * account's stable subject id — see auth.ts). The 3 real sessions that
@@ -16,70 +17,67 @@
  * owns them (Capy) without handing them to whichever friend happens to sign
  * in first.
  */
-import { promises as fs } from "fs";
-import path from "path";
+import { getSupabase } from "./supabase";
 import type { Session } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const FILE = path.join(DATA_DIR, "sessions.json");
 const LEGACY_OWNER = "legacy";
+const TABLE = "sessions";
 
-interface Envelope {
-  exportedAt: string;
-  source: string;
-  sessions: Session[];
+/** DB row shape — see supabase/migrations/*_create_sessions_table.sql. */
+interface SessionRow {
+  id: string;
+  owner_id: string;
+  spot: string;
+  session_when: string;
+  notes_html: string;
+  notes: string;
+  photos: Session["photos"];
+  cond: Session["cond"];
+  cond_open_meteo: Session["condOpenMeteo"];
+  rating: number | null;
+  created_at: string;
+  example: boolean | null;
 }
 
-// Serializes writes within this process. Doesn't help across multiple
-// serverless instances — one more reason this is dev-only.
-let writeQueue: Promise<unknown> = Promise.resolve();
-
-function normalize(raw: unknown): Session {
-  const s = raw as Partial<Session> & Record<string, unknown>;
+function rowToSession(row: SessionRow): Session {
   return {
-    id: String(s.id ?? ""),
-    ownerId: typeof s.ownerId === "string" && s.ownerId ? s.ownerId : LEGACY_OWNER,
-    spot: String(s.spot ?? ""),
-    when: String(s.when ?? ""),
-    notesHtml: typeof s.notesHtml === "string" ? s.notesHtml : "",
-    notes: typeof s.notes === "string" ? s.notes : "",
-    photos: Array.isArray(s.photos) ? (s.photos as Session["photos"]) : [],
-    cond: (s.cond as Session["cond"]) ?? null,
-    condOpenMeteo: (s.condOpenMeteo as Session["condOpenMeteo"]) ?? null,
-    rating: typeof s.rating === "number" ? s.rating : null,
-    createdAt: String(s.createdAt ?? new Date().toISOString()),
-    ...(s.example ? { example: true as const } : {}),
+    id: row.id,
+    ownerId: row.owner_id,
+    spot: row.spot,
+    when: row.session_when,
+    notesHtml: row.notes_html,
+    notes: row.notes,
+    photos: row.photos ?? [],
+    cond: row.cond ?? null,
+    condOpenMeteo: row.cond_open_meteo ?? null,
+    rating: row.rating,
+    createdAt: row.created_at,
+    ...(row.example ? { example: true as const } : {}),
   };
 }
 
-async function readEnvelope(): Promise<Envelope> {
-  try {
-    const raw = await fs.readFile(FILE, "utf-8");
-    const parsed = JSON.parse(raw);
-    return {
-      exportedAt: parsed.exportedAt ?? new Date().toISOString(),
-      source: parsed.source ?? "Surflog",
-      sessions: Array.isArray(parsed.sessions) ? parsed.sessions.map(normalize) : [],
-    };
-  } catch (e: unknown) {
-    if ((e as NodeJS.ErrnoException)?.code === "ENOENT") {
-      return { exportedAt: new Date().toISOString(), source: "Surflog", sessions: [] };
-    }
-    throw e;
-  }
+/** Only the columns present in `session` get set — used for both insert and
+ *  partial update, so callers never have to know the DB's column names. */
+function sessionToRow(session: Partial<Session>): Partial<SessionRow> {
+  const row: Partial<SessionRow> = {};
+  if (session.id !== undefined) row.id = session.id;
+  if (session.ownerId !== undefined) row.owner_id = session.ownerId;
+  if (session.spot !== undefined) row.spot = session.spot;
+  if (session.when !== undefined) row.session_when = session.when;
+  if (session.notesHtml !== undefined) row.notes_html = session.notesHtml;
+  if (session.notes !== undefined) row.notes = session.notes;
+  if (session.photos !== undefined) row.photos = session.photos;
+  if (session.cond !== undefined) row.cond = session.cond;
+  if (session.condOpenMeteo !== undefined) row.cond_open_meteo = session.condOpenMeteo;
+  if (session.rating !== undefined) row.rating = session.rating;
+  if (session.createdAt !== undefined) row.created_at = session.createdAt;
+  if (session.example !== undefined) row.example = session.example ?? null;
+  return row;
 }
 
-async function writeEnvelope(env: Envelope): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${FILE}.${process.pid}.${Date.now()}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(env, null, 2) + "\n", "utf-8");
-  await fs.rename(tmp, FILE);
-}
-
-function enqueue<T>(fn: () => Promise<T>): Promise<T> {
-  const result = writeQueue.then(fn, fn);
-  writeQueue = result.catch(() => {});
-  return result;
+function assertNoError<T>(result: { data: T; error: { message: string } | null }): T {
+  if (result.error) throw new Error(`Supabase: ${result.error.message}`);
+  return result.data;
 }
 
 /**
@@ -93,74 +91,59 @@ async function claimLegacySessions(ownerId: string, email: string | null | undef
   const legacyOwnerEmail = process.env.LEGACY_OWNER_EMAIL;
   if (!legacyOwnerEmail || !email || email.toLowerCase() !== legacyOwnerEmail.toLowerCase()) return;
 
-  await enqueue(async () => {
-    const env = await readEnvelope();
-    let claimed = false;
-    for (const s of env.sessions) {
-      if (s.ownerId === LEGACY_OWNER) {
-        s.ownerId = ownerId;
-        claimed = true;
-      }
-    }
-    if (claimed) {
-      env.exportedAt = new Date().toISOString();
-      await writeEnvelope(env);
-    }
-  });
+  const result = await getSupabase()
+    .from(TABLE)
+    .update({ owner_id: ownerId })
+    .eq("owner_id", LEGACY_OWNER);
+  if (result.error) throw new Error(`Supabase: ${result.error.message}`);
 }
 
 export async function listSessions(ownerId: string, email?: string | null): Promise<Session[]> {
   await claimLegacySessions(ownerId, email);
-  const env = await readEnvelope();
-  return env.sessions
-    .filter((s) => s.ownerId === ownerId)
-    .sort((a, b) => (b.when || "").localeCompare(a.when || ""));
+
+  const result = await getSupabase()
+    .from(TABLE)
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("session_when", { ascending: false });
+  const rows = assertNoError(result) as SessionRow[];
+  return rows.map(rowToSession);
 }
 
 /** Unscoped lookup — callers (API routes) must check `.ownerId` themselves. */
 export async function getSession(id: string): Promise<Session | null> {
-  const env = await readEnvelope();
-  return env.sessions.find((s) => s.id === id) ?? null;
+  const result = await getSupabase().from(TABLE).select("*").eq("id", id).maybeSingle();
+  const row = assertNoError(result) as SessionRow | null;
+  return row ? rowToSession(row) : null;
 }
 
 export async function createSession(session: Session): Promise<Session> {
-  return enqueue(async () => {
-    const env = await readEnvelope();
-    env.sessions.push(session);
-    env.exportedAt = new Date().toISOString();
-    await writeEnvelope(env);
-    return session;
-  });
+  const result = await getSupabase()
+    .from(TABLE)
+    .insert(sessionToRow(session))
+    .select()
+    .single();
+  return rowToSession(assertNoError(result) as SessionRow);
 }
 
 export async function updateSession(
   id: string,
   patch: Partial<Session>
 ): Promise<Session | null> {
-  return enqueue(async () => {
-    const env = await readEnvelope();
-    const idx = env.sessions.findIndex((s) => s.id === id);
-    if (idx === -1) return null;
-    // copy before mutating — see CLAUDE.md "Bugs already hit": frozen
-    // snapshot objects have bitten this exact pattern before.
-    const next = { ...env.sessions[idx], ...patch, id };
-    env.sessions[idx] = next;
-    env.exportedAt = new Date().toISOString();
-    await writeEnvelope(env);
-    return next;
-  });
+  const result = await getSupabase()
+    .from(TABLE)
+    .update(sessionToRow(patch))
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  const row = assertNoError(result) as SessionRow | null;
+  return row ? rowToSession(row) : null;
 }
 
 export async function deleteSession(id: string): Promise<boolean> {
-  return enqueue(async () => {
-    const env = await readEnvelope();
-    const before = env.sessions.length;
-    env.sessions = env.sessions.filter((s) => s.id !== id);
-    if (env.sessions.length === before) return false;
-    env.exportedAt = new Date().toISOString();
-    await writeEnvelope(env);
-    return true;
-  });
+  const result = await getSupabase().from(TABLE).delete().eq("id", id).select("id");
+  const rows = assertNoError(result) as { id: string }[];
+  return rows.length > 0;
 }
 
 export function newSessionId(): string {

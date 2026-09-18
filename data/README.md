@@ -1,12 +1,14 @@
 # data/
 
-Runtime storage for local dev — see `lib/db.ts` / `lib/blob.ts`.
+**No longer used by the app** as of 2026-09-18 — `lib/db.ts` and
+`lib/blob.ts` now talk to Supabase (Postgres + Storage), not this
+directory. See `supabase/migrations/` for the schema and the top of
+`lib/db.ts` / `lib/blob.ts` for how.
 
-- `sessions.json` — the journal itself. **Not committed** (real personal
-  entries live here locally only — decided 2026-09-18, when this repo went
-  public). Missing entirely is fine: the app creates it on the first save,
-  starting empty.
-- `blobs/` — uploaded photo/video files. Also not committed, same reason.
-
-Neither of these is meant to survive a Vercel deploy as-is — see README.md
-"Before deploying to Vercel".
+- `sessions.json` — the pre-Supabase journal file. Kept locally only as a
+  backup of what got migrated (see the 3 rows with `owner_id: "legacy"` in
+  the `sessions` table); not read by anything anymore. Safe to delete once
+  you're confident the migration is solid, but there's no rush — it's
+  gitignored either way.
+- `blobs/` — same story, for photos; superseded by the Storage bucket
+  `photos`.

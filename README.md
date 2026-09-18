@@ -11,21 +11,51 @@ entry schema, and the bugs already paid for).
 ## Stack
 
 Next.js (App Router) + [shadcn/ui](https://ui.shadcn.com) (`radix-nova`
-preset) + Tailwind v4 + [Auth.js](https://authjs.dev) (Google provider).
-Single light theme, no dark mode — see CLAUDE.md "Conventions".
+preset) + Tailwind v4 + [Auth.js](https://authjs.dev) (Google provider) +
+[Supabase](https://supabase.com) (Postgres + Storage). Single light theme,
+no dark mode — see CLAUDE.md "Conventions".
 
 ## Running it locally
 
 ```
 npm install
-cp .env.example .env.local   # then fill it in — see "Setting up Google sign-in"
+cp .env.example .env.local   # then fill it in — see the two setup sections below
 npm run dev
 ```
 
-Opens on `http://localhost:3000` and redirects straight to `/signin` until
-you've set up Google OAuth (below). Open-Meteo itself needs no API key, and
-storage is a JSON file already in the repo — nothing else to configure for
-local dev once sign-in works.
+Opens on `http://localhost:3000` and redirects to `/signin` until Google
+OAuth is set up. Open-Meteo needs no key. Supabase and Google sign-in both
+need setup once (below) — after that, nothing else to configure for local
+dev.
+
+## Setting up Supabase
+
+The project already exists (`surflog`, org `averysSupabase`, ap-northeast-1)
+with its schema pushed — you likely just need the keys, not to create
+anything:
+
+1. **Dashboard → Project Settings → API** → copy the **Project URL** and the
+   **secret** `service_role`-equivalent key (`sb_secret_...` — not the
+   `sb_publishable_...` one).
+2. Put them in `.env.local` as `SUPABASE_URL` and `SUPABASE_SECRET_KEY`.
+
+That's it for an existing clone. Setting this up **from scratch** (a fresh
+Supabase project) instead:
+
+1. `supabase login`, then `supabase projects create surflog --org-id
+   <your-org-id> --region <closest-to-you> --db-password <generate one>`.
+2. `supabase link --project-ref <the new ref>`.
+3. `supabase db push` — applies everything in `supabase/migrations/`
+   (creates the `sessions` and `photo_blobs` tables).
+4. Create a **private** Storage bucket named `photos` (Dashboard → Storage,
+   or `POST /storage/v1/bucket` with `{"id":"photos","public":false}` —
+   there's no CLI subcommand for this yet).
+5. Grab the URL/key as in step 1 above.
+
+`SUPABASE_SECRET_KEY` bypasses Row Level Security entirely — see
+`lib/supabase.ts` and CLAUDE.md "Multi-user" for why that's fine here (it's
+server-side only; ownership is enforced in the API routes, not in Postgres)
+but never let it reach the browser or a client component.
 
 ## Setting up Google sign-in
 
@@ -65,10 +95,10 @@ empty journal. If you want to restrict *who* can sign in at all (not just
 what they can see), that's a small addition on top — ask for it if you want
 it; it isn't built in.
 
-The 3 real sessions logged before accounts existed carry a placeholder
-owner. See `.env.example` → `LEGACY_OWNER_EMAIL` for the one-time claim that
-hands them to whoever's email matches it, the first time that person signs
-in.
+The 3 real sessions logged before accounts existed were migrated into
+Supabase with a placeholder owner. See `.env.example` → `LEGACY_OWNER_EMAIL`
+for the one-time claim that hands them to whoever's email matches it, the
+first time that person signs in.
 
 ## What's here
 
@@ -76,12 +106,13 @@ in.
 CLAUDE.md                     context for Claude Code — read first
 VALIDATION.md                 spot-fit experiments — read before touching lib/spot-fit.ts
 reference/surf-journal.html   the artifact version, still in daily use today
-data/sessions.json            live storage, read/written by this app — gitignored (see data/README.md)
-data/blobs/                   uploaded photos/videos (gitignored, local-only)
+data/                         pre-Supabase local storage — unused now, see data/README.md
+supabase/migrations/          the actual schema (sessions, photo_blobs tables)
 lib/spots.ts                  42 Swelleye spot slugs + coordinates (most still TODO)
 lib/openmeteo.ts              server-side conditions lookup
 lib/spot-fit.ts               per-spot discriminator (see VALIDATION.md — unverified)
-lib/db.ts, lib/blob.ts        storage — filesystem today, swap before deploying (see below)
+lib/supabase.ts               server-side Supabase client — never import from a client component
+lib/db.ts, lib/blob.ts        Supabase-backed storage (Postgres + Storage)
 auth.ts, proxy.ts             Google sign-in + route protection (Auth.js)
 app/api/sessions/…            session CRUD + photo upload, calls Open-Meteo at save time
 app/page.tsx, components/     the UI
@@ -89,44 +120,23 @@ app/page.tsx, components/     the UI
 
 ## ⚠️ Before deploying to Vercel
 
-This runs great locally, but **do not deploy it to Vercel as-is** — two
-things will silently break:
+The database and photo storage are handled now (Supabase, both set up —
+see above). What's left before this can actually go live:
 
-1. **Storage is a JSON file on disk** (`lib/db.ts`, `data/sessions.json`).
-   Vercel's filesystem is read-only outside `/tmp`, and `/tmp` doesn't
-   survive between requests or across serverless instances. Sessions would
-   appear to save, then vanish. Swap `lib/db.ts` for a real database before
-   deploying — every call site goes through that one file, so it's the only
-   thing that needs to change. You already have the Supabase CLI installed
-   locally (`~/.supabase`); [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres),
-   [Neon](https://neon.tech), and [Supabase](https://supabase.com) all work
-   and have a free tier.
-2. **Photo/video uploads are local files** (`lib/blob.ts`,
-   `data/blobs/`). Same problem, same fix: swap for
-   [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) (simplest,
-   same-vendor) or S3-compatible storage before deploying.
+- **A Vercel project**, with the GitHub repo connected and these env vars
+  set: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `AUTH_SECRET`,
+  `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` (and `LEGACY_OWNER_EMAIL` if you
+  still need that one-time claim to happen). None of this has been done yet
+  — no Vercel project exists.
+- **The production Google OAuth redirect URI** — add
+  `https://<your-vercel-domain>/api/auth/callback/google` in Google Cloud
+  Console once you know the domain (see "Setting up Google sign-in" above).
+- `npm run build` locally first — it already catches most misconfiguration
+  (missing env vars fail loudly via `lib/supabase.ts`'s explicit check,
+  rather than silently doing the wrong thing).
 
-These are two different kinds of "storage": (1) is a database — structured
-rows (spot, notes, conditions) — currently just a JSON file, nothing set up
-yet. (2) is object/blob storage for the raw photo/video files themselves —
-the same category AWS S3 is in; Vercel Blob is Vercel's equivalent. Neither
-is needed for local dev, only once this runs on Vercel's read-only,
-ephemeral filesystem.
-
-Once those two are swapped:
-
-- `vercel link` / `vercel env pull` to wire up whichever database/blob env
-  vars your provider gives you (`DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`,
-  etc. — exact names depend on what you pick), plus `AUTH_SECRET` /
-  `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` from "Setting up Google sign-in"
-  above.
-- Add the production redirect URI in Google Cloud Console once you know the
-  Vercel domain (step 3 above).
-- No other API keys needed — Open-Meteo is free, keyless, and CORS/sandbox
-  problems don't apply server-side.
-- `npm run build` locally first — it catches most of this (it won't catch
-  the storage issue itself, since that only shows up at runtime on
-  read-only infra).
+Open-Meteo needs no key and has no CORS/sandbox issues server-side, so
+nothing to do there.
 
 ## Licence note
 

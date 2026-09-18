@@ -20,10 +20,13 @@ Two implementations exist:
 2. **This repo** — the self-hosted rewrite, so conditions fill in automatically.
    Next.js + shadcn/ui, built out 2026-09-18: log form, session list, inline
    edit, photo/video upload, CSV export, spot-fit description chips, patterns
-   table, Google sign-in. Storage is `data/sessions.json` + `data/blobs/` on
-   the local filesystem — **dev-only**, not deployed. See README.md "Before
-   deploying to Vercel" before putting this on Vercel; it needs a real
-   database and blob store first.
+   table, Google sign-in. Storage moved to Supabase the same day (Postgres
+   for `sessions`, Storage for photos — see `lib/db.ts`/`lib/blob.ts` and
+   `supabase/migrations/`); the original `data/sessions.json` +
+   `data/blobs/` filesystem version is gone, migrated in. **Not deployed
+   anywhere yet** — no Vercel project exists. See README.md "Before
+   deploying to Vercel" for what's actually left (just Vercel + the
+   production OAuth redirect URI at this point).
 
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
@@ -46,20 +49,34 @@ journal. What this means concretely:
   `lib/db.ts`'s `listSessions` takes `ownerId`, and every mutation route
   fetches the row first and 404s (not 403 — don't confirm the id exists) if
   `ownerId` doesn't match the caller.
-- **Photos are scoped too.** `lib/blob.ts` writes an `.owner` sidecar next
-  to each blob; `app/api/blob/[id]/route.ts` checks it before serving, so
-  one user can't view another's photo even by guessing/knowing its id.
+- **Photos are scoped too.** Bytes live in Supabase Storage (bucket
+  `photos`); ownership and mime type live in a companion Postgres table,
+  `photo_blobs` (not Storage's own custom-metadata support — version-
+  dependent and awkward to query, a plain table is the same proven pattern
+  as `sessions`). `app/api/blob/[id]/route.ts` checks `owner_id` there
+  before serving, so one user can't view another's photo even by
+  guessing/knowing its id.
 - **Nothing aggregates across users.** Patterns table, CSV export, spot-fit
   — all computed from one person's own sessions only. If cross-user
   aggregate stats ever get asked for, that's new scope, not an extension of
   what's here.
 - **The pre-login data problem.** The 3 real sessions logged before accounts
-  existed have no natural owner. They're tagged with a placeholder
-  (`"legacy"`) and claimed automatically — permanently — by whoever's email
-  matches the `LEGACY_OWNER_EMAIL` env var the first time that person signs
-  in (`lib/db.ts` `claimLegacySessions`). This has to be gated on a specific
+  existed had no natural owner. They're tagged with a placeholder
+  (`"legacy"`, already migrated into the Supabase `sessions` table) and get
+  claimed automatically — permanently — by whoever's email matches the
+  `LEGACY_OWNER_EMAIL` env var the first time that person signs in
+  (`lib/db.ts` `claimLegacySessions`). This has to be gated on a specific
   email, not "whoever signs in first" — a friend beating Capy to first
   sign-in must never end up owning Capy's own journal.
+- **Storage is Supabase** (Postgres for `sessions`/`photo_blobs`, Storage
+  for photo bytes), not a local file — see `lib/supabase.ts`. RLS is
+  enabled on both tables with **no policies**; the app authenticates as the
+  service_role-equivalent secret key (server-side only, never sent to the
+  browser) which bypasses RLS entirely, and does its own ownership checks
+  in the API routes as described above. This is deliberate, not a gap to
+  fill in later — see README.md "Setting up Supabase" for why RLS/Supabase
+  Auth was never the plan here (Google sign-in via Auth.js is the only auth
+  system in this app).
 
 ## The automation problem (read this first)
 
@@ -265,11 +282,10 @@ numbers from either source.
 
 The artifact db (collection `sessions`) holds the version below without
 `ownerId`/`condOpenMeteo`/`rating`. This repo's schema (`lib/types.ts`) is
-that plus all three, now implemented — `data/sessions.json` is what this app
-reads and writes directly (dev-only storage, see "Status"). That file is
-gitignored as of 2026-09-18 (repo went public; it held Capy's real entries —
-see `data/README.md`), so it won't exist in a fresh clone until something's
-been saved.
+that plus all three, now implemented — backed by the `sessions` table in
+Supabase Postgres (`supabase/migrations/`), read/written through
+`lib/db.ts`. The old `data/sessions.json` file this used to be is gone; see
+`data/README.md` for where its 3 real rows ended up.
 
 ```
 {
