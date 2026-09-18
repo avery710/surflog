@@ -117,7 +117,7 @@ export function EntryCard({
         </span>
         {session.rating != null && <ReadOnlyStars value={session.rating} />}
         <span className="flex-1" />
-        <span className="flex gap-1.5">
+        <span className="flex flex-wrap gap-1.5">
           <Button
             variant="secondary"
             size="sm"

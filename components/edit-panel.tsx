@@ -159,7 +159,7 @@ export function EditPanel({
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <span className="pl-0.5 text-xs font-semibold text-muted-foreground">
             Conditions (Swelleye, entered by hand)
           </span>
