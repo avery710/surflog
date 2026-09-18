@@ -2,9 +2,11 @@
  * Swelleye spot slugs — harvested from swelleye.com 2026-09-16.
  * Slugs are NOT derivable from names; this table is the source of truth.
  *
- * `lat`/`lng` are needed for Open-Meteo. Only Wai'ao is confirmed (taken from
- * its spot page, where coordinates are embedded in the page URLs). Everything
- * else is null — fill it by opening swelleye.com/en/surf-spots/<slug>/.
+ * `lat`/`lng` are needed for Open-Meteo. Wai'ao and Jialeshui are confirmed
+ * (taken from their spot pages, where coordinates are embedded in the page
+ * URLs). Everything else is null — fill it by opening
+ * swelleye.com/en/surf-spots/<slug>/. Never approximate a coordinate; the
+ * grid node it picks changes (see CLAUDE.md "Spots").
  *
  * NOTE: neighbouring spots share one Open-Meteo grid node (see CLAUDE.md,
  * "Open-Meteo's real resolution limit"). Coordinates still matter for picking
@@ -71,9 +73,30 @@ export const SPOTS: Spot[] = [
   { slug: "taitung", name: "Taitung", region: "East", lat: null, lng: null },
 
   { slug: "jiupeng", name: "Jiupeng", region: "South", lat: null, lng: null },
-  // approximate — not taken from the spot page, verify before trusting
-  { slug: "jialeshui", name: "Jialeshui", region: "South", lat: 22.05, lng: 120.9 },
-  { slug: "nanwan", name: "Nanwan", region: "South", lat: null, lng: null },
+  {
+    slug: "jialeshui",
+    name: "Jialeshui",
+    region: "South",
+    // confirmed from the spot page — supersedes an earlier ~10km-off guess
+    // of 22.05, 120.9 (see CLAUDE.md "Spots")
+    lat: 21.987722,
+    lng: 120.845982,
+    facing: "SE",
+    bestSwellDir: ["ENE", "E", "SE", "SSE"],
+    bestWindDir: ["W"],
+    bestTide: "Mid",
+  },
+  {
+    slug: "nanwan",
+    name: "Nanwan",
+    region: "South",
+    lat: null,
+    lng: null,
+    facing: "S",
+    bestSwellDir: ["S", "SE", "SSW"],
+    bestWindDir: ["N", "NE"],
+    bestTide: "Low to Mid",
+  },
   { slug: "sheliao", name: "Sheliao", region: "South", lat: null, lng: null },
 
   { slug: "qijin", name: "Qijin", region: "West", lat: null, lng: null },
