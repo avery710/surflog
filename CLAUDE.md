@@ -23,10 +23,25 @@ Two implementations exist:
    table, Google sign-in. Storage moved to Supabase the same day (Postgres
    for `sessions`, Storage for photos — see `lib/db.ts`/`lib/blob.ts` and
    `supabase/migrations/`); the original `data/sessions.json` +
-   `data/blobs/` filesystem version is gone, migrated in. **Not deployed
-   anywhere yet** — no Vercel project exists. See README.md "Before
-   deploying to Vercel" for what's actually left (just Vercel + the
-   production OAuth redirect URI at this point).
+   `data/blobs/` filesystem version is gone, migrated in. Repo went public
+   the same day too (`github.com/avery710/surflog`, `main` only — a
+   `staging` branch existed briefly, deleted same day, not worth the
+   overhead yet). A responsive-design pass also landed 2026-09-18: most of
+   the UI was already mobile-friendly by construction, two real overflow
+   risks got fixed (`entry-card.tsx`'s button row, `edit-panel.tsx`'s
+   refresh-conditions row) — see git log. **Live phone/tablet testing is
+   still owed**: the browser resize tool wasn't reliably shrinking the
+   viewport in this environment, and testing against the real authenticated
+   app would've meant weakening auth locally, which was deliberately not
+   done — see "Bugs already hit" if this needs revisiting.
+
+   **As of 2026-09-19**: still not deployed anywhere — no Vercel project
+   exists. Blocking that: the Google OAuth client itself isn't finished
+   yet — walking through Google Cloud Console's consent screen setup now,
+   `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` in `.env.local` are still empty
+   placeholders, so sign-in doesn't work even locally yet. See README.md
+   "Setting up Google sign-in" for the steps, "Before deploying to Vercel"
+   for what's left after that.
 
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
