@@ -75,8 +75,9 @@ You need your own OAuth client — you can't reuse anyone else's Client ID.
      (add this once you have the domain; you can add it later and redeploy)
 4. Copy the **Client ID** and **Client secret** into `.env.local` as
    `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`.
-5. Generate the session-signing secret: `npx auth secret` (writes
-   `AUTH_SECRET` into `.env.local` for you).
+5. Generate the session-signing secret: `AUTH_SECRET=$(openssl rand -base64 33)` and add
+   it to `.env.local`. (`npx auth secret` installs the wrong package and fails silently —
+   use `openssl` instead.)
 6. `npm run dev`, visit `http://localhost:3000` → redirects to `/signin` →
    "Continue with Google" should work end to end.
 
