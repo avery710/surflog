@@ -119,25 +119,46 @@ app/api/sessions/…            session CRUD + photo upload, calls Open-Meteo at
 app/page.tsx, components/     the UI
 ```
 
-## ⚠️ Before deploying to Vercel
+## Staging deploys
 
-The database and photo storage are handled now (Supabase, both set up —
-see above). What's left before this can actually go live:
+Pushing to the `staging` branch runs `.github/workflows/deploy-staging.yml`:
+lint → typecheck → `vercel build` → deploy to Vercel (Preview environment)
+→ alias it to one fixed staging URL. A failing lint or typecheck stops the
+deploy. `vercel.json` turns off Vercel's own deploy-on-push, so this
+workflow is the only thing that deploys — nothing reaches Vercel without
+passing those checks. There is no production deploy yet; `main` doesn't
+deploy anywhere.
 
-- **A Vercel project**, with the GitHub repo connected and these env vars
-  set: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `AUTH_SECRET`,
-  `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` (and `LEGACY_OWNER_EMAIL` if you
-  still need that one-time claim to happen). None of this has been done yet
-  — no Vercel project exists.
-- **The production Google OAuth redirect URI** — add
-  `https://<your-vercel-domain>/api/auth/callback/google` in Google Cloud
-  Console once you know the domain (see "Setting up Google sign-in" above).
-- `npm run build` locally first — it already catches most misconfiguration
-  (missing env vars fail loudly via `lib/supabase.ts`'s explicit check,
-  rather than silently doing the wrong thing).
+One-time setup:
 
-Open-Meteo needs no key and has no CORS/sandbox issues server-side, so
-nothing to do there.
+1. **Vercel project** — vercel.com → Add New → Project → import this repo
+   (Next.js is detected). The first deploy it offers can be skipped.
+2. **App env vars** — Vercel project → Settings → Environment Variables,
+   environment **Preview**: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+   `AUTH_SECRET` (generate a fresh one: `openssl rand -base64 33`),
+   `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CWA_API_KEY`, and
+   `LEGACY_OWNER_EMAIL` until the one-time legacy claim has happened. These
+   stay in Vercel; the workflow pulls them at build time.
+3. **GitHub secrets** — repo → Settings → Secrets and variables → Actions:
+   - Secrets: `VERCEL_TOKEN` (vercel.com/account/tokens),
+     `VERCEL_PROJECT_ID` (Vercel project → Settings → General),
+     `VERCEL_ORG_ID` (your Vercel account/team → Settings → General → ID).
+   - Variables: `STAGING_DOMAIN`, e.g. `surflog-staging.vercel.app` — any
+     free `*.vercel.app` name. Every deploy gets a new random URL; this is
+     the one address that always points at the latest staging build.
+4. **Google sign-in** — in Google Cloud Console, add
+   `https://<STAGING_DOMAIN>/api/auth/callback/google` as an authorized
+   redirect URI on the OAuth client (see "Setting up Google sign-in").
+5. **Who can open it** — Vercel puts a Vercel-login wall on Preview
+   deployments by default. To let friends in, Vercel project → Settings →
+   Deployment Protection → turn off Vercel Authentication.
+6. Push: `git push origin staging`. Watch it under the repo's Actions tab.
+
+Staging uses the same Supabase project as local dev — there's only one
+database, so anything created on staging is real data.
+
+Run `npm run build` locally before pushing if in doubt — missing env vars
+fail loudly via `lib/supabase.ts`'s explicit check. Open-Meteo needs no key.
 
 ## Licence note
 

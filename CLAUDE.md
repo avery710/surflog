@@ -26,7 +26,9 @@ Two implementations exist:
    `data/blobs/` filesystem version is gone, migrated in. Repo went public
    the same day too (`github.com/avery710/surflog`, `main` only — a
    `staging` branch existed briefly, deleted same day, not worth the
-   overhead yet). A responsive-design pass also landed 2026-09-18: most of
+   overhead yet. Reintroduced 2026-09-22 as the deploy branch: pushing to
+   `staging` runs `.github/workflows/deploy-staging.yml` → Vercel; see
+   README.md "Staging deploys"). A responsive-design pass also landed 2026-09-18: most of
    the UI was already mobile-friendly by construction, two real overflow
    risks got fixed (`entry-card.tsx`'s button row, `edit-panel.tsx`'s
    refresh-conditions row) — see git log. **Live phone/tablet testing is

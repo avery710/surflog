@@ -21,3 +21,6 @@ supabase/.temp/
 # (empty) on first write if it's missing, so a clone of this repo just
 # starts with an empty journal. See data/README.md.
 data/sessions.json
+
+# Vercel CLI link state (project/org ids)
+.vercel
