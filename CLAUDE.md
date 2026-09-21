@@ -49,8 +49,8 @@ Two implementations exist:
    - **Wind unit bug fixed**: every Open-Meteo wind value stored before this
      date was km/h labelled as m/s — see "Bugs already hit".
    - **Bilingual UI** (English / 繁體中文) — see "Localization".
-   - UI flow: logging a session is a `+` button next to the title that
-     opens a modal (`components/ui/dialog.tsx`); the avatar in the top-right
+   - UI flow: logging a session is a `+` button in the top-right, beside
+     the avatar, that opens a modal (`components/ui/dialog.tsx`); the avatar
      opens a menu with Export CSV, a Language submenu, and Sign out; an
      activity calendar (`components/activity-calendar.tsx`) and a
      spot/session-count table sit below the header; sessions list newest
@@ -523,7 +523,8 @@ New agent files only load when a Claude Code session starts.
 - Times are Asia/Taipei local, no timezone suffix stored.
 - UI: white background, black text, single light theme (no dark mode — removed
   on request). Rounded components, Coinbase-ish: 24px cards, 16px tiles, pill
-  buttons. Plus Jakarta Sans for UI, Newsreader serif for Capy's own notes,
-  IBM Plex Mono for readings. Teal accent `#0E7C86`.
+  buttons. Plus Jakarta Sans for UI and notes (notes were Newsreader serif
+  until 2026-09-22; switched to match the labels, on request), IBM Plex Mono
+  for readings. Teal accent `#0E7C86`.
 - Notes are rich text with a markdown-ish `- ` shortcut for bullets. Capy writes
   notes in Chinese; don't break CJK handling.

@@ -65,10 +65,10 @@ export function Journal({
   return (
     <>
       <header className="flex flex-wrap items-center justify-between gap-4 py-7.5 pb-5">
-        <div className="flex items-center gap-3">
-          <h1 className="font-sans text-[30px] font-extrabold tracking-[-0.025em] leading-tight">
-            Surflog
-          </h1>
+        <h1 className="font-sans text-[30px] font-extrabold tracking-[-0.025em] leading-tight">
+          Surflog
+        </h1>
+        <div className="flex items-center gap-2.5">
           <Button
             size="icon-lg"
             onClick={() => setFormOpen(true)}
@@ -78,8 +78,8 @@ export function Journal({
           >
             <Plus className="size-5" />
           </Button>
+          <UserMenu user={user} onExportCsv={handleExport} />
         </div>
-        <UserMenu user={user} onExportCsv={handleExport} />
       </header>
 
       <div className="mt-6.5 flex flex-wrap items-start gap-4">

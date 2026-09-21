@@ -109,8 +109,26 @@ export function EntryCard({
   const tide = session.condCwaTide;
   const manual = session.cond;
 
+  const cardClass =
+    "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-border bg-card shadow-[var(--shadow-card)]";
+
+  if (editing) {
+    return (
+      <article className={cardClass}>
+        <EditPanel
+          session={session}
+          onSaved={(s) => {
+            onUpdated(s);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </article>
+    );
+  }
+
   return (
-    <article className="mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-border bg-card shadow-[var(--shadow-card)]">
+    <article className={cardClass}>
       <div className="flex flex-wrap items-center gap-3 px-6 pt-5.5 pb-3.5">
         <span className="text-[21px] font-bold tracking-[-0.02em] leading-tight">
           {spotLabel(session.spot, lang)}
@@ -127,9 +145,9 @@ export function EntryCard({
             variant="secondary"
             size="sm"
             className="rounded-full"
-            onClick={() => setEditing((v) => !v)}
+            onClick={() => setEditing(true)}
           >
-            {editing ? t("edit.cancel") : t("entry.edit")}
+            {t("entry.edit")}
           </Button>
           <Button
             variant="secondary"
@@ -294,7 +312,7 @@ export function EntryCard({
 
       {session.notesHtml && (
         <div
-          className="notes-html px-6 pt-2.5 pb-1.5 font-serif text-[17px] leading-[1.62]"
+          className="notes-html px-6 pt-2.5 pb-1.5 font-sans text-[15px] leading-[1.65]"
           dangerouslySetInnerHTML={{ __html: session.notesHtml }}
         />
       )}
@@ -336,17 +354,6 @@ export function EntryCard({
             </div>
           ))}
         </div>
-      )}
-
-      {editing && (
-        <EditPanel
-          session={session}
-          onSaved={(s) => {
-            onUpdated(s);
-            setEditing(false);
-          }}
-          onCancel={() => setEditing(false)}
-        />
       )}
 
       <div className="flex flex-wrap items-center gap-2 px-6 pt-2.5 pb-5">

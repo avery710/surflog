@@ -118,7 +118,7 @@ export function RichTextEditor({
         aria-label={t("form.notes")}
         data-placeholder={placeholder ?? t("editor.placeholder")}
         className={cn(
-          "editor-content font-serif px-4 py-2.5 text-[16.5px] leading-[1.62] outline-none",
+          "editor-content font-sans px-4 py-2.5 text-[15px] leading-[1.65] outline-none",
           minHeightClassName
         )}
         onInput={handleInput}

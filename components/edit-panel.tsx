@@ -110,7 +110,7 @@ export function EditPanel({
   }
 
   return (
-    <div className="mx-6 mb-5 flex flex-col gap-4.5 rounded-[var(--r-tile)] bg-secondary p-5">
+    <div className="flex flex-col gap-4.5 p-6">
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Field label={t("form.spot")}>
           <Select value={spot} onValueChange={setSpot}>
@@ -198,7 +198,6 @@ export function EditPanel({
         <RichTextEditor
           defaultHtml={notesHtml}
           onChangeHtml={setNotesHtml}
-          className="bg-background"
         />
       </div>
 
