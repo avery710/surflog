@@ -3,8 +3,9 @@ import { auth } from "@/auth";
 import { listSessions, createSession, newSessionId } from "@/lib/db";
 import { spotBySlug } from "@/lib/spots";
 import { getConditions } from "@/lib/openmeteo";
+import { getTide } from "@/lib/cwa-tide";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
-import type { CondOpenMeteo, Session } from "@/lib/types";
+import type { CondCwaTide, CondOpenMeteo, Session } from "@/lib/types";
 
 export async function GET() {
   // middleware already rejects unauthenticated requests, but route handlers
@@ -56,6 +57,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let condCwaTide: CondCwaTide | null = null;
+  if (spotInfo?.tideTownship) {
+    try {
+      condCwaTide = await getTide(spotInfo.tideTownship, when);
+    } catch {
+      // best-effort — a session should still save if CWA is down
+      condCwaTide = null;
+    }
+  }
+
   const newSession: Session = {
     id: newSessionId(),
     ownerId: session.user.id,
@@ -66,6 +77,7 @@ export async function POST(req: NextRequest) {
     photos: [],
     cond: null,
     condOpenMeteo,
+    condCwaTide,
     rating,
     createdAt: new Date().toISOString(),
   };

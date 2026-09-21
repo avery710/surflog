@@ -20,6 +20,7 @@ const MARINE_VARS = [
   "wind_wave_height",
   "wind_wave_period",
   "sea_surface_temperature",
+  "sea_level_height_msl",
 ].join(",");
 
 // wind lives on the weather endpoint, not the marine one
@@ -45,6 +46,11 @@ export interface Conditions {
   windDirDeg: number | null;
   seaTempC: number | null;
   airTempC: number | null;
+  /** Modelled sea level vs mean sea level (tide + surge), metres. Fallback
+   *  for when CWA's tide forecast can't cover a session (past dates,
+   *  overseas). Different datum from CWA's TWVD heights — don't compare. */
+  seaLevelM: number | null;
+  seaLevelTrend: "rising" | "falling" | null;
   /** the grid node actually used — may be km from the spot, always show it */
   gridLat: number;
   gridLng: number;
@@ -75,12 +81,24 @@ export async function getConditions(
 
   const [marine, weather] = await Promise.all([
     fetch(`${MARINE}?${common}&hourly=${MARINE_VARS}`).then((r) => r.json()),
-    fetch(`${windBase}?${common}&hourly=${WIND_VARS}`).then((r) => r.json()),
+    // Open-Meteo's default wind unit is km/h — every value stored before
+    // 2026-09-22 was km/h mislabelled as m/s until this param was added.
+    fetch(`${windBase}?${common}&hourly=${WIND_VARS}&wind_speed_unit=ms`).then((r) => r.json()),
   ]);
 
   const mh = marine.hourly;
   const wh = weather.hourly;
   const i = hour; // hourly arrays are 0..23 for a single local day
+
+  // trend from the neighbouring hour; at 23:00 look back instead of ahead
+  const seaLevelM = pick(mh, "sea_level_height_msl", i);
+  const seaLevelOther = pick(mh, "sea_level_height_msl", i < 23 ? i + 1 : i - 1);
+  const seaLevelTrend =
+    seaLevelM == null || seaLevelOther == null || seaLevelOther === seaLevelM
+      ? null
+      : (i < 23 ? seaLevelOther > seaLevelM : seaLevelM > seaLevelOther)
+        ? "rising"
+        : "falling";
 
   return {
     swellHeightM: pick(mh, "swell_wave_height", i),
@@ -97,6 +115,8 @@ export async function getConditions(
     windDirDeg: pick(wh, "wind_direction_10m", i),
     seaTempC: pick(mh, "sea_surface_temperature", i),
     airTempC: pick(wh, "temperature_2m", i),
+    seaLevelM,
+    seaLevelTrend,
     gridLat: marine.latitude,
     gridLng: marine.longitude,
     source: "open-meteo",

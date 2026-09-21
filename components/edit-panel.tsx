@@ -17,23 +17,27 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { RatingPicker } from "@/components/rating-picker";
 import { SPOTS, type Region } from "@/lib/spots";
-import { OVERSEAS_PRESETS } from "@/lib/overseas-presets";
+import { spotLabel } from "@/lib/format";
+import { useLang, type TKey } from "@/lib/i18n";
 import { TIME_SLOTS } from "@/lib/time-slots";
 import type { Cond, Session } from "@/lib/types";
 
 const REGIONS: Region[] = ["Northeast", "North", "East", "South", "West"];
 
-const COND_FIELDS: { key: keyof Cond; label: string; placeholder: string }[] = [
-  { key: "swellHeightM", label: "Swell m", placeholder: "1.2" },
-  { key: "swellPeriodS", label: "Period s", placeholder: "6.8" },
-  { key: "swellDir", label: "Swell from", placeholder: "NE" },
-  { key: "windSpeedMs", label: "Wind m/s", placeholder: "6" },
-  { key: "windGustMs", label: "Gust m/s", placeholder: "8" },
-  { key: "windDir", label: "Wind from", placeholder: "NNE" },
-  { key: "tideM", label: "Tide m", placeholder: "1.6" },
-  { key: "tideNote", label: "Tide note", placeholder: "rising — high 09:46" },
-  { key: "seaTempC", label: "Sea °C", placeholder: "29" },
-  { key: "airTempC", label: "Air °C", placeholder: "26" },
+type CondFieldKey = Exclude<keyof Cond, "sky" | "source" | "filledAt">;
+
+// placeholder: a literal example value, or a translation key for prose
+const COND_FIELDS: { key: CondFieldKey; placeholder: string | TKey }[] = [
+  { key: "swellHeightM", placeholder: "1.2" },
+  { key: "swellPeriodS", placeholder: "6.8" },
+  { key: "swellDir", placeholder: "NE" },
+  { key: "windSpeedMs", placeholder: "6" },
+  { key: "windGustMs", placeholder: "8" },
+  { key: "windDir", placeholder: "NNE" },
+  { key: "tideM", placeholder: "1.6" },
+  { key: "tideNote", placeholder: "cond.tideNotePlaceholder" },
+  { key: "seaTempC", placeholder: "29" },
+  { key: "airTempC", placeholder: "26" },
 ];
 
 export function EditPanel({
@@ -45,6 +49,7 @@ export function EditPanel({
   onSaved: (s: Session) => void;
   onCancel: () => void;
 }) {
+  const { lang, t } = useLang();
   const [spot, setSpot] = useState(session.spot);
   const [date, setDate] = useState(session.when.slice(0, 10));
   const [time, setTime] = useState(session.when.slice(11, 16));
@@ -72,7 +77,7 @@ export function EditPanel({
       }),
     });
     const body = await res.json();
-    if (!res.ok) throw new Error(body?.error ?? "Couldn't save");
+    if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSave"));
     return body.session as Session;
   }
 
@@ -81,9 +86,9 @@ export function EditPanel({
     try {
       const saved = await save();
       onSaved(saved);
-      toast.success("Changes saved");
+      toast.success(t("toast.changesSaved"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save");
+      toast.error(e instanceof Error ? e.message : t("toast.couldntSave"));
     } finally {
       setSaving(false);
     }
@@ -95,10 +100,10 @@ export function EditPanel({
       const saved = await save({ refreshConditions: true });
       onSaved(saved);
       toast.success(
-        saved.condOpenMeteo != null ? "Conditions refreshed" : "Still no coordinates for this spot"
+        saved.condOpenMeteo != null ? t("toast.conditionsRefreshed") : t("toast.stillNoCoords")
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't refresh");
+      toast.error(e instanceof Error ? e.message : t("toast.couldntRefresh"));
     } finally {
       setRefreshing(false);
     }
@@ -107,7 +112,7 @@ export function EditPanel({
   return (
     <div className="mx-6 mb-5 flex flex-col gap-4.5 rounded-[var(--r-tile)] bg-secondary p-5">
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-        <Field label="Spot">
+        <Field label={t("form.spot")}>
           <Select value={spot} onValueChange={setSpot}>
             <SelectTrigger className="w-full bg-background">
               <SelectValue />
@@ -115,26 +120,23 @@ export function EditPanel({
             <SelectContent>
               {REGIONS.map((region) => (
                 <SelectGroup key={region}>
-                  <SelectLabel>{region}</SelectLabel>
+                  <SelectLabel>{t(`region.${region}`)}</SelectLabel>
                   {SPOTS.filter((s) => s.region === region).map((s) => (
                     <SelectItem key={s.slug} value={s.slug}>
-                      {s.name}
+                      {spotLabel(s.slug, lang)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
               ))}
-              <SelectGroup>
-                <SelectLabel>Elsewhere</SelectLabel>
-                {OVERSEAS_PRESETS.map((name) => (
-                  <SelectItem key={name} value={`custom:${name}`}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
+              {session.spot.startsWith("custom:") && (
+                <SelectGroup>
+                  <SelectItem value={session.spot}>{spotLabel(session.spot, lang)}</SelectItem>
+                </SelectGroup>
+              )}
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Date">
+        <Field label={t("form.date")}>
           <Input
             type="date"
             className="bg-background"
@@ -142,15 +144,15 @@ export function EditPanel({
             onChange={(e) => setDate(e.target.value)}
           />
         </Field>
-        <Field label="Time">
+        <Field label={t("form.time")}>
           <Select value={time} onValueChange={setTime}>
             <SelectTrigger className="w-full bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TIME_SLOTS.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
+              {TIME_SLOTS.map((slot) => (
+                <SelectItem key={slot} value={slot}>
+                  {slot}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -161,7 +163,7 @@ export function EditPanel({
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <span className="pl-0.5 text-xs font-semibold text-muted-foreground">
-            Conditions (Swelleye, entered by hand)
+            {t("edit.conditionsHeader")}
           </span>
           <Button
             type="button"
@@ -171,18 +173,18 @@ export function EditPanel({
             onClick={handleRefreshConditions}
             disabled={refreshing}
           >
-            {refreshing ? "Refreshing…" : "Refresh Open-Meteo"}
+            {refreshing ? t("edit.refreshing") : t("edit.refreshOpenMeteo")}
           </Button>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {COND_FIELDS.map((f) => (
             <label key={f.key} className="flex flex-col gap-1.5">
               <span className="pl-0.5 text-xs font-semibold text-muted-foreground">
-                {f.label}
+                {t(`cond.${f.key}`)}
               </span>
               <Input
                 className="bg-background"
-                placeholder={f.placeholder}
+                placeholder={f.placeholder.startsWith("cond.") ? t(f.placeholder as TKey) : f.placeholder}
                 value={(cond[f.key] as string | number | undefined | null) ?? ""}
                 onChange={(e) => setCondField(f.key, e.target.value)}
               />
@@ -192,7 +194,7 @@ export function EditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="pl-0.5 text-xs font-semibold text-muted-foreground">Notes</span>
+        <span className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("form.notes")}</span>
         <RichTextEditor
           defaultHtml={notesHtml}
           onChangeHtml={setNotesHtml}
@@ -202,17 +204,17 @@ export function EditPanel({
 
       <div className="flex flex-col gap-1.5">
         <span className="pl-0.5 text-xs font-semibold text-muted-foreground">
-          Rating (optional)
+          {t("form.ratingOptional")}
         </span>
         <RatingPicker value={rating} onChange={setRating} />
       </div>
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={saving} className="rounded-full px-6">
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? t("form.saving") : t("edit.saveChanges")}
         </Button>
         <Button variant="secondary" onClick={onCancel} className="rounded-full px-6">
-          Cancel
+          {t("edit.cancel")}
         </Button>
       </div>
     </div>

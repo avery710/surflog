@@ -4,6 +4,7 @@ import { getSession, updateSession, deleteSession } from "@/lib/db";
 import { deleteBlob } from "@/lib/blob";
 import { spotBySlug } from "@/lib/spots";
 import { getConditions } from "@/lib/openmeteo";
+import { getTide } from "@/lib/cwa-tide";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { Cond, Session } from "@/lib/types";
 
@@ -104,6 +105,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
     } else if (spotChanged) {
       patch.condOpenMeteo = null;
+    }
+
+    if (spot?.tideTownship) {
+      try {
+        patch.condCwaTide = await getTide(spot.tideTownship, patch.when ?? existing.when);
+      } catch {
+        // leave condCwaTide as-is if the refetch fails
+      }
+    } else if (spotChanged) {
+      patch.condCwaTide = null;
     }
   }
 

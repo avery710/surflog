@@ -10,10 +10,11 @@
  * Uncontrolled by design — contentEditable + React controlled value fights
  * the cursor. Force a reset by changing `resetKey` (remounts the div).
  */
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
 import { cn } from "cn";
 import { sanitizeNotesHtml } from "@/lib/rich-text";
+import { useLang } from "@/lib/i18n";
 
 interface RichTextEditorProps {
   defaultHtml?: string;
@@ -26,16 +27,25 @@ interface RichTextEditorProps {
 
 export function RichTextEditor({
   defaultHtml = "",
-  placeholder = "How it felt. What worked, what didn't.",
+  placeholder,
   onChangeHtml,
   className,
   minHeightClassName = "min-h-26",
 }: RichTextEditorProps) {
+  const { t } = useLang();
   const ref = useRef<HTMLDivElement>(null);
+  // Frozen at mount: if __html changed on re-render, React would rewrite the
+  // DOM mid-typing, wiping IME composition (Zhuyin/Cangjie) and the caret.
+  const [initialHtml] = useState(defaultHtml);
 
   const emit = () => {
     if (!ref.current) return;
     onChangeHtml?.(sanitizeNotesHtml(ref.current.innerHTML));
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    if ((e.nativeEvent as InputEvent).isComposing) return;
+    emit();
   };
 
   const runCmd = (cmd: string) => {
@@ -51,8 +61,8 @@ export function RichTextEditor({
   const handleBeforeInput = (e: React.InputEvent<HTMLDivElement> | React.FormEvent<HTMLDivElement>) => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return;
-    const native = e as unknown as InputEvent;
-    if (native.data !== " ") return;
+    const native = e.nativeEvent as unknown as InputEvent;
+    if (native.isComposing || native.inputType !== "insertText" || native.data !== " ") return;
 
     const range = sel.getRangeAt(0);
     const node = range.startContainer;
@@ -86,16 +96,16 @@ export function RichTextEditor({
       )}
     >
       <div className="flex flex-wrap gap-1 px-2 pt-2">
-        <ToolbarButton label="Bullets" onClick={() => runCmd("insertUnorderedList")}>
+        <ToolbarButton label={t("editor.bullets")} onClick={() => runCmd("insertUnorderedList")}>
           <List className="size-3.5" />
         </ToolbarButton>
-        <ToolbarButton label="Numbered" onClick={() => runCmd("insertOrderedList")}>
+        <ToolbarButton label={t("editor.numbered")} onClick={() => runCmd("insertOrderedList")}>
           <ListOrdered className="size-3.5" />
         </ToolbarButton>
-        <ToolbarButton label="Bold" onClick={() => runCmd("bold")}>
+        <ToolbarButton label={t("editor.bold")} onClick={() => runCmd("bold")}>
           <Bold className="size-3.5" />
         </ToolbarButton>
-        <ToolbarButton label="Italic" onClick={() => runCmd("italic")}>
+        <ToolbarButton label={t("editor.italic")} onClick={() => runCmd("italic")}>
           <Italic className="size-3.5" />
         </ToolbarButton>
       </div>
@@ -105,16 +115,17 @@ export function RichTextEditor({
         suppressContentEditableWarning
         role="textbox"
         aria-multiline="true"
-        aria-label="Notes"
-        data-placeholder={placeholder}
+        aria-label={t("form.notes")}
+        data-placeholder={placeholder ?? t("editor.placeholder")}
         className={cn(
           "editor-content font-serif px-4 py-2.5 text-[16.5px] leading-[1.62] outline-none",
           minHeightClassName
         )}
-        onInput={emit}
+        onInput={handleInput}
+        onCompositionEnd={emit}
         onBeforeInput={handleBeforeInput}
         onPaste={handlePaste}
-        dangerouslySetInnerHTML={{ __html: defaultHtml }}
+        dangerouslySetInnerHTML={{ __html: initialHtml }}
       />
     </div>
   );

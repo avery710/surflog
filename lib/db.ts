@@ -34,6 +34,7 @@ interface SessionRow {
   photos: Session["photos"];
   cond: Session["cond"];
   cond_open_meteo: Session["condOpenMeteo"];
+  cond_cwa_tide: Session["condCwaTide"];
   rating: number | null;
   created_at: string;
   example: boolean | null;
@@ -50,6 +51,7 @@ function rowToSession(row: SessionRow): Session {
     photos: row.photos ?? [],
     cond: row.cond ?? null,
     condOpenMeteo: row.cond_open_meteo ?? null,
+    condCwaTide: row.cond_cwa_tide ?? null,
     rating: row.rating,
     createdAt: row.created_at,
     ...(row.example ? { example: true as const } : {}),
@@ -69,6 +71,7 @@ function sessionToRow(session: Partial<Session>): Partial<SessionRow> {
   if (session.photos !== undefined) row.photos = session.photos;
   if (session.cond !== undefined) row.cond = session.cond;
   if (session.condOpenMeteo !== undefined) row.cond_open_meteo = session.condOpenMeteo;
+  if (session.condCwaTide !== undefined) row.cond_cwa_tide = session.condCwaTide;
   if (session.rating !== undefined) row.rating = session.rating;
   if (session.createdAt !== undefined) row.created_at = session.createdAt;
   if (session.example !== undefined) row.example = session.example ?? null;

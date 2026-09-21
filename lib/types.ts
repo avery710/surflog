@@ -47,9 +47,29 @@ export interface CondOpenMeteo {
   windDirDeg: number | null;
   seaTempC: number | null;
   airTempC: number | null;
+  /** Optional: rows saved before 2026-09-22 were backfilled; see lib/openmeteo.ts. */
+  seaLevelM?: number | null;
+  seaLevelTrend?: "rising" | "falling" | null;
   gridLat: number;
   gridLng: number;
   source: "open-meteo";
+  fetchedAt: string;
+}
+
+/**
+ * CWA (Taiwan Central Weather Administration) tide forecast, auto-filled
+ * server-side at save time — see lib/cwa-tide.ts. Taiwan-only, keyed by
+ * township rather than lat/lng (see lib/spots.ts `tideTownship`), so this
+ * stays null for spots without a known township and for overseas sessions.
+ * Kept as its own block for the same reason `condOpenMeteo` is separate from
+ * `cond`: each source's numbers stay attributable to where they came from.
+ */
+export interface CondCwaTide {
+  tideM: number | null; // nearest tide event's height, AboveTWVD, cm -> m
+  tideType: "high" | "low" | null; // 滿潮 / 乾潮
+  time: string | null; // ISO — when that nearest tide event happens
+  stationTownship: string; // CWA's LocationName, e.g. "宜蘭縣頭城鎮"
+  source: "cwa";
   fetchedAt: string;
 }
 
@@ -70,6 +90,7 @@ export interface Session {
   photos: Photo[];
   cond: Cond | null;
   condOpenMeteo: CondOpenMeteo | null;
+  condCwaTide: CondCwaTide | null;
   /** 1-5, optional. See CLAUDE.md "The unfalsifiability problem". */
   rating: number | null;
   createdAt: string;

@@ -36,12 +36,26 @@ Two implementations exist:
    done — see "Bugs already hit" if this needs revisiting.
 
    **As of 2026-09-19**: still not deployed anywhere — no Vercel project
-   exists. Blocking that: the Google OAuth client itself isn't finished
-   yet — walking through Google Cloud Console's consent screen setup now,
-   `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` in `.env.local` are still empty
-   placeholders, so sign-in doesn't work even locally yet. See README.md
-   "Setting up Google sign-in" for the steps, "Before deploying to Vercel"
-   for what's left after that.
+   existed. See README.md "Before deploying to Vercel" for what's left.
+
+   **As of 2026-09-22**: the Google OAuth client is configured
+   (`AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` filled in `.env.local`) and the app
+   is in use locally. Landed the same day:
+   - **Tide** from CWA (中央氣象署) + an Open-Meteo sea-level fallback — see
+     "Data sources". Migration `20260922000000_add_cond_cwa_tide.sql`
+     pushed to the live Supabase project.
+   - **All 41 spots** now have coordinates, Spot Infographic and CWA
+     township in `lib/spots.ts` (was 2) — see "Spots".
+   - **Wind unit bug fixed**: every Open-Meteo wind value stored before this
+     date was km/h labelled as m/s — see "Bugs already hit".
+   - **Bilingual UI** (English / 繁體中文) — see "Localization".
+   - UI flow: logging a session is a `+` button next to the title that
+     opens a modal (`components/ui/dialog.tsx`); the avatar in the top-right
+     opens a menu with Export CSV, a Language submenu, and Sign out; an
+     activity calendar (`components/activity-calendar.tsx`) and a
+     spot/session-count table sit below the header; sessions list newest
+     first. The "Elsewhere" (overseas) group was removed from the spot
+     pickers for now — `lib/overseas-presets.ts` is kept, just unused.
 
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
@@ -213,6 +227,40 @@ Caveats: model grid snaps to the nearest sea point — a Jialeshui request at
 bathymetry or refraction, so it is NOT spot-tuned the way Swelleye is.
 Wind speed/gust are NOT in the marine endpoint — use the forecast/archive
 weather API for `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`.
+**Always pass `wind_speed_unit=ms`** — Open-Meteo's default is km/h (see
+"Bugs already hit").
+
+**Sea level (added 2026-09-22)** — the marine endpoint's
+`sea_level_height_msl` (tide + surge, metres vs mean sea level, hourly,
+covers past dates). Stored as `condOpenMeteo.seaLevelM` plus
+`seaLevelTrend` (rising/falling, from the neighbouring hour). It's the
+tide fallback for whenever CWA can't cover a session (past dates,
+overseas). Model output at the offshore grid node, and a different datum
+from CWA's TWVD heights — the two numbers are not comparable, only the
+rising/falling direction is.
+
+### CWA tide forecast (in use since 2026-09-22) — VERIFIED WORKING
+
+`lib/cwa-tide.ts`. CWA opendata (中央氣象署開放資料平臺), dataset
+`F-A0021-001`, `https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-A0021-001?Authorization=<CWA_API_KEY>&format=JSON`.
+Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
+
+- **Keyed by township, not lat/lng.** ~266 coastal townships. Each spot
+  carries its CWA `LocationName` as `tideTownship` in `lib/spots.ts`
+  (county + township, exact match: `宜蘭縣頭城鎮`, not `頭城鎮`).
+  `LocationName` works as a server-side filter param.
+- Response: `records.TideForecasts[].Location.TimePeriods.Daily[].Time[]`
+  with `DateTime`, `Tide` (`滿潮` high / `乾潮` low) and
+  `TideHeights.AboveTWVD` — **centimetres, and a string**. Converted to
+  metres.
+- Discrete high/low events (~4/day), not a curve. The app stores the
+  event nearest the session time.
+- **Forward-only: today + ~32 days.** No past dates. `getTide()` refuses a
+  match more than 7 h away, so a past session gets `null` rather than
+  silently getting the forecast window's first event. Past sessions rely
+  on Open-Meteo sea level instead.
+- Stored in its own block, `condCwaTide`, fetched at save time and
+  re-fetched on spot/date edits — same pattern as `condOpenMeteo`.
 
 ### Ruled out
 
@@ -229,9 +277,10 @@ weather API for `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`.
   as the per-session source because its marine forecasts are area-scale
   ("northeast sea area, 2-3 m"), too coarse to distinguish one session from
   another, which is the entire point of the journal. Genuinely worth using for
-  two things: **official tide tables** (authoritative for Taiwan) and **buoy
-  observations** (real measurements, not model output — there is a buoy near
-  Guishan Island, close to the Yilan breaks; station status unverified).
+  two things: **official tide tables** — now in use, see "CWA tide forecast"
+  above — and **buoy observations** (real measurements, not model output;
+  `O-B0075-001` is the 48 h buoy/tide-gauge dataset; there is a buoy near
+  Guishan Island, close to the Yilan breaks). Buoys not built yet.
 
 ## Spot fit — computing what the forecasts don't give you
 
@@ -269,8 +318,9 @@ Spot fit has **no outcome variable to test against**:
   2026-09-18 (1-2 voters per spot-day, inconsistent raters). Fair call.
 - Neither forecast's height discriminates between spots, so no forecast number
   can be the target either.
-- Capy's journal has **no rating field** — it was offered at the start and
-  declined.
+- The original artifact journal has **no rating field** — it was offered at
+  the start and declined. This repo has an optional 1-5 `rating` (see
+  "Entry schema"), but real sessions haven't used it yet.
 
 So the features can be computed but not checked. Weak corroboration exists —
 `facing` and `bestSwellDir` are independent published fields and they agree
@@ -293,11 +343,16 @@ Open-Meteo 5.5 m/s vs Swelleye 8 m/s at Jialeshui 06:00 on 2026-09-18, roughly
 heights or averaging windows. Unresolved; pin it down before trusting wind
 numbers from either source.
 
+Not explained by the km/h bug found 2026-09-22 (see "Bugs already hit"):
+the gusts agreeing means that comparison was already in m/s. But any wind
+number read out of the app's stored data before 2026-09-22 was 3.6× too
+high — re-check against the corrected values, not old screenshots.
+
 ## Entry schema
 
 The artifact db (collection `sessions`) holds the version below without
-`ownerId`/`condOpenMeteo`/`rating`. This repo's schema (`lib/types.ts`) is
-that plus all three, now implemented — backed by the `sessions` table in
+`ownerId`/`condOpenMeteo`/`condCwaTide`/`rating`. This repo's schema
+(`lib/types.ts`) is that plus all four, now implemented — backed by the `sessions` table in
 Supabase Postgres (`supabase/migrations/`), read/written through
 `lib/db.ts`. The old `data/sessions.json` file this used to be is gone; see
 `data/README.md` for where its 3 real rows ended up.
@@ -326,8 +381,17 @@ Supabase Postgres (`supabase/migrations/`), read/written through
     windWaveHeightM, windWavePeriodS, combinedWaveHeightM,
     windSpeedMs, windGustMs, windDirDeg,
     seaTempC, airTempC,
+    seaLevelM?, seaLevelTrend?,  // "rising" | "falling" — tide fallback, optional (added 2026-09-22)
     gridLat, gridLng,        // the grid node actually used — always shown, may be km off
     source: "open-meteo",
+    fetchedAt: ISO string
+  }
+  condCwaTide: null | {     // CWA tide forecast — null for past dates / no township
+    tideM,                   // nearest high/low event's height, metres (TWVD)
+    tideType,                // "high" | "low"
+    time,                    // ISO, when that event happens
+    stationTownship,         // CWA LocationName, e.g. "宜蘭縣頭城鎮"
+    source: "cwa",
     fetchedAt: ISO string
   }
   rating:     number | null   // 1-5, optional — see "The unfalsifiability problem"
@@ -338,9 +402,11 @@ Supabase Postgres (`supabase/migrations/`), read/written through
 
 `condOpenMeteo` is auto-filled server-side at save time
 (`app/api/sessions/route.ts` → `lib/openmeteo.ts`) whenever the spot has known
-coordinates; `cond` stays manual-only — nothing scrapes Swelleye. Both are
-kept as separate blocks rather than merged, per Capy's original requirement
-to know which number came from where.
+coordinates, and `condCwaTide` (→ `lib/cwa-tide.ts`) whenever it has a
+`tideTownship`; both re-fetch when spot or date is edited. `cond` stays
+manual-only — nothing scrapes Swelleye. All three are kept as separate
+blocks rather than merged, per Capy's original requirement to know which
+number came from where.
 
 `rating` is wired into the UI (`components/rating-picker.tsx`) but still has
 zero real submissions as of 2026-09-18 — it only becomes useful once Capy
@@ -348,26 +414,42 @@ actually starts rating sessions. Spot-fit is still unverified until then.
 
 ## Spots
 
-42 Taiwan spots, slugs harvested from swelleye.com — see `lib/spots.ts`.
-Slugs are NOT derivable from names (`wushi-north`, `eight-immortals-cave`,
-`greenbay`), so the table is the source of truth.
+41 Taiwan spots, slugs harvested from swelleye.com — see `lib/spots.ts`
+(this file used to say 42; the table has always had 41). Slugs are NOT
+derivable from names (`wushi-north`, `eight-immortals-cave`, `greenbay`),
+so the table is the source of truth.
 
-**Coordinates confirmed so far** (from each spot page, where lat/lng are
-embedded in the page URLs), with their Spot Infographic:
+**As of 2026-09-22 every spot has** `lat`/`lng`, the Spot Infographic
+(`facing`, `bestSwellDir`, `bestWindDir`, `bestTide`), `tideTownship`
+(CWA LocationName) and `nameZh` (Swelleye's own Chinese name). Harvested
+by the `data-source-engineer` agent; spot-checked against Swelleye.
 
-| spot | lat, lng | facing | best swell | best wind | best tide |
-|---|---|---|---|---|---|
-| Wai'ao | 24.882278, 121.846166 | E | ENE/E/SE/SSE | NW/W | Mid to High |
-| Jialeshui | 21.987722, 120.845982 | SE | ENE/E/SE/SSE | W | Mid |
-| Nanwan | 21.959292, 120.762598 | S | S/SE/SSW | N/NE | Low to Mid |
+Where each piece comes from:
+- **Coordinates**: the `lt=`/`ln=` params in the surf-report/forecast/map
+  iframe `src` URLs on `swelleye.com/en/surf-spots/<slug>/` — not visible
+  page text, so a text-only fetch misses them; curl the raw HTML. Identical
+  on the Chinese page. Never approximate a coordinate; the Open-Meteo grid
+  node it picks changes. (Jialeshui's once-guessed 22.05, 120.90 was ~8 km
+  out.)
+- **Infographic**: the same page's "Spot Infographic" block.
+- **tideTownship**: reverse-geocode the coordinate (Nominatim; zoom=10
+  often returns only "臺灣" for beach points — use 14–18), then confirm the
+  exact string exists in a live `F-A0021-001` response.
+- **nameZh**: the Chinese page is the root path,
+  `swelleye.com/surf-spots/<slug>/`; the name is the `<title>` text before
+  `浪點指南`. Never translate a spot name by hand (Restaurants → 餐廳,
+  Gongs → 鹽寮漁港).
 
-The Jialeshui figure supersedes an earlier guess of 22.05, 120.90 — that was
-~8 km out. Never approximate a coordinate; the grid node it picks changes.
-
-The other 39 spots still need theirs. Method: open
-`swelleye.com/en/surf-spots/<slug>/`, take lat/lng from the page source and the
-infographic from the page body. Harvest both in the same pass — the
-infographic is what makes per-spot reasoning possible at all.
+Exceptions:
+- **Taitung**: real coordinate and tide township, but Swelleye's
+  infographic is all "N/A" (an area listing, not a tuned break), so those
+  fields are omitted and spot-fit badges won't appear for it.
+- **Shanshui** is in Penghu (澎湖縣馬公市), an offshore island, but filed
+  under `region: "West"`. CWA covers it. Left as-is; a region change is
+  Capy's call.
+- Several neighbours share a township (eight Yilan spots → 宜蘭縣頭城鎮,
+  Jiupeng + Jialeshui → 屏東縣滿州鄉), which is expected — CWA's tide is
+  per township, not per break.
 
 ## Bugs already hit — don't repeat these
 
@@ -381,6 +463,59 @@ infographic is what makes per-spot reasoning possible at all.
   answers inside Claude's own artifact viewer.
 - **`execCommand` after `deleteContents()`** needs the caret restored
   explicitly, or the list command silently no-ops. Bit us on the "- " shortcut.
+- **Open-Meteo wind in km/h, stored as m/s** (fixed 2026-09-22). The
+  forecast/archive APIs default to km/h; `lib/openmeteo.ts` never passed
+  `wind_speed_unit=ms`, so every stored `windSpeedMs`/`windGustMs` was 3.6×
+  too high (Jialeshui 2026-09-17 06:00 read "26.8 m/s"; really 7.45). Fixed
+  in the request, and the 5 existing rows were re-fetched and corrected.
+  Any new Open-Meteo variable: check its unit in `hourly_units`.
+- **Rewriting a contentEditable while typing breaks Chinese input**
+  (fixed 2026-09-22). The edit panel passed its live `notesHtml` state back
+  into the editor's `dangerouslySetInnerHTML`, so React rewrote the DOM on
+  every keystroke — wiping IME composition (注音/倉頡) mid-word and jumping
+  the caret, which came out as garbled text. `RichTextEditor` now freezes
+  its initial HTML at mount, and skips emitting while `isComposing`.
+  Never feed an uncontrolled editor's own output back into it.
+- **Nearest-event matching with no distance cap.** CWA's tide forecast is
+  forward-only, so "nearest event" for a past session was days away and
+  looked perfectly valid. `getTide()` now rejects matches over 7 h.
+  Anything that picks "the closest reading" needs a maximum distance.
+
+## Localization
+
+Bilingual since 2026-09-22: English and Traditional Chinese as used in
+Taiwan (`zh-TW`, never Simplified). Switched from the avatar menu →
+Language; the choice lives in localStorage (`surflog:lang`), per browser.
+
+- `lib/i18n.tsx` is the whole system: a `DICT` of key → `{ en, "zh-TW" }`
+  (typed so a key missing either language fails typecheck), `useLang()` →
+  `{ lang, setLang, t }`, and `t(key, { name })` fills `{name}`
+  placeholders. `LanguageProvider` wraps everything in `app/layout.tsx`
+  and keeps `<html lang>` in sync.
+- **Every user-visible string goes through `t()`** — labels, buttons,
+  toasts, placeholders, aria-labels, alt text. Formatters in `lib/` take a
+  `lang` param instead: `spotLabel`, `fmtWhen`, `compassLabel`,
+  `fitDescriptions`.
+- Language is read with `useSyncExternalStore` (server snapshot always
+  `"en"`), not useEffect+setState — that would break hydration and fails
+  the `react-hooks/set-state-in-effect` lint rule.
+- Deliberately not translated: units, source names (Surflog, Open-Meteo,
+  Swelleye), CSV export, error messages returned by API routes, and user
+  content (notes, typed Swelleye readings).
+- Terminology: 浪點 spot · 湧浪 swell · 週期 period · 陣風 gust · 滿潮/乾潮
+  high/low tide (CWA's terms) · compass points in CWA's form (北北東,
+  東南…).
+
+## Project agents
+
+`.claude/agents/` — both run on Sonnet:
+- **`data-source-engineer`** — Open-Meteo and CWA fetches, new datasets,
+  spot harvesting into `lib/spots.ts`. Its file records the verified API
+  shapes and gotchas.
+- **`localizer`** — translations, finding hard-coded strings,
+  language-aware formatting.
+
+New agent files only load when a Claude Code session starts.
 
 ## Conventions
 
