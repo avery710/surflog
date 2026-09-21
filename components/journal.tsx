@@ -27,14 +27,40 @@ interface JournalUser {
 
 export function Journal({
   initialSessions,
+  initialSpotNotes,
   user,
 }: {
   initialSessions: Session[];
+  initialSpotNotes: Record<string, string>;
   user: JournalUser;
 }) {
   const { t } = useLang();
   const [sessions, setSessions] = useState(initialSessions);
+  const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
   const [formOpen, setFormOpen] = useState(false);
+
+  /** Resolves true if saved, so the table knows whether to leave edit mode. */
+  async function saveSpotNote(spot: string, description: string): Promise<boolean> {
+    try {
+      const res = await fetch("/api/spot-notes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spot, description }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSaveDescription"));
+      setSpotNotes((prev) => {
+        const next = { ...prev };
+        if (body.description) next[spot] = body.description;
+        else delete next[spot];
+        return next;
+      });
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("toast.couldntSaveDescription"));
+      return false;
+    }
+  }
 
   function handleCreated(s: Session) {
     upsert(s);
@@ -84,7 +110,7 @@ export function Journal({
 
       <div className="mt-6.5 flex flex-wrap items-start gap-4">
         <ActivityCalendar sessions={sessions} />
-        <PatternsTable sessions={sessions} />
+        <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
       </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

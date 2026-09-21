@@ -103,6 +103,14 @@ const DICT = {
 
   "patterns.title": { en: "What you've surfed", "zh-TW": "你衝過的浪點" },
   "patterns.sessions": { en: "Sessions", "zh-TW": "次數" },
+  "patterns.description": { en: "Description", "zh-TW": "描述" },
+  "patterns.addDescription": { en: "+ Add description", "zh-TW": "+ 新增描述" },
+  "patterns.descriptionPlaceholder": {
+    en: "e.g. best at mid tide, crowded on weekends",
+    "zh-TW": "例如：中潮最好，週末人多",
+  },
+  "patterns.editDescription": { en: "Edit description for {spot}", "zh-TW": "編輯「{spot}」的描述" },
+  "toast.couldntSaveDescription": { en: "Couldn't save description", "zh-TW": "無法儲存描述" },
   "calendar.session": { en: "{n} session", "zh-TW": "{n} 次" },
   "calendar.sessions": { en: "{n} sessions", "zh-TW": "{n} 次" },
   "menu.signedIn": { en: "Signed in", "zh-TW": "已登入" },

@@ -410,6 +410,14 @@ manual-only — nothing scrapes Swelleye. All three are kept as separate
 blocks rather than merged, per Capy's original requirement to know which
 number came from where.
 
+**Spot descriptions** live outside sessions, in their own table
+`spot_notes` (`owner_id`, `spot`, `description`, `updated_at`; primary key
+`(owner_id, spot)`, migration `20260923000000_create_spot_notes_table.sql`).
+A user's own free-text note per spot ("best at mid tide, crowded on
+weekends"), edited inline in the "What you've surfed" table via
+`PUT /api/spot-notes`; an empty description deletes the row. Per owner,
+like everything else — same RLS-on/no-policies access model as `sessions`.
+
 `rating` is wired into the UI (`components/rating-picker.tsx`) but still has
 zero real submissions as of 2026-09-18 — it only becomes useful once Capy
 actually starts rating sessions. Spot-fit is still unverified until then.

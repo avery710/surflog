@@ -149,6 +149,30 @@ export async function deleteSession(id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+const SPOT_NOTES = "spot_notes";
+
+/** The owner's spot descriptions, keyed by spot slug. */
+export async function listSpotNotes(ownerId: string): Promise<Record<string, string>> {
+  const result = await getSupabase()
+    .from(SPOT_NOTES)
+    .select("spot, description")
+    .eq("owner_id", ownerId);
+  const rows = assertNoError(result) as { spot: string; description: string }[];
+  return Object.fromEntries(rows.map((r) => [r.spot, r.description]));
+}
+
+/** Upserts the owner's description for a spot; an empty string deletes it. */
+export async function setSpotNote(ownerId: string, spot: string, description: string): Promise<void> {
+  const table = getSupabase().from(SPOT_NOTES);
+  const result = description
+    ? await table.upsert(
+        { owner_id: ownerId, spot, description, updated_at: new Date().toISOString() },
+        { onConflict: "owner_id,spot" }
+      )
+    : await table.delete().eq("owner_id", ownerId).eq("spot", spot);
+  if (result.error) throw new Error(`Supabase: ${result.error.message}`);
+}
+
 export function newSessionId(): string {
   return (
     Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10)
