@@ -50,12 +50,14 @@ jobs:
       - name: Pull Vercel project settings + Preview env vars
         run: vercel pull --yes --environment=preview --git-branch=staging --token="$VERCEL_TOKEN"
 
+      # --target=preview is explicit on purpose: without it the CLI resolved
+      # the first staging deploy to target "production".
       - name: Build
-        run: vercel build --token="$VERCEL_TOKEN"
+        run: vercel build --target=preview --token="$VERCEL_TOKEN"
 
       - name: Deploy
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
+        run: echo "url=$(vercel deploy --prebuilt --target=preview --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
 
       # Each deploy gets a new random URL; Google OAuth needs one fixed
       # redirect URI, so alias every staging deploy to the same domain.
