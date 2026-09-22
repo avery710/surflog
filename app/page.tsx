@@ -10,7 +10,7 @@ export default async function Home() {
   if (!session?.user?.id) redirect("/signin");
 
   const [sessions, spotNotes] = await Promise.all([
-    listSessions(session.user.id, session.user.email),
+    listSessions(session.user.id),
     listSpotNotes(session.user.id),
   ]);
 

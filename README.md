@@ -97,9 +97,8 @@ what they can see), that's a small addition on top — ask for it if you want
 it; it isn't built in.
 
 The 3 real sessions logged before accounts existed were migrated into
-Supabase with a placeholder owner. See `.env.example` → `LEGACY_OWNER_EMAIL`
-for the one-time claim that hands them to whoever's email matches it, the
-first time that person signs in.
+Supabase with a placeholder owner, then assigned directly to Capy's account
+on 2026-09-22.
 
 ## What's here
 
@@ -136,9 +135,8 @@ One-time setup:
 2. **App env vars** — Vercel project → Settings → Environment Variables,
    environment **Preview**: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
    `AUTH_SECRET` (generate a fresh one: `openssl rand -base64 33`),
-   `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CWA_API_KEY`, and
-   `LEGACY_OWNER_EMAIL` until the one-time legacy claim has happened. These
-   stay in Vercel; the workflow pulls them at build time.
+   `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CWA_API_KEY`. These stay in
+   Vercel; the workflow pulls them at build time.
 3. **GitHub secrets** — repo → Settings → Secrets and variables → Actions:
    - Secrets: `VERCEL_TOKEN` (vercel.com/account/tokens),
      `VERCEL_PROJECT_ID` (Vercel project → Settings → General),

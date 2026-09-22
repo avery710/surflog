@@ -13,7 +13,7 @@ export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const sessions = await listSessions(session.user.id, session.user.email);
+  const sessions = await listSessions(session.user.id);
   return NextResponse.json({ sessions });
 }
 

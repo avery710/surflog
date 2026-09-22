@@ -11,16 +11,11 @@
  * file and in the API routes that call it, not in Postgres.
  *
  * Multi-user (2026-09-18): every session is scoped by `ownerId` (a Google
- * account's stable subject id — see auth.ts). The 3 real sessions that
- * predate login all carry the placeholder owner "legacy" — see
- * `claimLegacySessions` below for how those get adopted by whoever actually
- * owns them (Capy) without handing them to whichever friend happens to sign
- * in first.
+ * account's stable subject id — see auth.ts).
  */
 import { getSupabase } from "./supabase";
 import type { Session } from "./types";
 
-const LEGACY_OWNER = "legacy";
 const TABLE = "sessions";
 
 /** DB row shape — see supabase/migrations/*_create_sessions_table.sql. */
@@ -83,27 +78,7 @@ function assertNoError<T>(result: { data: T; error: { message: string } | null }
   return result.data;
 }
 
-/**
- * One-time adoption of the pre-login journal entries. Gated on the signed-in
- * user's email matching LEGACY_OWNER_EMAIL (set in .env — see README), so
- * ownership only ever transfers to whoever the deployment's owner actually
- * is, never to whichever friend happens to sign in first. Once claimed, the
- * env var stops mattering — the rows just belong to that account now.
- */
-async function claimLegacySessions(ownerId: string, email: string | null | undefined): Promise<void> {
-  const legacyOwnerEmail = process.env.LEGACY_OWNER_EMAIL;
-  if (!legacyOwnerEmail || !email || email.toLowerCase() !== legacyOwnerEmail.toLowerCase()) return;
-
-  const result = await getSupabase()
-    .from(TABLE)
-    .update({ owner_id: ownerId })
-    .eq("owner_id", LEGACY_OWNER);
-  if (result.error) throw new Error(`Supabase: ${result.error.message}`);
-}
-
-export async function listSessions(ownerId: string, email?: string | null): Promise<Session[]> {
-  await claimLegacySessions(ownerId, email);
-
+export async function listSessions(ownerId: string): Promise<Session[]> {
   const result = await getSupabase()
     .from(TABLE)
     .select("*")

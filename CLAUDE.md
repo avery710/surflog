@@ -91,14 +91,14 @@ journal. What this means concretely:
   — all computed from one person's own sessions only. If cross-user
   aggregate stats ever get asked for, that's new scope, not an extension of
   what's here.
-- **The pre-login data problem.** The 3 real sessions logged before accounts
-  existed had no natural owner. They're tagged with a placeholder
-  (`"legacy"`, already migrated into the Supabase `sessions` table) and get
-  claimed automatically — permanently — by whoever's email matches the
-  `LEGACY_OWNER_EMAIL` env var the first time that person signs in
-  (`lib/db.ts` `claimLegacySessions`). This has to be gated on a specific
-  email, not "whoever signs in first" — a friend beating Capy to first
-  sign-in must never end up owning Capy's own journal.
+- **The pre-login data problem — resolved 2026-09-22.** The 3 real
+  sessions logged before accounts existed were migrated with a placeholder
+  owner, `"legacy"`, meant to be claimed by whoever signed in with the email
+  in a `LEGACY_OWNER_EMAIL` env var. The claim never fired, so the rows were
+  reassigned directly to Capy's account (the only real account), and the
+  claim code and env var were removed. No `"legacy"` rows remain. If
+  ownerless data is ever imported again, assign it to an explicit account;
+  never to "whoever signs in first".
 - **Storage is Supabase** (Postgres for `sessions`/`photo_blobs`, Storage
   for photo bytes), not a local file — see `lib/supabase.ts`. RLS is
   enabled on both tables with **no policies**; the app authenticates as the
