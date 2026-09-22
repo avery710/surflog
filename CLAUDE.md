@@ -490,6 +490,25 @@ Exceptions:
   forward-only, so "nearest event" for a past session was days away and
   looked perfectly valid. `getTide()` now rejects matches over 7 h.
   Anything that picks "the closest reading" needs a maximum distance.
+- **Turbopack + `next/font/google` fails even with working network**
+  (hit 2026-09-22). Every page 500'd with "next/font/google queries have
+  exactly one entry" / `Can't resolve
+  '@vercel/turbopack-next/internal/font/google/font'`. Not a proxy/VPN
+  issue — `curl https://fonts.googleapis.com` worked fine, and a full
+  `.next` cache wipe didn't help either; it's a known flaky Turbopack
+  resolver bug (vercel/next.js#61886). Fix: `npm run dev` now runs
+  `next dev --webpack` (see `package.json`). `next build` is unaffected
+  and still uses Turbopack, since CI/Vercel builds have run clean.
+- **`user.id` in the Auth.js JWT callback is a random UUID, not Google's
+  `sub`** (hit and fixed 2026-09-22). Without a database adapter, Auth.js
+  generates a fresh `crypto.randomUUID()` for `user.id` on every sign-in —
+  it's not the OIDC subject claim NextAuth docs imply. `auth.ts`'s `jwt`
+  callback used it as `token.sub`, so signing out and back in (or a second
+  browser/staging) minted a brand-new `ownerId` each time and orphaned all
+  earlier sessions. Fixed by reading `account.providerAccountId` instead
+  (only present on the initial sign-in, alongside `account`) — that's
+  Google's real stable subject id. Never use `user.id` for identity in a
+  JWT-strategy, adapter-less Auth.js setup.
 
 ## Localization
 

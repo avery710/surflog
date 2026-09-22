@@ -21,11 +21,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/signin" },
   callbacks: {
-    async jwt({ token, user }) {
-      // `user` is only present on the initial sign-in; Google's provider
-      // profile maps `id` to the OIDC `sub` claim, which NextAuth already
-      // uses as `token.sub` — this just makes that explicit.
-      if (user?.id) token.sub = user.id;
+    async jwt({ token, account }) {
+      // `account` is only present on the initial sign-in. Use Google's
+      // stable OIDC `sub` (providerAccountId) as the owner id. NOT `user.id`:
+      // without a database adapter Auth.js sets that to crypto.randomUUID()
+      // on every sign-in, which made each new login a brand-new user and
+      // hid all earlier sessions (fixed 2026-09-22).
+      if (account?.provider === "google" && account.providerAccountId) {
+        token.sub = account.providerAccountId;
+      }
       return token;
     },
     async session({ session, token }) {
