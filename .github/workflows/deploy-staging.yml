@@ -37,6 +37,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # LayoutProps/PageProps are generated into .next/ by Next.js — a fresh
+      # checkout doesn't have them until this runs (locally, `next dev` does it)
+      - name: Generate Next.js route types
+        run: npx next typegen
+
       - name: Typecheck
         run: npx tsc --noEmit
 
