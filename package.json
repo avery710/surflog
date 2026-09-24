@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "compare": "npx tsx scripts/compare-sources.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
