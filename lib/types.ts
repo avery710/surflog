@@ -15,6 +15,14 @@
  *   against. Never required, never assumed present.
  */
 
+/** A single tide turning point (high or low), used by both `condCwaTide`
+ *  and `condOpenMeteo` — see CLAUDE.md "Entry schema". */
+export interface TideEvent {
+  type: "high" | "low";
+  time: string; // "YYYY-MM-DDTHH:mm", Asia/Taipei local, no tz suffix
+  heightM: number | null;
+}
+
 export interface Cond {
   swellHeightM: number | null;
   swellPeriodS: number | null;
@@ -50,6 +58,11 @@ export interface CondOpenMeteo {
   /** Optional: rows saved before 2026-09-22 were backfilled; see lib/openmeteo.ts. */
   seaLevelM?: number | null;
   seaLevelTrend?: "rising" | "falling" | null;
+  /** Optional: the previous/next turning points of hourly `sea_level_height_msl`
+   *  around the session time (1-2 items, sorted by time). MSL-datum, offshore
+   *  grid node — not comparable to condCwaTide's TWVD heights, only useful as
+   *  a fallback bracket when CWA can't cover the session. See lib/openmeteo.ts. */
+  tideEvents?: TideEvent[];
   gridLat: number;
   gridLng: number;
   source: "open-meteo";
@@ -69,6 +82,11 @@ export interface CondCwaTide {
   tideType: "high" | "low" | null; // 滿潮 / 乾潮
   time: string | null; // ISO — when that nearest tide event happens
   stationTownship: string; // CWA's LocationName, e.g. "宜蘭縣頭城鎮"
+  /** Optional: the bracketing tide events around the session — the last
+   *  event at/before it and the first after it (up to 2, sorted by time).
+   *  Rows saved before 2026-09-24 only have the single-event fields above.
+   *  Same 7h forward-only cap as those fields — see lib/cwa-tide.ts. */
+  events?: TideEvent[];
   source: "cwa";
   fetchedAt: string;
 }

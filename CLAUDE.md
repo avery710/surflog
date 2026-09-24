@@ -59,6 +59,27 @@ Two implementations exist:
      first. The "Elsewhere" (overseas) group was removed from the spot
      pickers for now — `lib/overseas-presets.ts` is kept, just unused.
 
+   **As of 2026-09-24** (session cards, `components/entry-card.tsx`):
+   - **Tide tile = direction + next turning point, not a height.** The
+     card no longer shows a single "tide at session time" figure. The
+     headline is **rising / falling** (`tideTrend()` in
+     `components/tide-events.tsx`: next event is a high → rising, a low →
+     falling); the small print is only that next event, i.e. the next high
+     when rising / next low when falling (`high 20:26 · 1.2 m`, `+1d` if it
+     falls on another day). Same tile shape for both sources.
+   - **CWA wins.** The tile is labelled `Tide (CWA)` when the session has
+     `condCwaTide`. Where CWA has nothing (every past session — it's
+     forward-only) the same tile shows Open-Meteo's `tideEvents`, labelled
+     plain `Tide` (the "(Open-Meteo)" suffix was dropped from the swell and
+     tide labels 2026-09-24; the teal "Open-Meteo · auto" badge still names
+     the source). Open-Meteo's `seaLevelM` figure and the manual Swelleye
+     `cond.tideM`/`tideNote` are stored (and in the CSV) but not displayed.
+   - **Open-Meteo wins over typed Swelleye numbers.** When a session has
+     `condOpenMeteo`, the manual `cond` swell/wind row and its
+     "Swelleye forecast" badge are hidden (they duplicated the Open-Meteo
+     tiles); the manual row only shows for sessions with no Open-Meteo
+     block. Nothing is deleted from `cond`.
+
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
 `lib/spot-fit.ts`.
@@ -241,6 +262,45 @@ overseas). Model output at the offshore grid node, and a different datum
 from CWA's TWVD heights — the two numbers are not comparable, only the
 rising/falling direction is.
 
+**Tide events (added 2026-09-24)** — `condOpenMeteo.tideEvents`, the
+previous/next turning points (high/low) of hourly `sea_level_height_msl`
+around the session, each with its own `time`/`heightM` (see `TideEvent` in
+"Entry schema"). `lib/openmeteo.ts`'s `findTideEvents()` fetches a separate
+date-1..date+1 marine request (so the existing single-day `hour` indexing
+for the other variables is untouched), finds local extrema in the hourly
+series, and refines each to sub-hour precision with a 3-point parabolic
+fit (hourly resolution alone is only ±30 min). Verified live against
+Jialeshui 2026-09-16, where the session's own manually-entered `cond`
+already records Swelleye's reading of "low 14:44, high 20:26": the raw
+hourly series has its min (0.44 m) at 14:00 and max (1.21 m) at 20:00,
+refining to ~13:50 and ~20:10. The high moves the right way (16 min off,
+down from an hour); the low moves the wrong way (13:50 vs 14:44) — traced
+to the API's 2-decimal-place rounding on the surrounding hours, where the
+fit's curvature term is small enough that rounding error swings the vertex
+a lot. The formula itself checks out against a synthetic parabola; this is
+a real precision limit of the rounded input, not a fit bug. Same MSL-vs-
+TWVD caveat as `seaLevelM` above — not comparable to `condCwaTide.events`'
+heights, only useful as a same-shape fallback when CWA can't cover the
+session.
+
+**Rising/falling verified 2026-09-24** against the raw hourly series for
+all 5 sessions (Jialeshui, 16/17/20/21/22 Sep): every one really was on a
+rising tide, matching Swelleye's typed notes and, for 22 Sep, CWA's 16:41
+high. No free past-date tide table exists to cross-check times, so the
+timing of Open-Meteo events (±~30 min; the 16 Sep low was ~1 h off
+Swelleye's) is unverified independently. **Known bugs, NOT fixed yet:**
+- `refineExtrema` in `lib/openmeteo.ts` uses strict `>`/`<`, so two equal
+  adjacent hourly values (the API rounds to 0.01 m) hide a flat peak or
+  trough. A re-fetch/backfill of e.g. 22 Sep today drops the 16:00 high →
+  bracket becomes low/low → shows "falling" (wrong). Stored rows are fine
+  (computed from earlier model values), but any new past-date save or
+  re-fetch is exposed. Fix: collapse equal runs to their midpoint, then
+  merge consecutive same-type events so prev/next always alternate.
+- `seaLevelTrend` uses a forward difference and returns null on 2-decimal
+  ties (20 Sep session has null). Use a centred difference.
+- `tideTrend()` treats a 7 cm dip in a mixed tide as a real "falling";
+  consider a minimum range (~0.10 m Open-Meteo, ~15 cm CWA).
+
 ### CWA tide forecast (in use since 2026-09-22) — VERIFIED WORKING
 
 `lib/cwa-tide.ts`. CWA opendata (中央氣象署開放資料平臺), dataset
@@ -256,11 +316,27 @@ Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
   `TideHeights.AboveTWVD` — **centimetres, and a string**. Converted to
   metres.
 - Discrete high/low events (~4/day), not a curve. The app stores the
-  event nearest the session time.
+  event nearest the session time (`tideM`/`tideType`/`time`) plus, since
+  2026-09-24, the bracketing pair around it in `events: TideEvent[]` — the
+  last event at/before the session and the first after it, so the UI can
+  show "low 14:44 · 0.4 m, high 20:26 · 1.2 m" instead of one figure.
+  `Daily[]` in the raw response is **not sorted by date** (verified live
+  2026-09-24) — `getTide()` flattens every day's events and sorts by
+  `DateTime` before picking anything positional.
 - **Forward-only: today + ~32 days.** No past dates. `getTide()` refuses a
   match more than 7 h away, so a past session gets `null` rather than
-  silently getting the forecast window's first event. Past sessions rely
-  on Open-Meteo sea level instead.
+  silently getting the forecast window's first event. Same 7 h cap applies
+  per-side to `events` — a bracket half that's actually days away gets
+  dropped rather than returned as if meaningful. Past sessions rely on
+  Open-Meteo sea level/tide events instead (CWA can't be backfilled either,
+  since it's forward-only and existing sessions are in the past).
+- **Known bug, not fixed:** `MAX_EVENT_GAP_MS` (7 h) assumes highs/lows
+  are ~6 h apart, but live gaps run **3.9–17.4 h** (mixed tides at
+  屏東縣滿州鄉, e.g. 2026-10-03 05:02 → 22:10). A session mid-gap gets both
+  sides dropped and `getTide()` returns null, so no tide tile. Fix: apply
+  the cap only to reject sessions outside the forecast window (no prev or
+  no next), or raise it to ~18 h. Events strictly alternate 滿潮/乾潮, so
+  one surviving side still fixes the rising/falling direction.
 - Stored in its own block, `condCwaTide`, fetched at save time and
   re-fetched on spot/date edits — same pattern as `condOpenMeteo`.
 
@@ -359,6 +435,16 @@ Supabase Postgres (`supabase/migrations/`), read/written through
 `lib/db.ts`. The old `data/sessions.json` file this used to be is gone; see
 `data/README.md` for where its 3 real rows ended up.
 
+`TideEvent = { type: "high" | "low", time, heightM }` (added 2026-09-24,
+`lib/types.ts`) — one tide turning point, shared by both tide sources below
+so a session can show the bracketing pair around it ("low 14:44 · 0.4 m,
+high 20:26 · 1.2 m") instead of one nearest-in-time figure. `time` is
+`"YYYY-MM-DDTHH:mm"`, no tz suffix, same as `when`. Both sources' bracket-
+picking (last event at/before the session, first after it) shares one
+implementation, `pickBracket()` in `lib/tide-bracket.ts` — CWA and
+Open-Meteo still fetch and compute their own events independently; only the
+"pick the pair around a target time" array-walk is shared code.
+
 ```
 {
   ownerId:    string     // Google account's OIDC sub — see "Multi-user"
@@ -384,6 +470,7 @@ Supabase Postgres (`supabase/migrations/`), read/written through
     windSpeedMs, windGustMs, windDirDeg,
     seaTempC, airTempC,
     seaLevelM?, seaLevelTrend?,  // "rising" | "falling" — tide fallback, optional (added 2026-09-22)
+    tideEvents?: TideEvent[],   // previous/next sea-level turning points, optional (added 2026-09-24)
     gridLat, gridLng,        // the grid node actually used — always shown, may be km off
     source: "open-meteo",
     fetchedAt: ISO string
@@ -393,6 +480,7 @@ Supabase Postgres (`supabase/migrations/`), read/written through
     tideType,                // "high" | "low"
     time,                    // ISO, when that event happens
     stationTownship,         // CWA LocationName, e.g. "宜蘭縣頭城鎮"
+    events?: TideEvent[],    // bracketing pair around the session, optional (added 2026-09-24)
     source: "cwa",
     fetchedAt: ISO string
   }
@@ -509,6 +597,13 @@ Exceptions:
   (only present on the initial sign-in, alongside `account`) — that's
   Google's real stable subject id. Never use `user.id` for identity in a
   JWT-strategy, adapter-less Auth.js setup.
+  **Aftermath (seen 2026-09-24):** the fix only applies at sign-in. A
+  browser still holding a JWT from before it (cmux's built-in browser here)
+  keeps the random-UUID `ownerId`, gets renewed on every visit, and shows an
+  empty journal while the server is fine — `/api/auth/session` returns a
+  UUID `user.id` instead of a ~21-digit Google sub. Fix: sign out and back
+  in. If "the page shows no sessions", check that id before debugging
+  anything else.
 
 ## Localization
 

@@ -14,7 +14,8 @@ import { computeSessionFit } from "@/lib/session-fit";
 import { fitDescriptions } from "@/lib/spot-fit-descriptions";
 import { compassLabel, fmt1, fmtWhen, spotLabel } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
-import type { Session } from "@/lib/types";
+import { TideEventsSub, tideTrend } from "@/components/tide-events";
+import type { Session, TideEvent } from "@/lib/types";
 
 export function EntryCard({
   session,
@@ -108,6 +109,19 @@ export function EntryCard({
   const om = session.condOpenMeteo;
   const tide = session.condCwaTide;
   const manual = session.cond;
+  // Rows saved before 2026-09-24 only have CWA's single nearest event.
+  const cwaEvents: TideEvent[] =
+    tide?.events ??
+    (tide?.tideType && tide.time
+      ? [{ type: tide.tideType, time: tide.time.slice(0, 16), heightM: tide.tideM }]
+      : []);
+  const cwaTrend = tideTrend(cwaEvents, session.when);
+  const omEvents = om?.tideEvents ?? [];
+  const omTrend = tideTrend(omEvents, session.when) ?? om?.seaLevelTrend ?? null;
+  const trendHeadline = (trend: "rising" | "falling" | null) =>
+    trend ? (
+      <span className="font-sans capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>
+    ) : null;
 
   const cardClass =
     "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-border bg-card shadow-[var(--shadow-card)]";
@@ -218,33 +232,31 @@ export function EntryCard({
               />
             </>
           )}
-          {tide && (
+          {/* CWA's official tide wins. Open-Meteo's modelled low/high
+              (rougher: times can be off by up to ~1 h, MSL-datum heights)
+              only fills in where CWA has nothing, i.e. past sessions. The
+              manual Swelleye tide stays stored, just not displayed. */}
+          {cwaEvents.length > 0 && (
             <ConditionTile
               label={t("tile.tideCwa")}
-              value={fmt1(tide.tideM)}
-              unit="m"
-              sub={
-                tide.tideType
-                  ? t("cond.tideSub", {
-                      type: t(tide.tideType === "high" ? "tide.high" : "tide.low"),
-                      time: tide.time?.slice(11, 16) ?? "—",
-                    })
-                  : undefined
-              }
+              value={trendHeadline(cwaTrend)}
+              sub={<TideEventsSub events={cwaEvents} sessionWhen={session.when} />}
             />
           )}
-          {om?.seaLevelM != null && (
+          {cwaEvents.length === 0 && omEvents.length > 0 && (
             <ConditionTile
               label={t("tile.tideOpenMeteo")}
-              value={fmt1(om.seaLevelM)}
-              unit="m"
-              sub={om.seaLevelTrend ? t(om.seaLevelTrend === "rising" ? "tide.rising" : "tide.falling") : undefined}
+              value={trendHeadline(omTrend)}
+              sub={<TideEventsSub events={omEvents} sessionWhen={session.when} />}
             />
           )}
         </div>
       ) : null}
 
-      {manual ? (
+      {/* Open-Meteo wins where both exist: the typed Swelleye swell/wind
+          duplicates its tiles, so it's stored but not shown (and only
+          shown when Open-Meteo has nothing for the session). */}
+      {manual && om ? null : manual ? (
         <div className="flex gap-2.5 overflow-x-auto px-6 pt-1 pb-1.5 [scrollbar-width:none]">
           <ConditionTile
             label={t("tile.swellSwelleye")}
@@ -278,7 +290,6 @@ export function EntryCard({
                 : undefined
             }
           />
-          <ConditionTile label={t("tile.tide")} value={fmt1(manual.tideM)} unit="m" sub={manual.tideNote} />
         </div>
       ) : !om ? (
         <div className="mx-6 mb-2 mt-1 flex flex-wrap items-center gap-3 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4.5 py-4">
@@ -367,7 +378,7 @@ export function EntryCard({
             {t("badge.openMeteoAuto")}
           </span>
         )}
-        {manual && (
+        {manual && !om && (
           <span className="rounded-full bg-secondary px-3.5 py-1 text-[11.5px] font-semibold text-muted-foreground">
             {manual.source === "swelleye" ? t("badge.swelleyeForecast") : t("badge.enteredByHand")}
           </span>

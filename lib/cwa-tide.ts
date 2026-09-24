@@ -11,10 +11,15 @@
  * The dataset gives ~32 days of discrete HIGH/LOW tide EVENTS per township
  * (4/day), not a continuous curve — this picks the single nearest event to
  * the session's time rather than interpolating a height at that exact
- * moment. Heights come back in centimetres; converted to metres here to
- * match the rest of the app's units (see CLAUDE.md "Conventions").
+ * moment (kept in `tideM`/`tideType`/`time`, for old rows). It also returns
+ * `events`: the bracketing pair (last event at/before the session, first
+ * after it), each with its own time and height — see CLAUDE.md "Entry
+ * schema" `TideEvent`. Heights come back in centimetres; converted to
+ * metres here to match the rest of the app's units (see CLAUDE.md
+ * "Conventions").
  */
-import type { CondCwaTide } from "./types";
+import type { CondCwaTide, TideEvent } from "./types";
+import { pickBracket } from "./tide-bracket";
 
 const BASE = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-A0021-001";
 const MAX_EVENT_GAP_MS = 7 * 60 * 60 * 1000;
@@ -56,27 +61,60 @@ export async function getTide(
 
   const targetMs = new Date(`${whenLocal}:00+08:00`).getTime();
 
-  let nearest: { event: CwaTideEvent; diffMs: number } | null = null;
-  for (const day of loc.TimePeriods?.Daily ?? []) {
-    for (const t of day.Time ?? []) {
-      const diffMs = Math.abs(new Date(t.DateTime).getTime() - targetMs);
-      if (!nearest || diffMs < nearest.diffMs) nearest = { event: t, diffMs };
-    }
-  }
-  // The dataset is forward-only (today onward). Without this cap, a past
-  // session would silently get the forecast window's first event, days off.
-  // Highs/lows are ~6h12m apart, so a real match is always well under 7h.
-  if (!nearest || nearest.diffMs > MAX_EVENT_GAP_MS) return null;
+  // Daily[] is NOT sorted by date (verified live 2026-09-24: first entry can
+  // be e.g. 2026-10-05, then 2026-10-04) — flatten every day's events and
+  // sort by DateTime before picking anything positional (prev/next bracket).
+  const allEvents = (loc.TimePeriods?.Daily ?? [])
+    .flatMap((day) => day.Time ?? [])
+    .filter((t) => t.DateTime)
+    .sort((a, b) => new Date(a.DateTime).getTime() - new Date(b.DateTime).getTime());
 
-  const cm = nearest.event.TideHeights?.AboveTWVD;
+  const eventMs = (t: CwaTideEvent) => new Date(t.DateTime).getTime();
+
+  // Bracketing events: last at/before the session time, first after it.
+  // The dataset is forward-only (today onward) — without the 7h cap below,
+  // a past/far-future session would silently get whichever forecast-window
+  // edge is nearest, days off. Highs/lows are ~6h12m apart, so a real match
+  // on both sides is always well under 7h.
+  const { prev, next } = pickBracket(allEvents, targetMs, eventMs);
+  const withinCap = (e: CwaTideEvent | null): e is CwaTideEvent =>
+    e != null && Math.abs(eventMs(e) - targetMs) <= MAX_EVENT_GAP_MS;
+
+  const events: TideEvent[] = [prev, next].filter(withinCap).map(toTideEvent);
+
+  // Legacy single-event fields, kept for old rows/readers: whichever of the
+  // bracket is numerically closer to the session time.
+  const nearest =
+    withinCap(prev) && withinCap(next)
+      ? Math.abs(eventMs(prev) - targetMs) <= Math.abs(eventMs(next) - targetMs)
+        ? prev
+        : next
+      : withinCap(prev)
+        ? prev
+        : withinCap(next)
+          ? next
+          : null;
+  if (!nearest) return null;
+
+  const cm = nearest.TideHeights?.AboveTWVD;
   const tideM = cm != null && cm !== "" ? Number(cm) / 100 : null;
 
   return {
     tideM,
-    tideType: nearest.event.Tide === "滿潮" ? "high" : nearest.event.Tide === "乾潮" ? "low" : null,
-    time: nearest.event.DateTime,
+    tideType: nearest.Tide === "滿潮" ? "high" : nearest.Tide === "乾潮" ? "low" : null,
+    time: nearest.DateTime,
     stationTownship: township,
+    events: events.length > 0 ? events : undefined,
     source: "cwa",
     fetchedAt: new Date().toISOString(),
+  };
+}
+
+function toTideEvent(event: CwaTideEvent): TideEvent {
+  const cm = event.TideHeights?.AboveTWVD;
+  return {
+    type: event.Tide === "滿潮" ? "high" : "low",
+    time: event.DateTime.slice(0, 16), // "YYYY-MM-DDTHH:mm+08:00..." -> local, no suffix
+    heightM: cm != null && cm !== "" ? Number(cm) / 100 : null,
   };
 }
