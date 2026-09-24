@@ -300,16 +300,7 @@ export function EntryCard({
             {t("entry.typeThemIn")}
           </Button>
         </div>
-      ) : (
-        <div className="mx-6 mb-1 mt-1">
-          <button
-            onClick={() => setEditing(true)}
-            className="text-[13px] font-medium text-primary hover:underline"
-          >
-            {t("entry.addSwelleye")}
-          </button>
-        </div>
-      )}
+      ) : null}
 
       {badges.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-6 pb-1 pt-1.5">

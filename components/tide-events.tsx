@@ -11,7 +11,8 @@ import type { TideEvent } from "@/lib/types";
  * nearest one. `time` and `sessionWhen` share the "YYYY-MM-DDTHH:mm"
  * format, so a string compare orders them.
  */
-export function tideTrend(events: TideEvent[], sessionWhen: string): "rising" | "falling" | null {
+export function tideTrend(input: TideEvent[], sessionWhen: string): "rising" | "falling" | null {
+  const events = [...input].sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
   const next = events.find((e) => e.time > sessionWhen);
   if (next) return next.type === "high" ? "rising" : "falling";
   const prev = events.findLast((e) => e.time <= sessionWhen);

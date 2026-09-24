@@ -48,7 +48,6 @@ const DICT = {
     "zh-TW": "這個浪點還沒有座標，Open-Meteo 無法自動帶入浪況。有 Swelleye 的數據的話，可以手動輸入。",
   },
   "entry.typeThemIn": { en: "Type them in", "zh-TW": "手動輸入" },
-  "entry.addSwelleye": { en: "+ Add Swelleye's headline numbers", "zh-TW": "+ 補上 Swelleye 的數據" },
   "entry.photoAlt": { en: "Surf photo from {when}", "zh-TW": "{when} 的衝浪照片" },
   "entry.removePhoto": { en: "Remove photo", "zh-TW": "移除照片" },
   "entry.example": { en: "Example — delete whenever", "zh-TW": "範例——可隨時刪除" },

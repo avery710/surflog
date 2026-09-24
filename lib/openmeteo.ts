@@ -105,15 +105,20 @@ export async function getConditions(
   const wh = weather.hourly;
   const i = hour; // hourly arrays are 0..23 for a single local day
 
-  // trend from the neighbouring hour; at 23:00 look back instead of ahead
+  // Centred difference (h+1 vs h-1) so a 0.01 m rounding tie on one side
+  // doesn't null the trend; hours 0 and 23 clamp to the available neighbour;
+  // still tied -> widen to +/-2 h.
   const seaLevelM = pick(mh, "sea_level_height_msl", i);
-  const seaLevelOther = pick(mh, "sea_level_height_msl", i < 23 ? i + 1 : i - 1);
-  const seaLevelTrend =
-    seaLevelM == null || seaLevelOther == null || seaLevelOther === seaLevelM
-      ? null
-      : (i < 23 ? seaLevelOther > seaLevelM : seaLevelM > seaLevelOther)
-        ? "rising"
-        : "falling";
+  let seaLevelTrend: "rising" | "falling" | null = null;
+  if (seaLevelM != null) {
+    for (const k of [1, 2]) {
+      const lo = pick(mh, "sea_level_height_msl", Math.max(0, i - k));
+      const hi = pick(mh, "sea_level_height_msl", Math.min(23, i + k));
+      if (lo == null || hi == null || hi === lo) continue;
+      seaLevelTrend = hi > lo ? "rising" : "falling";
+      break;
+    }
+  }
 
   return {
     swellHeightM: pick(mh, "swell_wave_height", i),
@@ -194,22 +199,39 @@ export async function findTideEvents(
   return events.length > 0 ? events : undefined;
 }
 
-/** Local maxima/minima of an hourly series, each refined to sub-hour time
- *  and height via a 3-point parabolic fit through the extremum and its two
- *  hourly neighbours. Standard quadratic-vertex interpolation (as used for
- *  spectral peak-picking): fit y = a*x^2 + b*x + c through x = -1, 0, +1
- *  (hours either side of the sample), vertex at x* = -b/(2a). */
+/** Local maxima/minima of an hourly series. A single-point extremum is
+ *  refined to sub-hour time and height via a 3-point parabolic fit through it
+ *  and its two hourly neighbours (standard quadratic-vertex interpolation:
+ *  fit y = a*x^2 + b*x + c through x = -1, 0, +1, vertex at x* = -b/(2a)).
+ *  The API rounds to 0.01 m, so a peak/trough can be a run of equal values;
+ *  a run higher/lower than both neighbours outside it is one extremum at the
+ *  run's midpoint (no parabolic fit — it's degenerate). Finally consecutive
+ *  same-type extrema are merged so the list strictly alternates high/low. */
 function refineExtrema(times: string[], values: (number | null)[]): TideEvent[] {
   const events: TideEvent[] = [];
-  for (let i = 1; i < times.length - 1; i++) {
-    const yPrev = values[i - 1];
+  let i = 1;
+  while (i < times.length - 1) {
     const y0 = values[i];
-    const yNext = values[i + 1];
-    if (yPrev == null || y0 == null || yNext == null) continue;
+    if (y0 == null) { i++; continue; }
+    // extent of the run of equal values starting at i
+    let j = i;
+    while (j + 1 < times.length && values[j + 1] === y0) j++;
+    const yPrev = values[i - 1];
+    const yNext = j + 1 < times.length ? values[j + 1] : null;
+    const runStart = i;
+    i = j + 1;
+    if (yPrev == null || yNext == null) continue;
 
     const isHigh = y0 > yPrev && y0 > yNext;
     const isLow = y0 < yPrev && y0 < yNext;
     if (!isHigh && !isLow) continue;
+    const type = isHigh ? "high" : "low";
+
+    if (j > runStart) {
+      const mid = (toMs(times[runStart]) + toMs(times[j])) / 2;
+      events.push({ type, time: toLocal(mid), heightM: y0 });
+      continue;
+    }
 
     const denom = yPrev - 2 * y0 + yNext;
     // denom ~0 means the three points are nearly collinear (a degenerate
@@ -220,12 +242,27 @@ function refineExtrema(times: string[], values: (number | null)[]): TideEvent[] 
       denom === 0 ? y0 : y0 - Math.pow(yNext - yPrev, 2) / (8 * denom);
 
     events.push({
-      type: isHigh ? "high" : "low",
-      time: toLocal(toMs(times[i]) + clampedOffset * 3600000),
+      type,
+      time: toLocal(toMs(times[runStart]) + clampedOffset * 3600000),
       heightM: Math.round(heightM * 1000) / 1000,
     });
   }
-  return events;
+
+  // enforce alternation (gaps from null values can leave two highs in a row)
+  const merged: TideEvent[] = [];
+  for (const e of events) {
+    const last = merged[merged.length - 1];
+    if (!last || last.type !== e.type) { merged.push(e); continue; }
+    const lh = last.heightM ?? 0;
+    const eh = e.heightM ?? 0;
+    const better = e.type === "high" ? eh > lh : eh < lh;
+    if (eh === lh) {
+      last.time = toLocal((toMs(last.time) + toMs(e.time)) / 2);
+    } else if (better) {
+      merged[merged.length - 1] = e;
+    }
+  }
+  return merged;
 }
 
 const POINTS = [

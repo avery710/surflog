@@ -288,18 +288,21 @@ all 5 sessions (Jialeshui, 16/17/20/21/22 Sep): every one really was on a
 rising tide, matching Swelleye's typed notes and, for 22 Sep, CWA's 16:41
 high. No free past-date tide table exists to cross-check times, so the
 timing of Open-Meteo events (±~30 min; the 16 Sep low was ~1 h off
-Swelleye's) is unverified independently. **Known bugs, NOT fixed yet:**
-- `refineExtrema` in `lib/openmeteo.ts` uses strict `>`/`<`, so two equal
-  adjacent hourly values (the API rounds to 0.01 m) hide a flat peak or
-  trough. A re-fetch/backfill of e.g. 22 Sep today drops the 16:00 high →
-  bracket becomes low/low → shows "falling" (wrong). Stored rows are fine
-  (computed from earlier model values), but any new past-date save or
-  re-fetch is exposed. Fix: collapse equal runs to their midpoint, then
-  merge consecutive same-type events so prev/next always alternate.
-- `seaLevelTrend` uses a forward difference and returns null on 2-decimal
-  ties (20 Sep session has null). Use a centred difference.
-- `tideTrend()` treats a 7 cm dip in a mixed tide as a real "falling";
-  consider a minimum range (~0.10 m Open-Meteo, ~15 cm CWA).
+Swelleye's) is unverified independently. **Fixed 2026-09-24:**
+- `refineExtrema` (`lib/openmeteo.ts`) used strict `>`/`<`, so two equal
+  adjacent hourly values (the API rounds to 0.01 m) hid a flat peak or
+  trough (22 Sep 16:00/17:00 high, 17 Sep 03:00/04:00 and 21 Sep
+  09:00/10:00 lows), giving a low/low bracket and a wrong "falling". Now a
+  run of equal values that beats both outside neighbours is one extremum at
+  the run midpoint (no parabolic fit), and consecutive same-type extrema
+  are merged (more extreme wins; equal -> midpoint) so prev/next always
+  alternate. Verified live: 22 Sep now low 10:00 / high 16:30, rising.
+- `seaLevelTrend` now uses a centred difference (h+1 vs h-1, clamped at
+  hours 0/23), widening to +/-2 h on a tie; the 20 Sep session is no
+  longer null.
+- `tideTrend()` sorts a copy of its input by time before picking.
+Still open: `tideTrend()` treats a 7 cm dip in a mixed tide as a real
+"falling"; consider a minimum range (~0.10 m Open-Meteo, ~15 cm CWA).
 
 ### CWA tide forecast (in use since 2026-09-22) — VERIFIED WORKING
 
@@ -323,22 +326,32 @@ Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
   `Daily[]` in the raw response is **not sorted by date** (verified live
   2026-09-24) — `getTide()` flattens every day's events and sorts by
   `DateTime` before picking anything positional.
-- **Forward-only: today + ~32 days.** No past dates. `getTide()` refuses a
-  match more than 7 h away, so a past session gets `null` rather than
-  silently getting the forecast window's first event. Same 7 h cap applies
-  per-side to `events` — a bracket half that's actually days away gets
-  dropped rather than returned as if meaningful. Past sessions rely on
-  Open-Meteo sea level/tide events instead (CWA can't be backfilled either,
-  since it's forward-only and existing sessions are in the past).
-- **Known bug, not fixed:** `MAX_EVENT_GAP_MS` (7 h) assumes highs/lows
-  are ~6 h apart, but live gaps run **3.9–17.4 h** (mixed tides at
-  屏東縣滿州鄉, e.g. 2026-10-03 05:02 → 22:10). A session mid-gap gets both
-  sides dropped and `getTide()` returns null, so no tide tile. Fix: apply
-  the cap only to reject sessions outside the forecast window (no prev or
-  no next), or raise it to ~18 h. Events strictly alternate 滿潮/乾潮, so
-  one surviving side still fixes the rising/falling direction.
+- **Forward-only: today + ~32 days.** No past dates. `getTide()` returns
+  `null` when the session is outside the forecast window (no event at/before
+  it, which is every past date, or none after it), so a past session never
+  silently gets the window's first event. There is deliberately no
+  per-event distance cap: **fixed 2026-09-24**, the old 7 h cap assumed
+  highs/lows ~6 h apart, but live gaps run 3.9-17.4 h (mixed tides at
+  屏東縣滿州鄉, e.g. 2026-10-04 07:10 -> 10-05 00:34), so mid-gap sessions
+  got null. `events` is always the full prev/next pair; the legacy
+  `tideM`/`tideType`/`time` is whichever is nearer. Past sessions rely on
+  Open-Meteo sea level/tide events instead (CWA can't be backfilled).
 - Stored in its own block, `condCwaTide`, fetched at save time and
   re-fetched on spot/date edits — same pattern as `condOpenMeteo`.
+
+### Swelleye vs Open-Meteo comparison tool (added 2026-09-24)
+
+`npm run compare` (`scripts/compare-sources.ts`, pure logic in
+`lib/source-compare.ts`) reads `sessions` from Supabase (read-only, all owners),
+takes every session that has both a typed Swelleye `cond` and a
+`condOpenMeteo`, and writes `reports/swelleye-vs-openmeteo.md` plus a terminal
+table: per-metric Open-Meteo-minus-Swelleye differences, close/noticeable/large
+verdicts against the `THRESHOLDS` constant, and summary stats. Uses `npx tsx`
+(fetched on demand, not a dependency). Tide compares turning-point timing only
+(datums differ). **Sample size as of 2026-09-24: 2 sessions (Jialeshui, 16 and
+17 Sep), so findings are anecdotal**: height, direction and sea temp close;
+wind speed ~25% lower in Open-Meteo both times, which does not resolve the wind
+open question. Re-run as more Swelleye readings are typed in.
 
 ### Ruled out
 

@@ -22,7 +22,6 @@ import type { CondCwaTide, TideEvent } from "./types";
 import { pickBracket } from "./tide-bracket";
 
 const BASE = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-A0021-001";
-const MAX_EVENT_GAP_MS = 7 * 60 * 60 * 1000;
 
 interface CwaTideEvent {
   DateTime: string;
@@ -72,29 +71,23 @@ export async function getTide(
   const eventMs = (t: CwaTideEvent) => new Date(t.DateTime).getTime();
 
   // Bracketing events: last at/before the session time, first after it.
-  // The dataset is forward-only (today onward) — without the 7h cap below,
-  // a past/far-future session would silently get whichever forecast-window
-  // edge is nearest, days off. Highs/lows are ~6h12m apart, so a real match
-  // on both sides is always well under 7h.
+  // The dataset is forward-only (today onward), so a past session has no
+  // prev event and a session beyond the window has no next. Either means the
+  // session is outside the forecast window -> null, rather than silently
+  // returning the window's edge event days away. Gaps between consecutive
+  // events are NOT capped: mixed tides run 3.9-17.4 h apart (verified live at
+  // 屏東縣滿州鄉), so a session mid-gap is legitimately far from both.
   const { prev, next } = pickBracket(allEvents, targetMs, eventMs);
-  const withinCap = (e: CwaTideEvent | null): e is CwaTideEvent =>
-    e != null && Math.abs(eventMs(e) - targetMs) <= MAX_EVENT_GAP_MS;
+  if (!prev || !next) return null;
 
-  const events: TideEvent[] = [prev, next].filter(withinCap).map(toTideEvent);
+  const events: TideEvent[] = [prev, next].map(toTideEvent);
 
   // Legacy single-event fields, kept for old rows/readers: whichever of the
   // bracket is numerically closer to the session time.
   const nearest =
-    withinCap(prev) && withinCap(next)
-      ? Math.abs(eventMs(prev) - targetMs) <= Math.abs(eventMs(next) - targetMs)
-        ? prev
-        : next
-      : withinCap(prev)
-        ? prev
-        : withinCap(next)
-          ? next
-          : null;
-  if (!nearest) return null;
+    Math.abs(eventMs(prev) - targetMs) <= Math.abs(eventMs(next) - targetMs)
+      ? prev
+      : next;
 
   const cm = nearest.TideHeights?.AboveTWVD;
   const tideM = cm != null && cm !== "" ? Number(cm) / 100 : null;
@@ -104,7 +97,7 @@ export async function getTide(
     tideType: nearest.Tide === "滿潮" ? "high" : nearest.Tide === "乾潮" ? "low" : null,
     time: nearest.DateTime,
     stationTownship: township,
-    events: events.length > 0 ? events : undefined,
+    events,
     source: "cwa",
     fetchedAt: new Date().toISOString(),
   };
