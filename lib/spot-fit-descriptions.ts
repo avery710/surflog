@@ -16,14 +16,9 @@ export function fitDescriptions(fit: SpotFit, lang: Lang = "en"): string[] {
   const out: string[] = [];
   const say = (en: string, zhText: string) => out.push(zh ? zhText : en);
 
-  if (fit.inSwellWindow === true) say("inside the usual swell window", "在常見的湧浪方向範圍內");
-  else if (fit.inSwellWindow === false) say("outside the usual swell window", "不在常見的湧浪方向範圍內");
-
-  if (!fit.missing.includes("swellDirDeg") && !fit.missing.includes("spot.facing")) {
-    if (fit.exposure <= 0.15) say("side-on to the swell, mostly blocked", "側對湧浪，大多被擋住");
-    else if (fit.exposure <= 0.5) say("side-on to the swell", "側對湧浪");
-    else if (fit.exposure >= 0.9) say("square-on to the swell", "正對湧浪");
-  }
+  // The swell-window ("inside the usual swell window") and exposure
+  // ("side-on to the swell") descriptions were removed from the UI
+  // 2026-09-24 — still computed in lib/spot-fit.ts, just not described.
 
   if (!fit.missing.includes("windDirDeg")) {
     if (fit.windMode === "offshore") say("offshore wind — cleaner face", "離岸風，浪面較乾淨");

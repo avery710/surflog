@@ -21,28 +21,35 @@ export function tideTrend(input: TideEvent[], sessionWhen: string): "rising" | "
 }
 
 /**
- * Small print under the rising/falling headline: only the tide the water is
- * heading for — the next high when rising, the next low when falling
- * ("high 20:26 · 1.2 m"). That's the next stored event after the session,
- * which is also what `tideTrend` reads the direction from. Renders nothing
- * when no event is after the session. An event on a different day gets a
- * +1d marker so a 01:00 high tomorrow isn't mistaken for one that day.
+ * Small print under the rising/falling headline: the low and high bracketing
+ * the session — the last stored event at/before it and the first after it
+ * ("low 14:44 · 0.4 m" / "high 20:26 · 1.2 m"). `events` may hold a whole
+ * day of turning points (for the chart); only the bracket is printed. An
+ * event on a different day gets a +1d / −1d marker so a 01:00 high tomorrow
+ * isn't mistaken for one that day.
  */
 export function TideEventsSub({ events, sessionWhen }: { events: TideEvent[]; sessionWhen: string }) {
   const { t } = useLang();
-  const e = events.find((ev) => ev.time > sessionWhen);
-  if (!e) return null;
-
   const sessionDay = sessionWhen.slice(0, 10);
-  const day = e.time.slice(0, 10);
-  const shift = day === sessionDay ? "" : ` ${day > sessionDay ? t("tide.nextDay") : t("tide.prevDay")}`;
-  const h = fmt1(e.heightM);
+  const sorted = [...events].sort((a, b) => a.time.localeCompare(b.time));
+  const next = sorted.find((e) => e.time > sessionWhen);
+  const prev = sorted.findLast((e) => e.time <= sessionWhen);
+  const shown = [prev, next].filter((e): e is TideEvent => e != null);
 
   return (
-    <span>
-      {t(e.type === "high" ? "tide.high" : "tide.low")} {e.time.slice(11, 16)}
-      {shift}
-      {h != null ? ` · ${h} m` : ""}
+    <span className="flex flex-col">
+      {shown.map((e) => {
+        const day = e.time.slice(0, 10);
+        const shift = day === sessionDay ? "" : ` ${day > sessionDay ? t("tide.nextDay") : t("tide.prevDay")}`;
+        const h = fmt1(e.heightM);
+        return (
+          <span key={`${e.type}-${e.time}`}>
+            {t(e.type === "high" ? "tide.high" : "tide.low")} {e.time.slice(11, 16)}
+            {shift}
+            {h != null ? ` · ${h} m` : ""}
+          </span>
+        );
+      })}
     </span>
   );
 }

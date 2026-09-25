@@ -273,7 +273,15 @@ export function compareSession(s: Session): SessionComparison | null {
   if (!parsed) {
     skipped.push({ key: "tideTiming", reason: sw.tideNote ? `could not parse tideNote "${sw.tideNote}"` : "no tideNote" });
   } else {
-    const t = tideTiming(parsed, om.tideEvents);
+    // tideEvents can hold ~a day of turns; compare only the pair around the
+    // session, or a same-clock-time event ~24 h away could be picked.
+    const around = [...(om.tideEvents ?? [])].sort((x, y) => x.time.localeCompare(y.time));
+    const nextIdx = around.findIndex((e) => e.time > s.when);
+    const bracket =
+      nextIdx === -1
+        ? around.slice(-1)
+        : around.slice(Math.max(0, nextIdx - 1), nextIdx + 1);
+    const t = tideTiming(parsed, bracket);
     metrics.push(...t.results);
     if (t.skip) skipped.push({ key: "tideTiming", reason: t.skip });
     if (parsed.trend && om.seaLevelTrend) {

@@ -4,18 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ConditionTile } from "@/components/condition-tile";
+import { ConditionTile, Figure } from "@/components/condition-tile";
 import { EditPanel } from "@/components/edit-panel";
 import { cn } from "cn";
 import { spotBySlug } from "@/lib/spots";
 import { toCompass } from "@/lib/openmeteo";
 import { computeSessionFit } from "@/lib/session-fit";
-import { fitDescriptions } from "@/lib/spot-fit-descriptions";
 import { compassLabel, fmt1, fmtWhen, spotLabel } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import { TideEventsSub, tideTrend } from "@/components/tide-events";
-import type { Session, TideEvent } from "@/lib/types";
+import { TideChart } from "@/components/tide-chart";
+import { DirectionArrow } from "@/components/direction-arrow";
+import { WindStrength } from "@/components/wind-strength";
+import { WindShoreBadge } from "@/components/wind-shore-badge";
+import type { Session } from "@/lib/types";
 
 export function EntryCard({
   session,
@@ -42,7 +44,6 @@ export function EntryCard({
 
   const spot = spotBySlug(session.spot);
   const fit = computeSessionFit(spot, session);
-  const badges = fit ? fitDescriptions(fit, lang) : [];
 
   // Two-step confirm instead of window.confirm(): a native confirm() dialog
   // blocks the whole tab's render thread until dismissed — bad UX in
@@ -107,20 +108,13 @@ export function EntryCard({
   }
 
   const om = session.condOpenMeteo;
-  const tide = session.condCwaTide;
   const manual = session.cond;
-  // Rows saved before 2026-09-24 only have CWA's single nearest event.
-  const cwaEvents: TideEvent[] =
-    tide?.events ??
-    (tide?.tideType && tide.time
-      ? [{ type: tide.tideType, time: tide.time.slice(0, 16), heightM: tide.tideM }]
-      : []);
-  const cwaTrend = tideTrend(cwaEvents, session.when);
+  const hasShore = !!fit && !fit.missing.includes("windDirDeg") && !fit.missing.includes("spot.facing");
   const omEvents = om?.tideEvents ?? [];
   const omTrend = tideTrend(omEvents, session.when) ?? om?.seaLevelTrend ?? null;
   const trendHeadline = (trend: "rising" | "falling" | null) =>
     trend ? (
-      <span className="font-sans capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>
+      <span className="text-[20px] leading-tight capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>
     ) : null;
 
   const cardClass =
@@ -196,58 +190,64 @@ export function EntryCard({
         </span>
       </div>
 
-      {om || tide ? (
+      {om ? (
         <div className="flex gap-2.5 overflow-x-auto px-6 pb-1.5 [scrollbar-width:none]">
           {om && (
             <>
               <ConditionTile
                 label={t("tile.swellOpenMeteo")}
-                value={fmt1(om.swellHeightM)}
-                unit="m"
-                sub={
-                  om.swellPeriodS != null || om.swellDirDeg != null
-                    ? t("cond.swellSub", {
-                        p: fmt1(om.swellPeriodS) ?? "—",
-                        dir: compassLabel(toCompass(om.swellDirDeg), lang) ?? "—",
-                      })
-                    : undefined
-                }
+                value={<Figure value={fmt1(om.swellHeightM)} unit="m" />}
+                sub={<DirSub deg={om.swellDirDeg} compass={compassLabel(toCompass(om.swellDirDeg), lang)} />}
               />
+              {om.swellPeriodS != null && (
+                <ConditionTile
+                  label={t("tile.period")}
+                  value={
+                    <Figure value={fmt1(om.swellPeriodS)} unit="s" />
+                  }
+                />
+              )}
               <ConditionTile
-                label="Wind"
-                value={fmt1(om.windSpeedMs)}
-                unit="m/s"
-                sub={
-                  om.windDirDeg != null || om.windGustMs != null
-                    ? [
-                        om.windDirDeg != null
-                          ? t("cond.windFrom", { dir: compassLabel(toCompass(om.windDirDeg), lang) ?? "" })
-                          : null,
-                        om.windGustMs != null ? t("cond.gust", { g: fmt1(om.windGustMs) ?? "" }) : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")
-                    : undefined
+                label={t("tile.wind")}
+                value={
+                  <span className="flex flex-col gap-1">
+                    <span className="inline-flex items-center gap-2">
+                      <Figure value={fmt1(om.windSpeedMs)} unit="m/s" />
+                      {om.windSpeedMs != null && (
+                        <span className="font-sans text-[12px] font-medium tracking-normal text-muted-foreground">
+                          <WindStrength speedMs={om.windSpeedMs} gustMs={om.windGustMs} />
+                        </span>
+                      )}
+                    </span>
+                    {(hasShore || om.windDirDeg != null) && (
+                      <span className="inline-flex items-baseline gap-2">
+                        <DirSub deg={om.windDirDeg} compass={compassLabel(toCompass(om.windDirDeg), lang)} />
+                        {hasShore && (
+                          <span className="font-sans text-[12px] font-medium tracking-normal text-muted-foreground">
+                            <WindShoreBadge mode={fit.windMode} />
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
                 }
               />
             </>
           )}
-          {/* CWA's official tide wins. Open-Meteo's modelled low/high
-              (rougher: times can be off by up to ~1 h, MSL-datum heights)
-              only fills in where CWA has nothing, i.e. past sessions. The
-              manual Swelleye tide stays stored, just not displayed. */}
-          {cwaEvents.length > 0 && (
-            <ConditionTile
-              label={t("tile.tideCwa")}
-              value={trendHeadline(cwaTrend)}
-              sub={<TideEventsSub events={cwaEvents} sessionWhen={session.when} />}
-            />
-          )}
-          {cwaEvents.length === 0 && omEvents.length > 0 && (
+          {/* Open-Meteo is the only tide source shown. CWA's tide stays stored
+              (condCwaTide), just not displayed, and so does the manual
+              Swelleye tide. */}
+          {omEvents.length > 0 && (
             <ConditionTile
               label={t("tile.tideOpenMeteo")}
               value={trendHeadline(omTrend)}
-              sub={<TideEventsSub events={omEvents} sessionWhen={session.when} />}
+              sub={
+                omEvents.length >= 2 ? (
+                  <TideChart events={omEvents} sessionWhen={session.when} />
+                ) : (
+                  <TideEventsSub events={omEvents} sessionWhen={session.when} />
+                )
+              }
             />
           )}
         </div>
@@ -274,7 +274,7 @@ export function EntryCard({
             }
           />
           <ConditionTile
-            label="Wind"
+            label={t("tile.wind")}
             value={fmt1(manual.windSpeedMs)}
             unit="m/s"
             sub={
@@ -301,16 +301,6 @@ export function EntryCard({
           </Button>
         </div>
       ) : null}
-
-      {badges.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-6 pb-1 pt-1.5">
-          {badges.map((b) => (
-            <Badge key={b} variant="secondary" className="font-normal text-muted-foreground">
-              {b}
-            </Badge>
-          ))}
-        </div>
-      )}
 
       {session.notesHtml && (
         <div
@@ -358,15 +348,11 @@ export function EntryCard({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 px-6 pt-2.5 pb-5">
+      {session.example || (manual && !om) ? (
+        <div className="flex flex-wrap items-center gap-2 px-6 pt-2.5 pb-5">
         {session.example && (
           <span className="rounded-full bg-[var(--warm-soft)] px-3.5 py-1 text-[11.5px] font-semibold text-warm">
             {t("entry.example")}
-          </span>
-        )}
-        {om && (
-          <span className="rounded-full bg-accent px-3.5 py-1 text-[11.5px] font-semibold text-primary">
-            {t("badge.openMeteoAuto")}
           </span>
         )}
         {manual && !om && (
@@ -374,7 +360,10 @@ export function EntryCard({
             {manual.source === "swelleye" ? t("badge.swelleyeForecast") : t("badge.enteredByHand")}
           </span>
         )}
-      </div>
+        </div>
+      ) : (
+        <div className="h-4" />
+      )}
     </article>
   );
 }
@@ -388,6 +377,17 @@ function ReadOnlyStars({ value, label }: { value: number; label: string }) {
           className={cn("size-3.5", n <= value ? "fill-warm text-warm" : "fill-transparent text-border")}
         />
       ))}
+    </span>
+  );
+}
+
+/** Direction arrow and compass point, arrow sitting low on the baseline. */
+function DirSub({ deg, compass }: { deg: number | null | undefined; compass: string | null | undefined }) {
+  if (deg == null) return null;
+  return (
+    <span className="inline-flex items-baseline gap-1 font-sans text-[12px] font-bold text-primary">
+      <DirectionArrow deg={deg} className="relative top-[2px] size-3" strokeWidth={3.5} />
+      {compass}
     </span>
   );
 }

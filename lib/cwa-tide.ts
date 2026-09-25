@@ -12,14 +12,14 @@
  * (4/day), not a continuous curve — this picks the single nearest event to
  * the session's time rather than interpolating a height at that exact
  * moment (kept in `tideM`/`tideType`/`time`, for old rows). It also returns
- * `events`: the bracketing pair (last event at/before the session, first
- * after it), each with its own time and height — see CLAUDE.md "Entry
+ * `events`: every event within +/-14 h of the session plus the bracketing
+ * pair (last at/before, first after; always included), each with its own time and height — see CLAUDE.md "Entry
  * schema" `TideEvent`. Heights come back in centimetres; converted to
  * metres here to match the rest of the app's units (see CLAUDE.md
  * "Conventions").
  */
 import type { CondCwaTide, TideEvent } from "./types";
-import { pickBracket } from "./tide-bracket";
+import { pickBracket, windowAround } from "./tide-bracket";
 
 const BASE = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-A0021-001";
 
@@ -80,7 +80,10 @@ export async function getTide(
   const { prev, next } = pickBracket(allEvents, targetMs, eventMs);
   if (!prev || !next) return null;
 
-  const events: TideEvent[] = [prev, next].map(toTideEvent);
+  // Windowed list for the chart: every event within +/-14 h of the session
+  // plus the bracket (always included). Only reached when the session is
+  // inside the forecast window, so the list is never returned outside it.
+  const events: TideEvent[] = windowAround(allEvents, targetMs, eventMs).map(toTideEvent);
 
   // Legacy single-event fields, kept for old rows/readers: whichever of the
   // bracket is numerically closer to the session time.

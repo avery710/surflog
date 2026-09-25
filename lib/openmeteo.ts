@@ -6,7 +6,7 @@
  * No API key. Free for non-commercial use. Verified working 2026-09-17.
  */
 import type { TideEvent } from "./types";
-import { pickBracket } from "./tide-bracket";
+import { windowAround } from "./tide-bracket";
 
 const MARINE = "https://marine-api.open-meteo.com/v1/marine";
 const FORECAST = "https://api.open-meteo.com/v1/forecast";
@@ -54,8 +54,9 @@ export interface Conditions {
    *  overseas). Different datum from CWA's TWVD heights — don't compare. */
   seaLevelM: number | null;
   seaLevelTrend: "rising" | "falling" | null;
-  /** The previous/next turning points (high/low) of hourly
-   *  `sea_level_height_msl` bracketing the session time, refined to
+  /** Turning points (high/low) of hourly `sea_level_height_msl` within
+   *  +/-14 h of the session, plus always the bracketing pair (last at/before,
+   *  first after) even if further out; sorted, alternating; refined to
    *  sub-hour precision — see `findTideEvents` below. Modelled at the
    *  offshore grid node, MSL datum: not comparable to CWA's TWVD-referenced
    *  heights in `condCwaTide`, only the shape (rising/falling, timing) is
@@ -193,9 +194,7 @@ export async function findTideEvents(
   if (extrema.length === 0) return undefined;
 
   const targetMs = toMs(whenLocal);
-  const { prev, next } = pickBracket(extrema, targetMs, (e) => toMs(e.time));
-
-  const events = [prev, next].filter((e): e is TideEvent => e != null);
+  const events = windowAround(extrema, targetMs, (e) => toMs(e.time));
   return events.length > 0 ? events : undefined;
 }
 

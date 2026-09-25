@@ -67,18 +67,53 @@ Two implementations exist:
      falling); the small print is only that next event, i.e. the next high
      when rising / next low when falling (`high 20:26 · 1.2 m`, `+1d` if it
      falls on another day). Same tile shape for both sources.
-   - **CWA wins.** The tile is labelled `Tide (CWA)` when the session has
-     `condCwaTide`. Where CWA has nothing (every past session — it's
-     forward-only) the same tile shows Open-Meteo's `tideEvents`, labelled
-     plain `Tide` (the "(Open-Meteo)" suffix was dropped from the swell and
-     tide labels 2026-09-24; the teal "Open-Meteo · auto" badge still names
-     the source). Open-Meteo's `seaLevelM` figure and the manual Swelleye
-     `cond.tideM`/`tideNote` are stored (and in the CSV) but not displayed.
+   - **Open-Meteo is the only tide shown** (since 2026-09-25; until then
+     CWA won and the tile read `Tide (CWA)` whenever `condCwaTide`
+     existed). Switched on request so every card uses one consistent
+     source, accepting rougher times (±~30 min-1 h) on recent sessions.
+     The tile shows Open-Meteo's `tideEvents`, labelled plain `Tide` (the
+     "(Open-Meteo)" suffix was dropped from the swell and tide labels
+     2026-09-24; the teal "Open-Meteo · auto" badge still names the
+     source). `condCwaTide` is still fetched at save time and stored (and
+     in the CSV), just not displayed, as are Open-Meteo's `seaLevelM`
+     figure and the manual Swelleye `cond.tideM`/`tideNote`.
    - **Open-Meteo wins over typed Swelleye numbers.** When a session has
      `condOpenMeteo`, the manual `cond` swell/wind row and its
      "Swelleye forecast" badge are hidden (they duplicated the Open-Meteo
      tiles); the manual row only shows for sessions with no Open-Meteo
      block. Nothing is deleted from `cond`.
+   - **The whole spot-fit tag row was removed from the cards** (2026-09-24),
+     the one between the tiles and the notes (wind, tide-band, wind-chop and
+     the earlier swell-window / exposure tags). `entry-card.tsx` no longer
+     calls `fitDescriptions`; `lib/spot-fit-descriptions.ts` and
+     `lib/spot-fit.ts` are kept. The wind tile's shore word
+     (`components/wind-shore-badge.tsx`) is now the only fit-derived label.
+
+   **As of 2026-09-25** (condition tiles, restyled on request):
+   - **Tiles**: Swell (height, with arrow + compass point under it) ·
+     Period (split out of the swell tile into its own) · Wind · Tide.
+     Every tile's big figure uses one style (`Figure` in
+     `components/condition-tile.tsx`: 20px mono, foreground colour); the
+     hover tooltips on figures were removed, and `components/ui/tooltip.tsx`
+     with them.
+   - **Wind tile** is two rows: `4.2 m/s  ● 中等風` (speed big, strength a
+     small grey note) and `← 東  側風` (teal bold arrow + compass point,
+     then the shore mode as a small grey note, omitted when the spot has
+     no `facing`, e.g. Taitung). The shore word is plain text now, no pill
+     or tint. Gust is **not displayed** (tried as a line, then "only when
+     gusty", then removed on request) but still feeds the strength label
+     and is stored/in the CSV.
+   - **Wind strength label** (`components/wind-strength.tsx`): Beaufort
+     bands on the **midpoint of speed and gust** (when gust > speed), so
+     gusty wind rates stronger. That midpoint rule is our own choice, not
+     an established scale. Bands (m/s): <1.5 Calm, <3.4 Light, <5.5
+     Gentle, <8 Moderate, <10.8 Fresh, <13.9 Strong, <17.2 Near gale,
+     else Gale; green→red dot. zh-TW deliberately plain words, not the
+     official Beaufort terms (清風 reads as "gentle breeze" to a layperson
+     but is Force 5): 無風 / 微風 / 輕風 / 中等風 / 偏強風 / 強風 / 疾風 /
+     大風.
+   - Not checked in a browser: all of the above was type-checked and
+     linted only.
 
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
@@ -263,8 +298,12 @@ from CWA's TWVD heights — the two numbers are not comparable, only the
 rising/falling direction is.
 
 **Tide events (added 2026-09-24)** — `condOpenMeteo.tideEvents`, the
-previous/next turning points (high/low) of hourly `sea_level_height_msl`
-around the session, each with its own `time`/`heightM` (see `TideEvent` in
+turning points (high/low) of hourly `sea_level_height_msl` within ±14 h of
+the session, plus always the bracketing pair (last at/before, first after,
+even if further out; mixed tides have gaps up to ~17 h) — sorted, strictly
+alternating; widened from the bare pair on 2026-09-24 so the card can draw
+a tide-chart curve (`windowAround()` in `lib/tide-bracket.ts`; the
+date-1..date+1 fetch covers ±14 h for any hour). Each with its own `time`/`heightM` (see `TideEvent` in
 "Entry schema"). `lib/openmeteo.ts`'s `findTideEvents()` fetches a separate
 date-1..date+1 marine request (so the existing single-day `hour` indexing
 for the other variables is untouched), finds local extrema in the hourly
@@ -320,9 +359,9 @@ Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
   metres.
 - Discrete high/low events (~4/day), not a curve. The app stores the
   event nearest the session time (`tideM`/`tideType`/`time`) plus, since
-  2026-09-24, the bracketing pair around it in `events: TideEvent[]` — the
-  last event at/before the session and the first after it, so the UI can
-  show "low 14:44 · 0.4 m, high 20:26 · 1.2 m" instead of one figure.
+  2026-09-24, `events: TideEvent[]` — every event within ±14 h of the
+  session plus always the bracket (last at/before, first after), sorted,
+  for the tide chart and "low 14:44 · 0.4 m, high 20:26 · 1.2 m" text.
   `Daily[]` in the raw response is **not sorted by date** (verified live
   2026-09-24) — `getTide()` flattens every day's events and sorts by
   `DateTime` before picking anything positional.
@@ -333,11 +372,13 @@ Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
   per-event distance cap: **fixed 2026-09-24**, the old 7 h cap assumed
   highs/lows ~6 h apart, but live gaps run 3.9-17.4 h (mixed tides at
   屏東縣滿州鄉, e.g. 2026-10-04 07:10 -> 10-05 00:34), so mid-gap sessions
-  got null. `events` is always the full prev/next pair; the legacy
+  got null. `events` always contains the prev/next bracket; the legacy
   `tideM`/`tideType`/`time` is whichever is nearer. Past sessions rely on
   Open-Meteo sea level/tide events instead (CWA can't be backfilled).
 - Stored in its own block, `condCwaTide`, fetched at save time and
   re-fetched on spot/date edits — same pattern as `condOpenMeteo`.
+  **Not displayed since 2026-09-25** — the card's tide tile is
+  Open-Meteo-only (see "Status").
 
 ### Swelleye vs Open-Meteo comparison tool (added 2026-09-24)
 
@@ -483,7 +524,7 @@ Open-Meteo still fetch and compute their own events independently; only the
     windSpeedMs, windGustMs, windDirDeg,
     seaTempC, airTempC,
     seaLevelM?, seaLevelTrend?,  // "rising" | "falling" — tide fallback, optional (added 2026-09-22)
-    tideEvents?: TideEvent[],   // previous/next sea-level turning points, optional (added 2026-09-24)
+    tideEvents?: TideEvent[],   // sea-level turning points within ±14 h + always the bracket, sorted, optional (added 2026-09-24)
     gridLat, gridLng,        // the grid node actually used — always shown, may be km off
     source: "open-meteo",
     fetchedAt: ISO string
@@ -493,7 +534,7 @@ Open-Meteo still fetch and compute their own events independently; only the
     tideType,                // "high" | "low"
     time,                    // ISO, when that event happens
     stationTownship,         // CWA LocationName, e.g. "宜蘭縣頭城鎮"
-    events?: TideEvent[],    // bracketing pair around the session, optional (added 2026-09-24)
+    events?: TideEvent[],    // events within ±14 h of the session + always the bracket, sorted, optional (added 2026-09-24)
     source: "cwa",
     fetchedAt: ISO string
   }
