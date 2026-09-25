@@ -1,27 +1,96 @@
 /**
- * Compares Swelleye (manual `cond`) with Open-Meteo (`condOpenMeteo`) across
- * every session that has both, prints a table and writes
- * reports/swelleye-vs-openmeteo.md.
+ * Compares Swelleye with Open-Meteo and writes reports/swelleye-vs-openmeteo.md
+ * (plus a terminal summary). Two Swelleye inputs:
+ *   1. browser readings: data/swelleye-readings/<spot>/<YYYY-MM-DD>.json, a
+ *      full day of Swelleye's table read in Chrome on request. Open-Meteo for
+ *      that day is fetched once and snapshotted beside it as
+ *      <YYYY-MM-DD>.openmeteo.json, so re-runs compare the same numbers.
+ *   2. sessions with Swelleye numbers typed into `cond`.
  *
  * Run:  npm run compare      (uses `npx tsx`; loads .env.local itself)
  *
- * READ-ONLY: one SELECT on `sessions`, no writes. Reads every owner's rows
- * (it's a dev tool run with the service key, not an app feature).
+ * DB is READ-ONLY: one SELECT on `sessions`, no writes. Reads every owner's
+ * rows (it's a dev tool run with the service key, not an app feature).
  */
 import { createClient } from "@supabase/supabase-js";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Session } from "../lib/types";
+import { getConditions } from "../lib/openmeteo";
+import { spotBySlug } from "../lib/spots";
 import {
   METRIC_META,
   THRESHOLDS,
+  compareReading,
   compareSession,
   summarise,
+  type MetricKey,
   type MetricSummary,
+  type OpenMeteoDay,
   type SessionComparison,
+  type SwelleyeReading,
 } from "../lib/source-compare";
 
 const ROOT = path.resolve(__dirname, "..");
+const READINGS = path.join(ROOT, "data", "swelleye-readings");
+
+// ---- browser readings -------------------------------------------------
+
+function loadReadings(): { file: string; reading: SwelleyeReading }[] {
+  if (!existsSync(READINGS)) return [];
+  const out: { file: string; reading: SwelleyeReading }[] = [];
+  for (const spot of readdirSync(READINGS, { withFileTypes: true })) {
+    if (!spot.isDirectory()) continue;
+    const dir = path.join(READINGS, spot.name);
+    for (const f of readdirSync(dir)) {
+      if (!/^\d{4}-\d{2}-\d{2}\.json$/.test(f)) continue;
+      const file = path.join(dir, f);
+      const r = JSON.parse(readFileSync(file, "utf8")) as SwelleyeReading;
+      const rel = path.relative(ROOT, file);
+      if (r.spot !== spot.name || r.date !== f.slice(0, 10)) {
+        throw new Error(`${rel}: spot/date inside the file must match its path`);
+      }
+      if (!r.hours || !Object.keys(r.hours).every((h) => /^([01]\d|2[0-3])$/.test(h))) {
+        throw new Error(`${rel}: "hours" must be keyed "00"…"23"`);
+      }
+      if (!spotBySlug(r.spot)?.lat) throw new Error(`${rel}: unknown spot or no coordinates: ${r.spot}`);
+      out.push({ file, reading: r });
+    }
+  }
+  return out.sort((a, b) => a.file.localeCompare(b.file));
+}
+
+/** Open-Meteo for the reading's hours, via the app's own getConditions() so
+ *  it's exactly what a card would show. Fetched once, then read from disk. */
+async function openMeteoDay(file: string, r: SwelleyeReading): Promise<OpenMeteoDay> {
+  const snap = file.replace(/\.json$/, ".openmeteo.json");
+  if (existsSync(snap)) return JSON.parse(readFileSync(snap, "utf8")) as OpenMeteoDay;
+  const spot = spotBySlug(r.spot)!;
+  const hours: OpenMeteoDay["hours"] = {};
+  let grid = { lat: 0, lng: 0 };
+  for (const hh of Object.keys(r.hours).sort()) {
+    const c = await getConditions(spot.lat!, spot.lng!, `${r.date}T${hh}:00`);
+    grid = { lat: c.gridLat, lng: c.gridLng };
+    hours[hh] = {
+      swellHeightM: c.swellHeightM, swellPeriodS: c.swellPeriodS, swellDirDeg: c.swellDirDeg,
+      windSpeedMs: c.windSpeedMs, windGustMs: c.windGustMs, windDirDeg: c.windDirDeg,
+      seaTempC: c.seaTempC, airTempC: c.airTempC,
+    };
+  }
+  // noon's ±14 h window covers the whole day's turning points
+  const noon = await getConditions(spot.lat!, spot.lng!, `${r.date}T12:00`);
+  const day: OpenMeteoDay = {
+    spot: r.spot,
+    date: r.date,
+    fetchedAt: new Date().toISOString(),
+    gridLat: grid.lat,
+    gridLng: grid.lng,
+    hours,
+    tideEvents: noon.tideEvents ?? [],
+  };
+  writeFileSync(snap, JSON.stringify(day, null, 2) + "\n");
+  return day;
+}
 
 async function loadSessions(): Promise<Session[]> {
   // Node's built-in .env loader; not in @types/node 20, hence the cast.
@@ -83,6 +152,56 @@ function summaryRows(ss: MetricSummary[]): string[][] {
   ]);
 }
 
+const GAP_HEAD = ["Metric", "Gap score", "Mean diff (OM-SW)", "Mean abs diff", "Max abs diff", "Within close", "n"];
+
+/** Numbers only, biggest gap first. Gap score = mean abs diff ÷ absLarge. */
+function gapRows(ss: MetricSummary[]): string[][] {
+  return [...ss]
+    .sort((a, b) => (b.gapScore ?? -1) - (a.gapScore ?? -1))
+    .map((s) => {
+      const u = METRIC_META[s.key].unit;
+      const v = (n: number | null, sign = false) => (n === null ? "-" : `${sign ? signed(n) : n} ${u}`.trim());
+      return [
+        METRIC_META[s.key].label,
+        s.gapScore === null ? "-" : s.gapScore.toFixed(2),
+        v(s.meanDiff, true),
+        v(s.meanAbsDiff),
+        v(s.maxAbsDiff),
+        `${s.nClose}/${s.n} (${Math.round((s.nClose / s.n) * 100)}%)`,
+        String(s.n),
+      ];
+    });
+}
+
+const HOUR_COLS: MetricKey[] = [
+  "swellHeightM", "swellPeriodS", "swellDir", "windSpeedMs", "windGustMs", "windDir", "windStrength", "tideTrend",
+];
+
+/** One row per hour: "Swelleye / Open-Meteo (diff)" per metric. */
+function readingHourTable(cs: SessionComparison[]): string {
+  const cell = (c: SessionComparison, k: MetricKey) => {
+    const m = c.metrics.find((x) => x.key === k);
+    if (!m) return "-";
+    const d = m.diff === null ? (m.verdict === "close" ? "same" : "differs") : signed(m.diff);
+    return `${m.swelleye} / ${m.openMeteo} (${d})`;
+  };
+  const hours = cs.filter((c) => !c.when.endsWith("tide"));
+  const tide = cs.find((c) => c.when.endsWith("tide"));
+  let md = mdTable(
+    ["Hour", ...HOUR_COLS.map((k) => METRIC_META[k].label)],
+    hours.map((c) => [c.when.slice(11, 16), ...HOUR_COLS.map((k) => cell(c, k))])
+  );
+  if (tide) {
+    md +=
+      "\n\n" +
+      mdTable(
+        ["Tide turn", "Swelleye", "Open-Meteo", "Diff (min)"],
+        tide.metrics.map((m) => [m.swelleye.split(" ")[0], m.swelleye.split(" ")[1], m.openMeteo.split(" ")[1], signed(m.diff)])
+      );
+  }
+  return md;
+}
+
 const SUMMARY_HEAD = ["Metric", "n", "Differs a lot?", "close/noticeable/large", "Mean diff (OM-SW)", "Mean abs diff", "Max abs diff", "Mean OM/SW ratio"];
 
 function analysis(ss: MetricSummary[], nSessions: number): string {
@@ -130,6 +249,38 @@ async function main() {
   const comps = sessions.map(compareSession).filter((c): c is SessionComparison => c !== null);
   const summary = summarise(comps);
 
+  const readings = loadReadings();
+  const byReading: { reading: SwelleyeReading; om: OpenMeteoDay; comps: SessionComparison[] }[] = [];
+  for (const { file, reading } of readings) {
+    const om = await openMeteoDay(file, reading);
+    byReading.push({ reading, om, comps: compareReading(reading, om) });
+  }
+  const readingComps = byReading.flatMap((b) => b.comps);
+  const readingSummary = summarise(readingComps);
+  const nHours = readingComps.filter((c) => !c.when.endsWith("tide")).length;
+
+  const readingsMd = byReading.length
+    ? `## Browser readings: ${byReading.length} day(s), ${nHours} hour marks
+
+Swelleye's table read in Chrome on request (data/swelleye-readings/). Open-Meteo is the app's own \`getConditions()\` for the same hours, snapshotted at first compare. **Gap score = mean abs diff ÷ that metric's "large" line** (0 = identical, 1.00 = at the line; see Thresholds). Wind strength label is in Beaufort band steps.
+
+${mdTable(GAP_HEAD, gapRows(readingSummary))}
+
+${byReading
+  .map(
+    (b) => `### ${b.reading.spot} ${b.reading.date}
+
+Read ${b.reading.readAt ?? "?"} by ${b.reading.readBy ?? "?"}. Open-Meteo grid node ${b.om.gridLat}, ${b.om.gridLng}, fetched ${b.om.fetchedAt}. Cells: Swelleye / Open-Meteo (Open-Meteo minus Swelleye).
+
+${readingHourTable(b.comps)}`
+  )
+  .join("\n\n")}
+`
+    : `## Browser readings
+
+None yet. Ask Claude to read Swelleye's table for a spot; it saves to data/swelleye-readings/.
+`;
+
   const t = THRESHOLDS;
   const thresholdRows = [
     ["Swell height", `close: <=${t.swellHeightM.absClose} m or <=${t.swellHeightM.pctClose}%`, `large: >${t.swellHeightM.absLarge} m and >${t.swellHeightM.pctLarge}%`],
@@ -139,6 +290,7 @@ async function main() {
     ["Swell / wind direction", `close: <=${t.directionDeg.absClose} deg (one compass step)`, `large: >${t.directionDeg.absLarge} deg`],
     ["Tide turn timing", `close: <=${t.tideTimingMin.absClose} min`, `large: >${t.tideTimingMin.absLarge} min`],
     ["Temperature", `close: <=${t.tempC.absClose} C`, `large: >${t.tempC.absLarge} C`],
+    ["Wind strength label", `close: same band`, `large: >${t.windBandSteps.absLarge} band apart`],
   ];
 
   const skippedLines = comps.flatMap((c) =>
@@ -150,9 +302,14 @@ async function main() {
 
 Generated ${generated} by \`npm run compare\` (scripts/compare-sources.ts, lib/source-compare.ts). Differences are Open-Meteo minus Swelleye.
 
+${readingsMd}
+## Typed session readings
+
 > **Small sample: ${comps.length} session(s) have both a typed Swelleye reading and an Open-Meteo reading (of ${sessions.length} total). Treat every verdict as anecdotal.**
 
-## At a glance: do they differ a lot?
+${mdTable(GAP_HEAD, gapRows(summary))}
+
+### Verdicts
 
 ${mdTable(SUMMARY_HEAD, summaryRows(summary))}
 
@@ -178,7 +335,11 @@ ${analysis(summary, comps.length)}`;
   writeFileSync(out, md);
 
   // terminal output
-  console.log(`Swelleye vs Open-Meteo: ${comps.length} session(s) with both blocks, of ${sessions.length}. SMALL SAMPLE.\n`);
+  if (byReading.length) {
+    console.log(`Browser readings: ${byReading.length} day(s), ${nHours} hour marks. Gap score = mean abs diff / "large" line.\n`);
+    console.log(mdTable(GAP_HEAD, gapRows(readingSummary)) + "\n");
+  }
+  console.log(`Typed session readings: ${comps.length} session(s) with both blocks, of ${sessions.length}. SMALL SAMPLE.\n`);
   console.log(mdTable(SUMMARY_HEAD, summaryRows(summary)));
   console.log("\n" + mdTable(["Session", "Metric", "Swelleye", "Open-Meteo", "Diff", "Diff %", "Verdict"], sessionRows(comps)));
   if (skippedLines.length) console.log("\nSkipped:\n" + skippedLines.join("\n"));

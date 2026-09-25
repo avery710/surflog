@@ -217,6 +217,20 @@ this repo, never as the primary source.
 **Therefore this repo uses Open-Meteo**, called server-side at save time. No key,
 no CORS, no sandbox, fills instantly, and covers past dates.
 
+**Decision 2026-09-25: Open-Meteo is the sole conditions source.** Typing
+Swelleye numbers into `cond` is no longer routine (the field and edit form
+stay). Swelleye becomes an occasional spot-check instead: a full-day
+browser reading every week or two (see "Swelleye vs Open-Meteo comparison
+tool"), focusing on swell period and morning wind, until ~10 days of
+comparisons exist. Why:
+where it matters it agrees (see "Swelleye vs Open-Meteo comparison"), and
+for spotting patterns across one person's sessions a source that fills
+every session the same way — past dates and overseas included — beats a
+possibly-better one typed in sometimes. Swelleye is a model too, not ground
+truth; its spot knowledge is the Spot Infographic, already in
+`lib/spots.ts`. Real ground truth would be CWA buoy observations (see
+"Ruled out" → CWA), not built.
+
 ## Data sources
 
 ### Open-Meteo Marine (primary here) — VERIFIED WORKING
@@ -226,8 +240,9 @@ non-commercial use.
 
 German open-source project. It runs no models of its own; it aggregates open
 data from national weather services (NOAA, DWD, Meteo-France, ECMWF,
-Copernicus). Marine forecasts come from a global wave model; history is
-ERA5-Ocean, 1940 to present.
+Copernicus). Marine forecasts come from a global wave model. History is
+far shorter than the "1940 to present" this file used to claim — see "How
+far back it fills in" below.
 
 **Global coverage — verified 2026-09-18.** Cloud 9, Siargao returned
 0.56 m @ 7.1 s from 69 deg (grid node ~4 km off). Same endpoint, same
@@ -250,7 +265,8 @@ Close enough to trust. Open-Meteo additionally gives what Swelleye can't:
   sessions better than either number alone (2026-09-17 06:00 Jialeshui: 1.16 m
   of wind chop at 4.55 s sitting on 0.98 m of real swell — matches Capy's note
   that it was blown out)
-- Historical archive (ERA5-Ocean, 1940→present, 0.5° resolution, ~5 day lag)
+- Past dates — back to late 2021 for swell, late 2022 for sea level (see
+  below); wind from the archive endpoint goes back to 1940
 
 ### Open-Meteo's real resolution limit — TESTED 2026-09-18, READ THIS
 
@@ -288,9 +304,23 @@ weather API for `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`.
 **Always pass `wind_speed_unit=ms`** — Open-Meteo's default is km/h (see
 "Bugs already hit").
 
+**How far back it fills in — tested live 2026-09-25** (Jialeshui, the
+same endpoints `lib/openmeteo.ts` calls). The app accepts a session on any
+date (no min in the form, format-only check in the API); what's missing
+is conditions:
+- **Marine endpoint** (swell, period, direction, sea temp): data from
+  **early Oct 2021** (2021-09-01 null, 2021-10-05 present). Older → null.
+- **`sea_level_height_msl`** (→ `tideEvents`, the tide tile): from
+  **~Nov/Dec 2022** (2022-11-01 null, 2022-12-01 present). Older → no tide.
+- **Wind** (`archive-api`, used for dates >6 days old): back to **1940**
+  (2010-01-01 returned data).
+So a fully filled card works back ~3.8 years from 2026-09; before Oct 2021
+only wind fills in. Exact start days not pinned down; they may also differ
+by grid node.
+
 **Sea level (added 2026-09-22)** — the marine endpoint's
 `sea_level_height_msl` (tide + surge, metres vs mean sea level, hourly,
-covers past dates). Stored as `condOpenMeteo.seaLevelM` plus
+past dates back to ~Nov/Dec 2022 only). Stored as `condOpenMeteo.seaLevelM` plus
 `seaLevelTrend` (rising/falling, from the neighbouring hour). It's the
 tide fallback for whenever CWA can't cover a session (past dates,
 overseas). Model output at the offshore grid node, and a different datum
@@ -383,16 +413,54 @@ Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
 ### Swelleye vs Open-Meteo comparison tool (added 2026-09-24)
 
 `npm run compare` (`scripts/compare-sources.ts`, pure logic in
-`lib/source-compare.ts`) reads `sessions` from Supabase (read-only, all owners),
-takes every session that has both a typed Swelleye `cond` and a
-`condOpenMeteo`, and writes `reports/swelleye-vs-openmeteo.md` plus a terminal
-table: per-metric Open-Meteo-minus-Swelleye differences, close/noticeable/large
-verdicts against the `THRESHOLDS` constant, and summary stats. Uses `npx tsx`
-(fetched on demand, not a dependency). Tide compares turning-point timing only
-(datums differ). **Sample size as of 2026-09-24: 2 sessions (Jialeshui, 16 and
-17 Sep), so findings are anecdotal**: height, direction and sea temp close;
-wind speed ~25% lower in Open-Meteo both times, which does not resolve the wind
-open question. Re-run as more Swelleye readings are typed in.
+`lib/source-compare.ts`) writes `reports/swelleye-vs-openmeteo.md` plus a
+terminal table. Differences are Open-Meteo minus Swelleye; each metric gets
+a **gap score = mean abs diff ÷ its `absLarge` in `THRESHOLDS`** (0 =
+identical, 1 = at the "large" line), sorted biggest first — numbers first,
+per Avery's preference, with close/noticeable/large verdicts kept below.
+Uses `npx tsx` (fetched on demand, not a dependency). Two Swelleye inputs:
+
+1. **Browser readings (the main input since 2026-09-25).** A full day of
+   Swelleye's table for one spot, in
+   `data/swelleye-readings/<slug>/<YYYY-MM-DD>.json` (`SwelleyeReading`:
+   `hours` keyed `"00"`…`"22"`, each with swell height/period/dir, wind
+   speed/gust/dir, sea/air temp; plus `tide` turning points as `"HH:mm"`).
+   Directions are 16-point compass values, or a band like `"ENE-E"` when
+   the arrows can't be read finer (diff 0 inside it). Open-Meteo for the
+   same hours comes from the app's own `getConditions()` and is
+   **snapshotted once** as `<date>.openmeteo.json` beside it, so a re-run
+   weeks later doesn't swap the forecast for archive data — delete the
+   snapshot to refetch. The whole folder is **gitignored** (Swelleye's paid
+   PRO data; repo is public).
+   **Taking a reading is on request only**: when Avery asks, open
+   `swelleye.com/en/surf-spots/<slug>/` in Avery's logged-in Chrome, scroll
+   to the table, zoom the arrow rows, write the JSON, run `npm run compare`.
+   The `data-source-engineer` agent has no browser, so the reading itself
+   is done in the main session. Never scrape `api.swelleye.com` or reuse the
+   cookie — see "The automation problem"; automating the browser on a
+   schedule was offered and declined 2026-09-25 for the same reason.
+2. **Typed session readings**: sessions (read-only, all owners) with both
+   a Swelleye `cond` and a `condOpenMeteo`. Tide compares turning-point
+   timing only (datums differ). 2 sessions (Jialeshui, 16 and 17 Sep): height,
+   direction and sea temp close; wind speed ~25% lower in Open-Meteo both
+   times.
+
+The wind strength label is compared too (Beaufort band steps), using the
+same `windLevelIndex()` as the card (`lib/wind-strength.ts`).
+
+**2026-09-25, Jialeshui, full day** (12 two-hourly marks; the first
+browser reading, reproduced by `npm run compare`; a hand-written write-up
+is in `reports/jialeshui-2026-09-25-openmeteo-vs-swelleye.md`, untracked
+like all of `reports/` — it names session ids and the repo is public). Gap score = mean absolute diff ÷ that metric's `absLarge` (0 =
+identical, 1 = at the "large" line): swell period **0.80** (MAE 1.20 s;
+Swelleye rises smoothly 6.4→8.2 s, Open-Meteo bounces 4.45–8.15 s), gust
+0.48, wind speed 0.42 (Open-Meteo 23–50% low 00:00–06:00, close or higher
+from 08:00), wind direction 0.38, tide turning-point timing 0.37 (16–51 min;
+rising/falling agreed every hour), wind strength label 0.33, swell height
+0.13, swell direction 0.00
+(inside Swelleye's ENE–E band). Wind strength label matched 8/12 hours.
+Swelleye's tide times track CWA's closely (11:51 vs 11:47, 17:31 vs 17:43),
+so it likely uses CWA tides — unverified guess.
 
 ### Ruled out
 
@@ -474,6 +542,13 @@ Open-Meteo 5.5 m/s vs Swelleye 8 m/s at Jialeshui 06:00 on 2026-09-18, roughly
 30% apart, while gusts agreed (10.7 vs 10). Possibly different reference
 heights or averaging windows. Unresolved; pin it down before trusting wind
 numbers from either source.
+
+2026-09-25 narrows it: across a full day at Jialeshui the gap was
+concentrated overnight/morning (Open-Meteo 23–50% low until 06:00) and gone
+by 08:00 — so possibly time-of-day, not a constant offset. Still n=3 days,
+one spot. Open-Meteo is used anyway (see "The automation problem"); the
+strength label on the card is coarse enough that this mostly moves it by
+one band at most.
 
 Not explained by the km/h bug found 2026-09-22 (see "Bugs already hit"):
 the gusts agreeing means that comparison was already in m/s. But any wind

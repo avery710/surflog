@@ -24,3 +24,7 @@ data/sessions.json
 
 # Vercel CLI link state (project/org ids)
 .vercel
+
+# Swelleye readings taken in the browser (and their Open-Meteo snapshots) —
+# Swelleye's paid PRO data, so kept out of this public repo. Local only.
+data/swelleye-readings/
