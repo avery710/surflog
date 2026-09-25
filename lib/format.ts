@@ -20,12 +20,17 @@ const DAYS_ZH = ["日", "一", "二", "三", "四", "五", "六"];
 /** `when` is "YYYY-MM-DDTHH:mm", Asia/Taipei local, no timezone suffix. */
 export function fmtWhen(when: string, lang: Lang = "en"): string {
   if (!when) return "";
-  const d = when.slice(0, 10);
-  const t = when.slice(11, 16);
-  const [y, m, day] = d.split("-").map(Number);
-  const dt = new Date(y, m - 1, day);
-  if (lang === "zh-TW") return `${y}年${m}月${day}日（週${DAYS_ZH[dt.getDay()]}）· ${t}`;
-  return `${DAYS[dt.getDay()]} ${day} ${MONTHS[m - 1]} ${y} · ${t}`;
+  return `${fmtDate(when.slice(0, 10), lang)} · ${when.slice(11, 16)}`;
+}
+
+/** "YYYY-MM-DD" → "Fri 25 Sep 2026" / "2026年9月25日（週五）"; without the
+ *  weekday when `weekday` is false. */
+export function fmtDate(date: string, lang: Lang = "en", weekday = true): string {
+  if (!date) return "";
+  const [y, m, day] = date.split("-").map(Number);
+  const dow = new Date(y, m - 1, day).getDay();
+  if (lang === "zh-TW") return `${y}年${m}月${day}日${weekday ? `（週${DAYS_ZH[dow]}）` : ""}`;
+  return `${weekday ? `${DAYS[dow]} ` : ""}${day} ${MONTHS[m - 1]} ${y}`;
 }
 
 // CWA's own convention for the 16 compass points.

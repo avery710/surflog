@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField } from "@/components/date-field";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -137,12 +138,7 @@ export function EditPanel({
           </Select>
         </Field>
         <Field label={t("form.date")}>
-          <Input
-            type="date"
-            className="bg-background"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <DateField className="bg-background" value={date} onChange={setDate} />
         </Field>
         <Field label={t("form.time")}>
           <Select value={time} onValueChange={setTime}>

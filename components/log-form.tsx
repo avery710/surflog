@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -16,6 +15,7 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { RatingPicker } from "@/components/rating-picker";
 import { SPOTS, type Region } from "@/lib/spots";
+import { DateField } from "@/components/date-field";
 import { spotLabel, taipeiNearestSlot, taipeiToday } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import { TIME_SLOTS } from "@/lib/time-slots";
@@ -83,7 +83,7 @@ export function LogForm({
           </Select>
         </Field>
         <Field label={t("form.date")}>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <DateField value={date} onChange={setDate} />
         </Field>
         <Field label={t("form.timeInWater")}>
           <Select value={time} onValueChange={setTime}>

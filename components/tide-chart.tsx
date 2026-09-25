@@ -6,10 +6,10 @@ import { fmt1 } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import type { TideEvent } from "@/lib/types";
 
-const H = 84;
+const H = 106;
 const PAD_X = 6;
-const TOP = 30; // pill (0–15) + a high's label above its point
-const BOTTOM = 24; // a low's label below its point
+const TOP = 41; // pill (0–15) + a high's two-line label above its point
+const BOTTOM = 35; // a low's two-line label below its point
 const STEPS_PER_LEG = 20;
 
 // "YYYY-MM-DDTHH:mm" is Asia/Taipei local with no tz; parsing every value as
@@ -91,11 +91,12 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
     );
 
     const sessionDay = sessionWhen.slice(0, 10);
-    const labelText = (e: TideEvent) => {
+    // time on the first line, height under it
+    const labelLines = (e: TideEvent): [string, string | null] => {
       const day = e.time.slice(0, 10);
       const shift = day === sessionDay ? "" : ` ${day > sessionDay ? t("tide.nextDay") : t("tide.prevDay")}`;
       const h = fmt1(e.heightM);
-      return `${e.time.slice(11, 16)}${shift}${h != null ? ` · ${h}m` : ""}`;
+      return [`${e.time.slice(11, 16)}${shift}`, h != null ? `${h}m` : null];
     };
 
     svg = (
@@ -115,7 +116,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
               {labelled.has(i) && (
                 <text
                   x={tx}
-                  y={e.type === "high" ? py - 7 : py + 14}
+                  y={e.type === "high" ? py - (labelLines(e)[1] ? 18 : 7) : py + 14}
                   textAnchor={anchor}
                   fontSize={10}
                   fontWeight={500}
@@ -125,7 +126,12 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
                   paintOrder="stroke"
                   strokeLinejoin="round"
                 >
-                  {labelText(e)}
+                  <tspan x={tx}>{labelLines(e)[0]}</tspan>
+                  {labelLines(e)[1] && (
+                    <tspan x={tx} dy={11}>
+                      {labelLines(e)[1]}
+                    </tspan>
+                  )}
                 </text>
               )}
             </g>
@@ -149,7 +155,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
   }
 
   return (
-    <div ref={wrapRef} className="mt-1 w-full">
+    <div ref={wrapRef} className="mt-1 w-full overflow-hidden">
       {svg}
     </div>
   );

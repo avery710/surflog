@@ -191,7 +191,7 @@ export function EntryCard({
       </div>
 
       {om ? (
-        <div className="flex gap-2.5 overflow-x-auto px-6 pb-1.5 [scrollbar-width:none]">
+        <div className="grid grid-cols-2 gap-2.5 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5">
           {om && (
             <>
               <ConditionTile
@@ -209,9 +209,10 @@ export function EntryCard({
               )}
               <ConditionTile
                 label={t("tile.wind")}
+                className="max-md:col-span-2"
                 value={
                   <span className="flex flex-col gap-1">
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <Figure value={fmt1(om.windSpeedMs)} unit="m/s" />
                       {om.windSpeedMs != null && (
                         <span className="font-sans text-[12px] font-medium tracking-normal text-muted-foreground">
@@ -220,7 +221,7 @@ export function EntryCard({
                       )}
                     </span>
                     {(hasShore || om.windDirDeg != null) && (
-                      <span className="inline-flex items-baseline gap-2">
+                      <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         <DirSub deg={om.windDirDeg} compass={compassLabel(toCompass(om.windDirDeg), lang)} />
                         {hasShore && (
                           <span className="font-sans text-[12px] font-medium tracking-normal text-muted-foreground">
@@ -240,6 +241,7 @@ export function EntryCard({
           {omEvents.length > 0 && (
             <ConditionTile
               label={t("tile.tideOpenMeteo")}
+              className="max-md:col-span-2"
               value={trendHeadline(omTrend)}
               sub={
                 omEvents.length >= 2 ? (
@@ -257,7 +259,7 @@ export function EntryCard({
           duplicates its tiles, so it's stored but not shown (and only
           shown when Open-Meteo has nothing for the session). */}
       {manual && om ? null : manual ? (
-        <div className="flex gap-2.5 overflow-x-auto px-6 pt-1 pb-1.5 [scrollbar-width:none]">
+        <div className="grid grid-cols-2 gap-2.5 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-6 pt-1 pb-1.5">
           <ConditionTile
             label={t("tile.swellSwelleye")}
             value={fmt1(manual.swellHeightM)}
