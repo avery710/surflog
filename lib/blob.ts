@@ -21,7 +21,8 @@ export async function saveBlob(
   bytes: Buffer,
   mimeType: string,
   ownerId: string,
-  sessionId: string
+  /** Exactly one parent: a session's photo, or a board's photo. */
+  parent: { sessionId: string } | { boardId: string }
 ): Promise<string> {
   const id = idOf();
   const sb = getSupabase();
@@ -34,7 +35,12 @@ export async function saveBlob(
 
   const insert = await sb
     .from(TABLE)
-    .insert({ id, owner_id: ownerId, session_id: sessionId, mime_type: mimeType });
+    .insert({
+      id,
+      owner_id: ownerId,
+      mime_type: mimeType,
+      ...("sessionId" in parent ? { session_id: parent.sessionId } : { board_id: parent.boardId }),
+    });
   if (insert.error) {
     // best-effort cleanup — don't leave an orphaned object with no owner record
     await sb.storage.from(BUCKET).remove([id]);

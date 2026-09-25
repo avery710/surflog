@@ -5,6 +5,7 @@ import { deleteBlob } from "@/lib/blob";
 import { spotBySlug } from "@/lib/spots";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
+import { resolveOwnedBoardId } from "@/lib/board-access";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { Cond, Session } from "@/lib/types";
 
@@ -59,6 +60,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   else if (typeof body.rating === "number" && body.rating >= 1 && body.rating <= 5) {
     patch.rating = Math.round(body.rating);
   }
+
+  // Only ever the caller's own board — a foreign/unknown id is a 404, and
+  // nothing is written.
+  const board = await resolveOwnedBoardId(body.boardId, session.user.id);
+  if (!board.ok) return NextResponse.json({ error: "board not found" }, { status: 404 });
+  if (board.boardId !== undefined) patch.boardId = board.boardId;
 
   if (body.cond === null) {
     patch.cond = null;

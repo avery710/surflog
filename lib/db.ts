@@ -14,7 +14,7 @@
  * account's stable subject id — see auth.ts).
  */
 import { getSupabase } from "./supabase";
-import type { Session } from "./types";
+import type { Board, Session } from "./types";
 
 const TABLE = "sessions";
 
@@ -31,6 +31,7 @@ interface SessionRow {
   cond_open_meteo: Session["condOpenMeteo"];
   cond_cwa_tide: Session["condCwaTide"];
   rating: number | null;
+  board_id?: string | null; // added by 20260925000000_create_boards_table.sql
   created_at: string;
   example: boolean | null;
 }
@@ -48,6 +49,7 @@ function rowToSession(row: SessionRow): Session {
     condOpenMeteo: row.cond_open_meteo ?? null,
     condCwaTide: row.cond_cwa_tide ?? null,
     rating: row.rating,
+    boardId: row.board_id ?? null,
     createdAt: row.created_at,
     ...(row.example ? { example: true as const } : {}),
   };
@@ -68,6 +70,7 @@ function sessionToRow(session: Partial<Session>): Partial<SessionRow> {
   if (session.condOpenMeteo !== undefined) row.cond_open_meteo = session.condOpenMeteo;
   if (session.condCwaTide !== undefined) row.cond_cwa_tide = session.condCwaTide;
   if (session.rating !== undefined) row.rating = session.rating;
+  if (session.boardId !== undefined) row.board_id = session.boardId;
   if (session.createdAt !== undefined) row.created_at = session.createdAt;
   if (session.example !== undefined) row.example = session.example ?? null;
   return row;
@@ -146,6 +149,96 @@ export async function setSpotNote(ownerId: string, spot: string, description: st
       )
     : await table.delete().eq("owner_id", ownerId).eq("spot", spot);
   if (result.error) throw new Error(`Supabase: ${result.error.message}`);
+}
+
+const BOARDS = "boards";
+
+/** DB row shape — see supabase/migrations/*_create_boards_table.sql. */
+interface BoardRow {
+  id: string;
+  owner_id: string;
+  brand: string;
+  length_in: number | string | null; // numeric: PostgREST may hand back either
+  volume_l: number | string | null;
+  rocker: Board["rocker"];
+  note: string;
+  photo_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+const numOrNull = (v: number | string | null): number | null =>
+  v == null ? null : Number.isFinite(Number(v)) ? Number(v) : null;
+
+function rowToBoard(row: BoardRow): Board {
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    brand: row.brand ?? "",
+    lengthIn: numOrNull(row.length_in),
+    volumeL: numOrNull(row.volume_l),
+    rocker: row.rocker ?? null,
+    note: row.note ?? "",
+    photoId: row.photo_id ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function boardToRow(board: Partial<Board>): Partial<BoardRow> {
+  const row: Partial<BoardRow> = {};
+  if (board.id !== undefined) row.id = board.id;
+  if (board.ownerId !== undefined) row.owner_id = board.ownerId;
+  if (board.brand !== undefined) row.brand = board.brand;
+  if (board.lengthIn !== undefined) row.length_in = board.lengthIn;
+  if (board.volumeL !== undefined) row.volume_l = board.volumeL;
+  if (board.rocker !== undefined) row.rocker = board.rocker;
+  if (board.note !== undefined) row.note = board.note;
+  if (board.photoId !== undefined) row.photo_id = board.photoId;
+  if (board.createdAt !== undefined) row.created_at = board.createdAt;
+  if (board.updatedAt !== undefined) row.updated_at = board.updatedAt;
+  return row;
+}
+
+/** The owner's boards, oldest first (the order they were added to the rack). */
+export async function listBoards(ownerId: string): Promise<Board[]> {
+  const result = await getSupabase()
+    .from(BOARDS)
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: true });
+  const rows = assertNoError(result) as BoardRow[];
+  return rows.map(rowToBoard);
+}
+
+/** Unscoped lookup — callers (API routes) must check `.ownerId` themselves. */
+export async function getBoard(id: string): Promise<Board | null> {
+  const result = await getSupabase().from(BOARDS).select("*").eq("id", id).maybeSingle();
+  const row = assertNoError(result) as BoardRow | null;
+  return row ? rowToBoard(row) : null;
+}
+
+export async function createBoard(board: Board): Promise<Board> {
+  const result = await getSupabase().from(BOARDS).insert(boardToRow(board)).select().single();
+  return rowToBoard(assertNoError(result) as BoardRow);
+}
+
+export async function updateBoard(id: string, patch: Partial<Board>): Promise<Board | null> {
+  const result = await getSupabase()
+    .from(BOARDS)
+    .update(boardToRow({ ...patch, updatedAt: new Date().toISOString() }))
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  const row = assertNoError(result) as BoardRow | null;
+  return row ? rowToBoard(row) : null;
+}
+
+/** sessions.board_id is `on delete set null`, so sessions survive this. */
+export async function deleteBoard(id: string): Promise<boolean> {
+  const result = await getSupabase().from(BOARDS).delete().eq("id", id).select("id");
+  const rows = assertNoError(result) as { id: string }[];
+  return rows.length > 0;
 }
 
 export function newSessionId(): string {

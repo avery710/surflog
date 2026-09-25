@@ -4,6 +4,7 @@ import { listSessions, createSession, newSessionId } from "@/lib/db";
 import { spotBySlug } from "@/lib/spots";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
+import { resolveOwnedBoardId } from "@/lib/board-access";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { CondCwaTide, CondOpenMeteo, Session } from "@/lib/types";
 
@@ -46,6 +47,10 @@ export async function POST(req: NextRequest) {
       ? Math.round(body.rating)
       : null;
 
+  // Only ever the caller's own board — a foreign/unknown id is a 404.
+  const board = await resolveOwnedBoardId(body.boardId, session.user.id);
+  if (!board.ok) return NextResponse.json({ error: "board not found" }, { status: 404 });
+
   let condOpenMeteo: CondOpenMeteo | null = null;
   const spotInfo = spotBySlug(spot);
   if (spotInfo?.lat != null && spotInfo.lng != null) {
@@ -79,6 +84,8 @@ export async function POST(req: NextRequest) {
     condOpenMeteo,
     condCwaTide,
     rating,
+    // omitted (not null) when unset, so the insert has no board_id column at all
+    ...(board.boardId ? { boardId: board.boardId } : {}),
     createdAt: new Date().toISOString(),
   };
 

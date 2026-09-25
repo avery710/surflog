@@ -114,8 +114,30 @@ export interface Session {
   condCwaTide: CondCwaTide | null;
   /** 1-5, optional. See CLAUDE.md "The unfalsifiability problem". */
   rating: number | null;
+  /** The owner's board this was surfed on (boards.id), or null. Optional so
+   *  rows read before the boards migration still type-check. */
+  boardId?: string | null;
   createdAt: string;
   example?: true;
+}
+
+export type Rocker = "low" | "medium" | "high";
+
+/** A board in the owner's rack — table `boards`. Length is total inches, the
+ *  one deliberate exception to metric (see CLAUDE.md "Conventions"); shown as
+ *  ft'in via lib/boards.ts. */
+export interface Board {
+  id: string;
+  ownerId: string;
+  brand: string;
+  lengthIn: number | null;
+  volumeL: number | null;
+  rocker: Rocker | null;
+  note: string;
+  /** photo_blobs id, served by /api/blob/:id (owner-checked); images only. */
+  photoId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type NewSession = Pick<Session, "spot" | "when"> &

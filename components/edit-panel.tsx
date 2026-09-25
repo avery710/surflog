@@ -17,11 +17,12 @@ import {
 } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { RatingPicker } from "@/components/rating-picker";
+import { BoardSelect } from "@/components/board-select";
 import { SPOTS, type Region } from "@/lib/spots";
 import { spotLabel } from "@/lib/format";
 import { useLang, type TKey } from "@/lib/i18n";
 import { TIME_SLOTS } from "@/lib/time-slots";
-import type { Cond, Session } from "@/lib/types";
+import type { Board, Cond, Session } from "@/lib/types";
 
 const REGIONS: Region[] = ["Northeast", "North", "East", "South", "West"];
 
@@ -43,10 +44,12 @@ const COND_FIELDS: { key: CondFieldKey; placeholder: string | TKey }[] = [
 
 export function EditPanel({
   session,
+  boards = [],
   onSaved,
   onCancel,
 }: {
   session: Session;
+  boards?: Board[];
   onSaved: (s: Session) => void;
   onCancel: () => void;
 }) {
@@ -57,6 +60,7 @@ export function EditPanel({
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
   const [rating, setRating] = useState<number | null>(session.rating);
+  const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -74,6 +78,8 @@ export function EditPanel({
         notesHtml,
         rating,
         cond: hasAnyCond(cond) ? cond : null,
+        // only sent when changed, so an untouched board never needs a write
+        ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
         ...extra,
       }),
     });
@@ -203,6 +209,12 @@ export function EditPanel({
         </span>
         <RatingPicker value={rating} onChange={setRating} />
       </div>
+
+      {(boards.length > 0 || boardId) && (
+        <div className="sm:max-w-[280px]">
+          <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full bg-background" />
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={saving} className="rounded-full px-6">

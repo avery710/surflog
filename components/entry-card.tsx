@@ -17,14 +17,18 @@ import { TideChart } from "@/components/tide-chart";
 import { DirectionArrow } from "@/components/direction-arrow";
 import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
-import type { Session } from "@/lib/types";
+import { boardLabel } from "@/lib/boards";
+import type { Board, Session } from "@/lib/types";
 
 export function EntryCard({
   session,
+  boards = [],
   onUpdated,
   onDeleted,
 }: {
   session: Session;
+  /** The owner's rack — to show the session's board and to pick one on edit. */
+  boards?: Board[];
   onUpdated: (s: Session) => void;
   onDeleted: (id: string) => void;
 }) {
@@ -108,6 +112,7 @@ export function EntryCard({
   }
 
   const om = session.condOpenMeteo;
+  const board = session.boardId ? boards.find((b) => b.id === session.boardId) : undefined;
   const manual = session.cond;
   const hasShore = !!fit && !fit.missing.includes("windDirDeg") && !fit.missing.includes("spot.facing");
   const omEvents = om?.tideEvents ?? [];
@@ -125,6 +130,7 @@ export function EntryCard({
       <article className={cardClass}>
         <EditPanel
           session={session}
+          boards={boards}
           onSaved={(s) => {
             onUpdated(s);
             setEditing(false);
@@ -304,6 +310,8 @@ export function EntryCard({
         </div>
       ) : null}
 
+      {board && <BoardChip board={board} />}
+
       {session.notesHtml && (
         <div
           className="notes-html px-6 pt-2.5 pb-1.5 font-sans text-[15px] leading-[1.65]"
@@ -391,5 +399,30 @@ function DirSub({ deg, compass }: { deg: number | null | undefined; compass: str
       <DirectionArrow deg={deg} className="relative top-[2px] size-3" strokeWidth={3.5} />
       {compass}
     </span>
+  );
+}
+
+/** Which board the session was surfed on: small photo (if any) + name. */
+function BoardChip({ board }: { board: Board }) {
+  const { t } = useLang();
+  const name = boardLabel(board);
+  return (
+    <div className="flex min-w-0 px-6 pt-2.5 pb-0.5">
+      <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary py-1 pr-3.5 pl-1">
+        {board.photoId ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/api/blob/${board.photoId}`}
+            alt={t("board.photoAlt", { name })}
+            loading="lazy"
+            className="size-7 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="size-1.5 shrink-0" aria-hidden />
+        )}
+        <span className="shrink-0 text-[12px] font-semibold text-muted-foreground">{t("entry.board")}</span>
+        <span className="min-w-0 truncate text-[13.5px] font-bold tracking-[-0.01em]">{name}</span>
+      </span>
+    </div>
   );
 }

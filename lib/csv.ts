@@ -1,8 +1,9 @@
-import type { Session } from "./types";
+import type { Board, Session } from "./types";
+import { boardLabel } from "./boards";
 import { spotLabel } from "./format";
 
 const HEAD = [
-  "date", "time", "spot", "rating",
+  "date", "time", "spot", "rating", "board",
   "swell_m", "period_s", "swell_from", "wind_ms", "gust_ms", "wind_from",
   "tide_m", "sea_c", "air_c",
   "om_swell_m", "om_period_s", "om_swell_deg", "om_wind_ms", "om_wind_deg",
@@ -15,7 +16,8 @@ const cell = (v: unknown): string => {
   return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 };
 
-export function sessionsToCsv(sessions: Session[]): string {
+export function sessionsToCsv(sessions: Session[], boards: Board[] = []): string {
+  const boardById = new Map(boards.map((b) => [b.id, b]));
   const lines = [HEAD.join(",")];
   // oldest first, like the reference export
   [...sessions].reverse().forEach((s) => {
@@ -27,6 +29,10 @@ export function sessionsToCsv(sessions: Session[]): string {
         (s.when || "").slice(11, 16),
         spotLabel(s.spot),
         s.rating,
+        (() => {
+          const b = s.boardId ? boardById.get(s.boardId) : undefined;
+          return b ? boardLabel(b) : null;
+        })(),
         c?.swellHeightM, c?.swellPeriodS, c?.swellDir,
         c?.windSpeedMs, c?.windGustMs, c?.windDir,
         c?.tideM, c?.seaTempC, c?.airTempC,
@@ -41,8 +47,8 @@ export function sessionsToCsv(sessions: Session[]): string {
   return lines.join("\n");
 }
 
-export function downloadCsv(sessions: Session[], filename = "surflog.csv") {
-  const csv = sessionsToCsv(sessions);
+export function downloadCsv(sessions: Session[], boards: Board[] = [], filename = "surflog.csv") {
+  const csv = sessionsToCsv(sessions, boards);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

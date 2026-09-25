@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const photoId = await saveBlob(bytes, file.type, session.user.id, id);
+  const photoId = await saveBlob(bytes, file.type, session.user.id, { sessionId: id });
 
   const photos = [...existing.photos, { id: photoId, type: file.type }];
   const saved = await updateSession(id, { photos });

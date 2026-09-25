@@ -7,6 +7,7 @@ import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
 import { EntryCard } from "@/components/entry-card";
 import { PatternsTable } from "@/components/patterns-table";
+import { BoardRack } from "@/components/board-rack";
 import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,9 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { downloadCsv } from "@/lib/csv";
 import { useLang } from "@/lib/i18n";
-import type { Session } from "@/lib/types";
+import type { Board, Session } from "@/lib/types";
 
 interface JournalUser {
+  id?: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
@@ -28,16 +30,32 @@ interface JournalUser {
 export function Journal({
   initialSessions,
   initialSpotNotes,
+  initialBoards,
   user,
 }: {
   initialSessions: Session[];
   initialSpotNotes: Record<string, string>;
+  initialBoards: Board[];
   user: JournalUser;
 }) {
   const { t } = useLang();
   const [sessions, setSessions] = useState(initialSessions);
   const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
+  const [boards, setBoards] = useState(initialBoards);
   const [formOpen, setFormOpen] = useState(false);
+
+  function upsertBoard(b: Board) {
+    setBoards((prev) =>
+      prev.some((x) => x.id === b.id) ? prev.map((x) => (x.id === b.id ? b : x)) : [...prev, b]
+    );
+  }
+
+  /** The DB nulls sessions.board_id on delete (FK on delete set null);
+   *  mirror that locally so no card points at a board that's gone. */
+  function removeBoard(id: string) {
+    setBoards((prev) => prev.filter((b) => b.id !== id));
+    setSessions((prev) => prev.map((s) => (s.boardId === id ? { ...s, boardId: null } : s)));
+  }
 
   /** Resolves true if saved, so the table knows whether to leave edit mode. */
   async function saveSpotNote(spot: string, description: string): Promise<boolean> {
@@ -72,7 +90,7 @@ export function Journal({
       toast.info(t("toast.nothingToExport"));
       return;
     }
-    downloadCsv(sessions);
+    downloadCsv(sessions, boards);
   }
 
   function upsert(s: Session) {
@@ -113,12 +131,19 @@ export function Journal({
         <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
       </div>
 
+      <BoardRack boards={boards} onSaved={upsertBoard} onDeleted={removeBoard} />
+
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-xl" closeLabel={t("entry.close")}>
           <DialogHeader>
             <DialogTitle>{t("dialog.logSessionTitle")}</DialogTitle>
           </DialogHeader>
-          <LogForm onCreated={handleCreated} />
+          <LogForm
+            onCreated={handleCreated}
+            ownerId={user.id}
+            recentSpot={sessions[0]?.spot}
+            boards={boards}
+          />
         </DialogContent>
       </Dialog>
 
@@ -131,7 +156,7 @@ export function Journal({
             <EmptyState />
           ) : (
             sessions.map((s) => (
-              <EntryCard key={s.id} session={s} onUpdated={upsert} onDeleted={remove} />
+              <EntryCard key={s.id} session={s} boards={boards} onUpdated={upsert} onDeleted={remove} />
             ))
           )}
         </div>

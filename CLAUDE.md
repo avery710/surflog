@@ -627,6 +627,21 @@ manual-only — nothing scrapes Swelleye. All three are kept as separate
 blocks rather than merged, per Capy's original requirement to know which
 number came from where.
 
+**Board rack** (added 2026-09-25, migration
+`20260925000000_create_boards_table.sql` — **written, not yet applied to
+the live project**): table `boards` (`id`, `owner_id`, `brand`,
+`length_in`, `volume_l`, `rocker` low/medium/high, `note`, `photo_id`),
+per owner, RLS on / no policies. `sessions.board_id` references it with
+`on delete set null`, so deleting a board never deletes sessions.
+Session create/update 404s a `boardId` the caller doesn't own
+(`lib/board-access.ts`). Board photos reuse the session photo pipeline —
+`photo_blobs` gained a nullable `board_id` (exactly one of
+`session_id`/`board_id` set) — and are served by the same owner-checked
+`/api/blob/:id`. Routes: `app/api/boards/**`. UI: `components/board-rack.tsx`
+(below the calendar/table), `components/board-select.tsx` (log form + edit
+panel), a board chip on each session card. The main page lists boards on
+load, so **apply the migration before deploying this code**.
+
 **Spot descriptions** live outside sessions, in their own table
 `spot_notes` (`owner_id`, `spot`, `description`, `updated_at`; primary key
 `(owner_id, spot)`, migration `20260923000000_create_spot_notes_table.sql`).
@@ -773,6 +788,10 @@ New agent files only load when a Claude Code session starts.
 ## Conventions
 
 - Metric throughout: metres, seconds, m/s, °C. Never feet or knots.
+  **One deliberate exception: surfboard length** is feet/inches (6'2"),
+  because boards are sized that way everywhere, Taiwan included. Stored as
+  total inches (`boards.length_in`), entered/shown as ft'in via
+  `lib/boards.ts`. Board volume stays metric (litres).
 - Times are Asia/Taipei local, no timezone suffix stored.
 - UI: white background, black text, single light theme (no dark mode — removed
   on request). Rounded components, Coinbase-ish: 24px cards, 16px tiles, pill

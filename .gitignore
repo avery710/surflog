@@ -28,3 +28,6 @@ data/sessions.json
 # Swelleye readings taken in the browser (and their Open-Meteo snapshots) —
 # Swelleye's paid PRO data, so kept out of this public repo. Local only.
 data/swelleye-readings/
+
+# Claude Code agent worktrees (temporary isolated copies of this repo)
+.claude/worktrees/
