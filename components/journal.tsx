@@ -8,6 +8,7 @@ import { ActivityCalendar } from "@/components/activity-calendar";
 import { EntryCard } from "@/components/entry-card";
 import { PatternsTable } from "@/components/patterns-table";
 import { BoardRack } from "@/components/board-rack";
+import { GoalCard } from "@/components/goal";
 import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,17 +32,20 @@ export function Journal({
   initialSessions,
   initialSpotNotes,
   initialBoards,
+  initialGoal,
   user,
 }: {
   initialSessions: Session[];
   initialSpotNotes: Record<string, string>;
   initialBoards: Board[];
+  initialGoal: string | null;
   user: JournalUser;
 }) {
   const { t } = useLang();
   const [sessions, setSessions] = useState(initialSessions);
   const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
   const [boards, setBoards] = useState(initialBoards);
+  const [goal, setGoal] = useState(initialGoal);
   const [formOpen, setFormOpen] = useState(false);
 
   function upsertBoard(b: Board) {
@@ -76,6 +80,24 @@ export function Journal({
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("toast.couldntSaveDescription"));
+      return false;
+    }
+  }
+
+  /** Resolves true if saved, so the card knows whether to leave edit mode. */
+  async function saveGoal(text: string): Promise<boolean> {
+    try {
+      const res = await fetch("/api/goal", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSaveGoal"));
+      setGoal(body.text ?? null);
+      return true;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("toast.couldntSaveGoal"));
       return false;
     }
   }
@@ -126,6 +148,8 @@ export function Journal({
         </div>
       </header>
 
+      <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+
       <div className="mt-6.5 flex flex-wrap items-start gap-4">
         <ActivityCalendar sessions={sessions} />
         <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
@@ -143,6 +167,7 @@ export function Journal({
             ownerId={user.id}
             recentSpot={sessions[0]?.spot}
             boards={boards}
+            goal={goal}
           />
         </DialogContent>
       </Dialog>

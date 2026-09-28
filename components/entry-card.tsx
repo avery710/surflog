@@ -17,8 +17,9 @@ import { TideChart } from "@/components/tide-chart";
 import { DirectionArrow } from "@/components/direction-arrow";
 import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
+import { GoalChip } from "@/components/goal";
 import { boardLabel } from "@/lib/boards";
-import type { Board, Session } from "@/lib/types";
+import type { Board, Session, TideEvent } from "@/lib/types";
 
 export function EntryCard({
   session,
@@ -112,11 +113,30 @@ export function EntryCard({
   }
 
   const om = session.condOpenMeteo;
+  const cwa = session.condCwaTide;
   const board = session.boardId ? boards.find((b) => b.id === session.boardId) : undefined;
   const manual = session.cond;
   const hasShore = !!fit && !fit.missing.includes("windDirDeg") && !fit.missing.includes("spot.facing");
+  // CWA's tide forecast wins whenever it covers the session (accurate to
+  // ~10 min against real references; Open-Meteo's offshore grid node runs
+  // 20-65 min off — see CLAUDE.md "CWA tide forecast", 2026-09-28). CWA is
+  // forward-only (~32 days), so most past/overseas sessions still fall back
+  // to Open-Meteo's tideEvents, same as before.
+  const cwaEvents = cwa?.events ?? [];
   const omEvents = om?.tideEvents ?? [];
-  const omTrend = tideTrend(omEvents, session.when) ?? om?.seaLevelTrend ?? null;
+  const tideSource: "cwa" | "open-meteo" | null =
+    cwaEvents.length > 0 ? "cwa" : omEvents.length > 0 ? "open-meteo" : null;
+  const tideEvents = tideSource === "cwa" ? cwaEvents : omEvents;
+  // Older CWA rows (pre-2026-09-24) only ever stored the single nearest
+  // event, not `events` — build a one-item array so tideTrend() (which
+  // already handles a lone event) can still read a direction off it.
+  const cwaLegacyEvent: TideEvent[] =
+    cwa?.time && cwa?.tideType ? [{ type: cwa.tideType, time: cwa.time.slice(0, 16), heightM: cwa.tideM }] : [];
+  const tideTrendValue =
+    tideTrend(tideEvents, session.when) ??
+    tideTrend(cwaLegacyEvent, session.when) ??
+    om?.seaLevelTrend ??
+    null;
   const trendHeadline = (trend: "rising" | "falling" | null) =>
     trend ? (
       <span className="text-[20px] leading-tight capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>
@@ -241,19 +261,20 @@ export function EntryCard({
               />
             </>
           )}
-          {/* Open-Meteo is the only tide source shown. CWA's tide stays stored
-              (condCwaTide), just not displayed, and so does the manual
-              Swelleye tide. */}
-          {omEvents.length > 0 && (
+          {/* CWA wins whenever it covers the session (see the comment above
+              `tideSource`); Open-Meteo's tideEvents is the fallback for
+              past/overseas sessions CWA can't reach. The manual Swelleye
+              tide stays stored but never shown here. */}
+          {tideSource && (
             <ConditionTile
-              label={t("tile.tideOpenMeteo")}
+              label={tideSource === "cwa" ? t("tile.tideCwa") : t("tile.tideOpenMeteo")}
               className="max-md:col-span-2"
-              value={trendHeadline(omTrend)}
+              value={trendHeadline(tideTrendValue)}
               sub={
-                omEvents.length >= 2 ? (
-                  <TideChart events={omEvents} sessionWhen={session.when} />
+                tideEvents.length >= 2 ? (
+                  <TideChart events={tideEvents} sessionWhen={session.when} />
                 ) : (
-                  <TideEventsSub events={omEvents} sessionWhen={session.when} />
+                  <TideEventsSub events={tideEvents} sessionWhen={session.when} />
                 )
               }
             />
@@ -311,6 +332,7 @@ export function EntryCard({
       ) : null}
 
       {board && <BoardChip board={board} />}
+      {session.goalText && <GoalChip goal={session.goalText} met={session.goalMet ?? null} />}
 
       {session.notesHtml && (
         <div

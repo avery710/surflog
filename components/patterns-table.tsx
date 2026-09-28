@@ -55,78 +55,80 @@ export function PatternsTable({
 
   return (
     <section className="min-w-[320px] flex-1">
-      <div className="pl-1 font-sans text-[13px] font-bold text-muted-foreground">
-        {t("patterns.title")}
-      </div>
-      <div className="mt-2.5 overflow-x-auto rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
-        <table className="w-full min-w-[420px] border-separate [border-spacing:0_4px]">
-          <thead>
-            <tr>
-              {[t("form.spot"), t("patterns.sessions"), t("patterns.description")].map((h) => (
-                <th
-                  key={h}
-                  className="px-4 pb-0.5 pt-2.5 text-left text-xs font-semibold text-[var(--faint)]"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const label = spotLabel(r.slug, lang);
-              const note = spotNotes[r.slug];
-              return (
-                <tr key={r.slug}>
-                  <td className="rounded-l-[var(--r-tile)] bg-secondary px-4 py-2.5 align-top font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
-                    {label}
-                  </td>
-                  <td className="bg-secondary px-4 py-2.5 align-top font-mono text-[13.5px] tabular-nums">
-                    {r.n}
-                  </td>
-                  <td className="w-full rounded-r-[var(--r-tile)] bg-secondary px-2 py-1.5 align-top">
-                    {editing === r.slug ? (
-                      <input
-                        autoFocus
-                        value={draft}
-                        maxLength={MAX_DESCRIPTION}
-                        disabled={saving}
-                        placeholder={t("patterns.descriptionPlaceholder")}
-                        aria-label={t("patterns.editDescription", { spot: label })}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onBlur={() => commit(r.slug)}
-                        onKeyDown={(e) => {
-                          // Enter confirms an IME candidate (注音/倉頡) — only save on a real Enter
-                          if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                            e.preventDefault();
-                            void commit(r.slug);
-                          } else if (e.key === "Escape") {
-                            cancelled.current = true;
-                            setEditing(null);
+      <div className="rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+        <h2 className="px-3 pt-2 font-sans text-[13px] font-bold text-muted-foreground">
+          {t("patterns.title")}
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] border-separate [border-spacing:0_4px]">
+            <thead>
+              <tr>
+                {[t("form.spot"), t("patterns.sessions"), t("patterns.description")].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 pb-0.5 pt-2.5 text-left text-xs font-semibold text-[var(--faint)]"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const label = spotLabel(r.slug, lang);
+                const note = spotNotes[r.slug];
+                return (
+                  <tr key={r.slug}>
+                    <td className="rounded-l-[var(--r-tile)] bg-secondary px-4 py-2.5 align-top font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
+                      {label}
+                    </td>
+                    <td className="bg-secondary px-4 py-2.5 align-top font-mono text-[13.5px] tabular-nums">
+                      {r.n}
+                    </td>
+                    <td className="w-full rounded-r-[var(--r-tile)] bg-secondary px-2 py-1.5 align-top">
+                      {editing === r.slug ? (
+                        <input
+                          autoFocus
+                          value={draft}
+                          maxLength={MAX_DESCRIPTION}
+                          disabled={saving}
+                          placeholder={t("patterns.descriptionPlaceholder")}
+                          aria-label={t("patterns.editDescription", { spot: label })}
+                          onChange={(e) => setDraft(e.target.value)}
+                          onBlur={() => commit(r.slug)}
+                          onKeyDown={(e) => {
+                            // Enter confirms an IME candidate (注音/倉頡) — only save on a real Enter
+                            if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                              e.preventDefault();
+                              void commit(r.slug);
+                            } else if (e.key === "Escape") {
+                              cancelled.current = true;
+                              setEditing(null);
+                            }
+                          }}
+                          className="w-full rounded-[10px] border border-ring bg-background px-2 py-1 text-[14px] outline-none ring-4 ring-ring/15 disabled:opacity-60"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(r.slug)}
+                          aria-label={t("patterns.editDescription", { spot: label })}
+                          className={
+                            note
+                              ? "w-full rounded-[10px] px-2 py-1 text-left text-[14px] leading-snug whitespace-pre-wrap break-words hover:bg-background"
+                              : "rounded-[10px] px-2 py-1 text-left text-[13px] font-medium text-[var(--faint)] hover:bg-background hover:text-muted-foreground"
                           }
-                        }}
-                        className="w-full rounded-[10px] border border-ring bg-background px-2 py-1 text-[14px] outline-none ring-4 ring-ring/15 disabled:opacity-60"
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => startEdit(r.slug)}
-                        aria-label={t("patterns.editDescription", { spot: label })}
-                        className={
-                          note
-                            ? "w-full rounded-[10px] px-2 py-1 text-left text-[14px] leading-snug whitespace-pre-wrap break-words hover:bg-background"
-                            : "rounded-[10px] px-2 py-1 text-left text-[13px] font-medium text-[var(--faint)] hover:bg-background hover:text-muted-foreground"
-                        }
-                      >
-                        {note || t("patterns.addDescription")}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        >
+                          {note || t("patterns.addDescription")}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );

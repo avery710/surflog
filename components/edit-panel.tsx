@@ -18,6 +18,7 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { RatingPicker } from "@/components/rating-picker";
 import { BoardSelect } from "@/components/board-select";
+import { GoalCheck } from "@/components/goal";
 import { SPOTS, type Region } from "@/lib/spots";
 import { spotLabel } from "@/lib/format";
 import { useLang, type TKey } from "@/lib/i18n";
@@ -26,9 +27,20 @@ import type { Board, Cond, Session } from "@/lib/types";
 
 const REGIONS: Region[] = ["Northeast", "North", "East", "South", "West"];
 
-type CondFieldKey = Exclude<keyof Cond, "sky" | "source" | "filledAt">;
-
-// placeholder: a literal example value, or a translation key for prose
+// Only fields entry-card.tsx can actually display (the manual Swelleye
+// swell/wind tiles, shown when the session has no condOpenMeteo — see
+// CLAUDE.md "Status"). tideM/tideNote/seaTempC/airTempC/sky are stored
+// (and tideM/tideNote/seaTempC/airTempC still in the CSV) but never
+// rendered anywhere, so they're not editable here; the `cond` state below
+// still carries them through unchanged on save, since it's seeded from
+// the existing session.cond.
+type CondFieldKey =
+  | "swellHeightM"
+  | "swellPeriodS"
+  | "swellDir"
+  | "windSpeedMs"
+  | "windGustMs"
+  | "windDir";
 const COND_FIELDS: { key: CondFieldKey; placeholder: string | TKey }[] = [
   { key: "swellHeightM", placeholder: "1.2" },
   { key: "swellPeriodS", placeholder: "6.8" },
@@ -36,10 +48,6 @@ const COND_FIELDS: { key: CondFieldKey; placeholder: string | TKey }[] = [
   { key: "windSpeedMs", placeholder: "6" },
   { key: "windGustMs", placeholder: "8" },
   { key: "windDir", placeholder: "NNE" },
-  { key: "tideM", placeholder: "1.6" },
-  { key: "tideNote", placeholder: "cond.tideNotePlaceholder" },
-  { key: "seaTempC", placeholder: "29" },
-  { key: "airTempC", placeholder: "26" },
 ];
 
 export function EditPanel({
@@ -61,6 +69,7 @@ export function EditPanel({
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
   const [rating, setRating] = useState<number | null>(session.rating);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
+  const [goalMet, setGoalMet] = useState<boolean | null>(session.goalMet ?? null);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -80,6 +89,7 @@ export function EditPanel({
         cond: hasAnyCond(cond) ? cond : null,
         // only sent when changed, so an untouched board never needs a write
         ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
+        ...(session.goalText && goalMet !== (session.goalMet ?? null) ? { goalMet } : {}),
         ...extra,
       }),
     });
@@ -214,6 +224,10 @@ export function EditPanel({
         <div className="sm:max-w-[280px]">
           <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full bg-background" />
         </div>
+      )}
+
+      {session.goalText && (
+        <GoalCheck goal={session.goalText} value={goalMet} onChange={setGoalMet} />
       )}
 
       <div className="flex flex-wrap gap-2">

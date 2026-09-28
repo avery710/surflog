@@ -72,25 +72,24 @@ export function BoardRack({
 
   return (
     <section className="mt-6.5">
-      <div className="flex items-center justify-between gap-3 pl-1">
-        <span className="font-sans text-[13px] font-bold text-muted-foreground">
-          {t("section.boards")}
-        </span>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="rounded-full"
-          onClick={() => setEditing("new")}
-        >
-          {t("board.add")}
-        </Button>
-      </div>
-
-      <div className="mt-2.5 rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+      <div className="rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+        <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-3">
+          <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
+            {t("section.boards")}
+          </h2>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-full"
+            onClick={() => setEditing("new")}
+          >
+            {t("board.add")}
+          </Button>
+        </div>
         {boards.length === 0 ? (
-          <p className="px-4 py-4 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
+          <p className="px-3 pt-1 pb-3 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
         ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {boards.map((b) => {
               const name = boardLabel(b);
               const specs = [

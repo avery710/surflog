@@ -7,6 +7,7 @@ const HEAD = [
   "swell_m", "period_s", "swell_from", "wind_ms", "gust_ms", "wind_from",
   "tide_m", "sea_c", "air_c",
   "om_swell_m", "om_period_s", "om_swell_deg", "om_wind_ms", "om_wind_deg",
+  "goal", "goal_met",
   "notes",
 ];
 
@@ -38,6 +39,7 @@ export function sessionsToCsv(sessions: Session[], boards: Board[] = []): string
         c?.tideM, c?.seaTempC, c?.airTempC,
         om?.swellHeightM, om?.swellPeriodS, om?.swellDirDeg,
         om?.windSpeedMs, om?.windDirDeg,
+        s.goalText, s.goalMet == null ? null : s.goalMet ? "yes" : "no",
         s.notes,
       ]
         .map(cell)

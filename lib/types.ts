@@ -117,6 +117,12 @@ export interface Session {
   /** The owner's board this was surfed on (boards.id), or null. Optional so
    *  rows read before the boards migration still type-check. */
   boardId?: string | null;
+  /** Snapshot of the owner's "goal for next session" when this was logged
+   *  (copied, not referenced — editing the goal later never rewrites it),
+   *  and whether they said it was met: true / false / null = not assessed.
+   *  Optional so rows read before the goals migration still type-check. */
+  goalText?: string | null;
+  goalMet?: boolean | null;
   createdAt: string;
   example?: true;
 }

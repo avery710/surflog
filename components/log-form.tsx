@@ -16,6 +16,7 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { RatingPicker } from "@/components/rating-picker";
 import { BoardSelect } from "@/components/board-select";
+import { GoalCheck } from "@/components/goal";
 import { SPOTS, type Region } from "@/lib/spots";
 import { DateField } from "@/components/date-field";
 import { spotLabel, taipeiNearestSlot, taipeiToday } from "@/lib/format";
@@ -33,12 +34,15 @@ export function LogForm({
   ownerId,
   recentSpot,
   boards = [],
+  goal = null,
 }: {
   onCreated: (s: Session) => void;
   ownerId?: string;
   /** Spot of the user's most recent session — fallback when no default is set. */
   recentSpot?: string;
   boards?: Board[];
+  /** The owner's current goal for next session — snapshotted onto the session. */
+  goal?: string | null;
 }) {
   const { lang, t } = useLang();
   const [defaultSpot, setDefaultSpot] = useDefaultSpot(ownerId);
@@ -55,6 +59,7 @@ export function LogForm({
   const [notesHtml, setNotesHtml] = useState("");
   const [rating, setRating] = useState<number | null>(null);
   const [boardId, setBoardId] = useState<string | null>(null);
+  const [goalMet, setGoalMet] = useState<boolean | null>(null);
   const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -64,13 +69,21 @@ export function LogForm({
       const res = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ spot, when: `${date}T${time}`, notesHtml, rating, boardId }),
+        body: JSON.stringify({
+          spot,
+          when: `${date}T${time}`,
+          notesHtml,
+          rating,
+          boardId,
+          ...(goal ? { goalText: goal, goalMet } : {}),
+        }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSave"));
       onCreated(body.session as Session);
       setNotesHtml("");
       setRating(null);
+      setGoalMet(null);
       setEditorKey((k) => k + 1);
       const filled = body.session?.condOpenMeteo != null;
       toast.success(filled ? t("toast.savedFilled") : t("toast.saved"));
@@ -162,6 +175,12 @@ export function LogForm({
         </div>
         <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full min-w-[180px]" />
       </div>
+
+      {goal && (
+        <div className="mt-4">
+          <GoalCheck goal={goal} value={goalMet} onChange={setGoalMet} />
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Button onClick={handleSave} disabled={saving} className="rounded-full px-6">

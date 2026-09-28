@@ -67,16 +67,24 @@ Two implementations exist:
      falling); the small print is only that next event, i.e. the next high
      when rising / next low when falling (`high 20:26 · 1.2 m`, `+1d` if it
      falls on another day). Same tile shape for both sources.
-   - **Open-Meteo is the only tide shown** (since 2026-09-25; until then
-     CWA won and the tile read `Tide (CWA)` whenever `condCwaTide`
-     existed). Switched on request so every card uses one consistent
-     source, accepting rougher times (±~30 min-1 h) on recent sessions.
-     The tile shows Open-Meteo's `tideEvents`, labelled plain `Tide` (the
-     "(Open-Meteo)" suffix was dropped from the swell and tide labels
-     2026-09-24; the teal "Open-Meteo · auto" badge still names the
-     source). `condCwaTide` is still fetched at save time and stored (and
-     in the CSV), just not displayed, as are Open-Meteo's `seaLevelM`
-     figure and the manual Swelleye `cond.tideM`/`tideNote`.
+   - **CWA wins the tide tile when `condCwaTide.events` is non-empty**,
+     else Open-Meteo `tideEvents` (then CWA's legacy single event, then
+     `seaLevelTrend`, for the trend headline). Label `Tide (CWA)` / plain
+     `Tide`. History: CWA-first until 2026-09-25, Open-Meteo-only
+     2026-09-25 to 2026-09-28 (for one consistent source), **back to
+     CWA-first 2026-09-28** after Avery flagged the tide as inaccurate.
+     Checked against two independent references for Jialeshui 2026-09-26
+     (Swelleye low 12:16 / high 17:53; Windy 11:58 / 18:02): CWA
+     12:12 / 18:05, Open-Meteo 11:25 / 17:30. Across the 3 stored sessions
+     with both, and 5 forecast days at 屏東縣滿州鄉 and 宜蘭縣頭城鎮,
+     Open-Meteo was always early — 2-54 min at Jialeshui (shrinking with
+     forecast horizon), a steady ~55-65 min at Wai'ao — so a fixed
+     per-spot offset won't correct it. Likely cause: coarse global model +
+     grid node (Jialeshui snaps ~5 km SSE past the cape; the Nanwan-side
+     node was 20-40 min closer). Rising/falling never disagreed. CWA is
+     forward-only, so older sessions (and 2026-09-22, saved before
+     `events` existed) still show Open-Meteo. `seaLevelM` and the manual
+     `cond.tideM`/`tideNote` stay stored and in the CSV, not displayed.
    - **Open-Meteo wins over typed Swelleye numbers.** When a session has
      `condOpenMeteo`, the manual `cond` swell/wind row and its
      "Swelleye forecast" badge are hidden (they duplicated the Open-Meteo
@@ -114,6 +122,28 @@ Two implementations exist:
      大風.
    - Not checked in a browser: all of the above was type-checked and
      linted only.
+
+   **As of 2026-09-28** (uncommitted at time of writing):
+   - **Activity calendar** (`components/activity-calendar.tsx`) redesigned
+     on request after two swipe-grid iterations were rejected: no heading,
+     a fixed-width white card (`sm:w-[344px]`, full width on phones)
+     with months stacked vertically, oldest on top, current at the bottom.
+     Each month = a short label (`Sep` / `9月`, no year; current month
+     dark, others the same light grey as the dots) + one 10px dot per day,
+     14 per row, no weekday alignment. Dots: teal = surfed, light grey =
+     past no-surf, grey outline = future; today gets no special marker.
+     Only months from the earliest session's month to now are shown. Max 3
+     months visible (`VISIBLE_MONTHS`, measured from rendered rows); older
+     ones via ↑/↓ buttons in a rail on the right, one month per click,
+     eased 380 ms scroll (instant under reduced motion). The past-month
+     label grey is low-contrast as text — accepted on request.
+   - **Edit panel** (`components/edit-panel.tsx`) only offers fields the
+     card can show: `cond.tideM`, `tideNote`, `seaTempC`, `airTempC` inputs
+     removed. Existing values ride along untouched in the saved `cond`
+     object; nothing deleted from the DB or CSV.
+   - `app/dev/activity-preview/` is a throwaway page (synthetic sessions,
+     1-4 months) for eyeballing the calendar — **delete before committing**;
+     the repo is public and it would deploy.
 
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
@@ -222,7 +252,8 @@ Swelleye numbers into `cond` is no longer routine (the field and edit form
 stay). Swelleye becomes an occasional spot-check instead: a full-day
 browser reading every week or two (see "Swelleye vs Open-Meteo comparison
 tool"), focusing on swell period and morning wind, until ~10 days of
-comparisons exist. Why:
+comparisons exist. **Exception, 2026-09-28: tide.** CWA is displayed
+whenever the session has CWA events (see "Status"). Why:
 where it matters it agrees (see "Swelleye vs Open-Meteo comparison"), and
 for spotting patterns across one person's sessions a source that fills
 every session the same way — past dates and overseas included — beats a
@@ -407,8 +438,10 @@ Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
   Open-Meteo sea level/tide events instead (CWA can't be backfilled).
 - Stored in its own block, `condCwaTide`, fetched at save time and
   re-fetched on spot/date edits — same pattern as `condOpenMeteo`.
-  **Not displayed since 2026-09-25** — the card's tide tile is
-  Open-Meteo-only (see "Status").
+  **The card's tide source whenever `events` is non-empty** (hidden
+  2026-09-25 to 2026-09-28; restored because it was within 3-15 min of
+  Swelleye/Windy where Open-Meteo ran 20-65 min early — see "Status").
+  Open-Meteo `tideEvents` is the fallback for past dates and overseas.
 
 ### Swelleye vs Open-Meteo comparison tool (added 2026-09-24)
 
@@ -628,8 +661,8 @@ blocks rather than merged, per Capy's original requirement to know which
 number came from where.
 
 **Board rack** (added 2026-09-25, migration
-`20260925000000_create_boards_table.sql` — **written, not yet applied to
-the live project**): table `boards` (`id`, `owner_id`, `brand`,
+`20260925000000_create_boards_table.sql`, live on the Supabase project —
+checked 2026-09-28): table `boards` (`id`, `owner_id`, `brand`,
 `length_in`, `volume_l`, `rocker` low/medium/high, `note`, `photo_id`),
 per owner, RLS on / no policies. `sessions.board_id` references it with
 `on delete set null`, so deleting a board never deletes sessions.
@@ -639,8 +672,23 @@ Session create/update 404s a `boardId` the caller doesn't own
 `session_id`/`board_id` set) — and are served by the same owner-checked
 `/api/blob/:id`. Routes: `app/api/boards/**`. UI: `components/board-rack.tsx`
 (below the calendar/table), `components/board-select.tsx` (log form + edit
-panel), a board chip on each session card. The main page lists boards on
-load, so **apply the migration before deploying this code**.
+panel), a board chip on each session card.
+
+**Goal for next session** (added 2026-09-28, migration
+`20260928000000_create_goals.sql`, applied to the live project 2026-09-28).
+Manual first on purpose: Avery chose technique goals and no AI yet, to see
+whether goals get used before adding an AI "suggest from recent notes"
+button (discussed: opt-in, only on tap, notes go to the Claude API, must
+say "not enough in your notes" instead of generic tips). Table `goals`
+(`owner_id` PK, `text` ≤200), one current goal per owner, edited inline
+via `PUT /api/goal` (empty deletes) in `components/goal.tsx`'s card above
+the calendar. Each new session **snapshots** the goal text into
+`sessions.goal_text` plus `goal_met` (true / false / null = not checked),
+picked in the log form; the edit panel can change `goal_met` only. A copy,
+not a reference, so editing the goal never rewrites past sessions. The card
+shows "met X of N" over sessions with the exact current text. Goal chip on
+each session card; `goal`/`goal_met` in the CSV. This is also the first
+outcome-like field — see "The unfalsifiability problem".
 
 **Spot descriptions** live outside sessions, in their own table
 `spot_notes` (`owner_id`, `spot`, `description`, `updated_at`; primary key
@@ -720,8 +768,9 @@ Exceptions:
   Never feed an uncontrolled editor's own output back into it.
 - **Nearest-event matching with no distance cap.** CWA's tide forecast is
   forward-only, so "nearest event" for a past session was days away and
-  looked perfectly valid. `getTide()` now rejects matches over 7 h.
-  Anything that picks "the closest reading" needs a maximum distance.
+  looked perfectly valid. `getTide()` now returns null unless the session
+  sits between two forecast events (the 7 h cap tried first was removed
+  2026-09-24 — mixed tides leave gaps up to ~17 h). Anything that picks "the closest reading" needs a maximum distance.
 - **Turbopack + `next/font/google` fails even with working network**
   (hit 2026-09-22). Every page 500'd with "next/font/google queries have
   exactly one entry" / `Can't resolve

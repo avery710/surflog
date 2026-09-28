@@ -32,6 +32,8 @@ interface SessionRow {
   cond_cwa_tide: Session["condCwaTide"];
   rating: number | null;
   board_id?: string | null; // added by 20260925000000_create_boards_table.sql
+  goal_text?: string | null; // added by 20260928000000_create_goals.sql
+  goal_met?: boolean | null;
   created_at: string;
   example: boolean | null;
 }
@@ -50,6 +52,8 @@ function rowToSession(row: SessionRow): Session {
     condCwaTide: row.cond_cwa_tide ?? null,
     rating: row.rating,
     boardId: row.board_id ?? null,
+    goalText: row.goal_text ?? null,
+    goalMet: row.goal_met ?? null,
     createdAt: row.created_at,
     ...(row.example ? { example: true as const } : {}),
   };
@@ -71,6 +75,8 @@ function sessionToRow(session: Partial<Session>): Partial<SessionRow> {
   if (session.condCwaTide !== undefined) row.cond_cwa_tide = session.condCwaTide;
   if (session.rating !== undefined) row.rating = session.rating;
   if (session.boardId !== undefined) row.board_id = session.boardId;
+  if (session.goalText !== undefined) row.goal_text = session.goalText;
+  if (session.goalMet !== undefined) row.goal_met = session.goalMet;
   if (session.createdAt !== undefined) row.created_at = session.createdAt;
   if (session.example !== undefined) row.example = session.example ?? null;
   return row;
@@ -148,6 +154,27 @@ export async function setSpotNote(ownerId: string, spot: string, description: st
         { onConflict: "owner_id,spot" }
       )
     : await table.delete().eq("owner_id", ownerId).eq("spot", spot);
+  if (result.error) throw new Error(`Supabase: ${result.error.message}`);
+}
+
+const GOALS = "goals";
+
+/** The owner's current "goal for next session", or null. */
+export async function getGoal(ownerId: string): Promise<string | null> {
+  const result = await getSupabase().from(GOALS).select("text").eq("owner_id", ownerId).maybeSingle();
+  const row = assertNoError(result) as { text: string } | null;
+  return row?.text ?? null;
+}
+
+/** Upserts the owner's goal; an empty string deletes it. */
+export async function setGoal(ownerId: string, text: string): Promise<void> {
+  const table = getSupabase().from(GOALS);
+  const result = text
+    ? await table.upsert(
+        { owner_id: ownerId, text, updated_at: new Date().toISOString() },
+        { onConflict: "owner_id" }
+      )
+    : await table.delete().eq("owner_id", ownerId);
   if (result.error) throw new Error(`Supabase: ${result.error.message}`);
 }
 

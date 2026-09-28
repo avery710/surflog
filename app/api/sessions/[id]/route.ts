@@ -61,6 +61,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     patch.rating = Math.round(body.rating);
   }
 
+  // Only whether the goal was met is editable; the goal text itself is a
+  // snapshot of what was set at log time.
+  if (existing.goalText && (body.goalMet === null || typeof body.goalMet === "boolean")) {
+    patch.goalMet = body.goalMet;
+  }
+
   // Only ever the caller's own board — a foreign/unknown id is a 404, and
   // nothing is written.
   const board = await resolveOwnedBoardId(body.boardId, session.user.id);

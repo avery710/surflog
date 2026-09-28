@@ -5,6 +5,7 @@ import { spotBySlug } from "@/lib/spots";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
 import { resolveOwnedBoardId } from "@/lib/board-access";
+import { parseGoalFields } from "@/lib/goal";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { CondCwaTide, CondOpenMeteo, Session } from "@/lib/types";
 
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest) {
   const board = await resolveOwnedBoardId(body.boardId, session.user.id);
   if (!board.ok) return NextResponse.json({ error: "board not found" }, { status: 404 });
 
+  const goal = parseGoalFields(body);
+
   let condOpenMeteo: CondOpenMeteo | null = null;
   const spotInfo = spotBySlug(spot);
   if (spotInfo?.lat != null && spotInfo.lng != null) {
@@ -86,6 +89,8 @@ export async function POST(req: NextRequest) {
     rating,
     // omitted (not null) when unset, so the insert has no board_id column at all
     ...(board.boardId ? { boardId: board.boardId } : {}),
+    // same: omitted when no goal was set, so no goal_* columns in the insert
+    ...(goal.goalText ? goal : {}),
     createdAt: new Date().toISOString(),
   };
 
