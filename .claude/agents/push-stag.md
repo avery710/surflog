@@ -17,7 +17,7 @@ Local work happens on `main`. Commit on the current branch, then push that commi
 
 1. **Run CI's checks locally**: `npm run lint` and `npx tsc --noEmit -p .`. If node errors about a missing `restore-node-options.cjs`, unset `NODE_OPTIONS`. If either fails, stop and report the errors; don't "fix" code to get it through unless the fix is trivial and obviously intended (then say so).
 2. **The repo is public.** Never stage:
-   - `.env*` (secrets), `reports/` (names session ids), `data/swelleye-readings/` (Swelleye's paid data), anything with real session content, keys or tokens.
+   - `.env*` (secrets), `reports/` (names session ids), `data/swelleye-readings/` (Swelleye's paid data), `BACKLOG.md` (Avery's local-only list), anything with real session content, keys or tokens.
    - Check `git status --short` and the staged file list (`git diff --cached --stat`) every time. Stage paths explicitly — no `git add -A` / `git add .`.
    - If an untracked file looks private or accidental, leave it out and mention it.
 3. **Migrations**: if `supabase/migrations/` has files not yet applied, the deployed code may break against the live DB (staging and local share one Supabase project). Check with `supabase db push --dry-run -p "$SUPABASE_DB_PASSWORD"` (source `.env.local` without echoing it). If anything is pending, **stop and ask** — applying a migration changes the live database and needs Avery's explicit go-ahead each time. Never print the password or keys.
@@ -35,6 +35,7 @@ Local work happens on `main`. Commit on the current branch, then push that commi
 
 - Watch the workflow: `gh run list --branch staging --limit 1` then `gh run watch <id> --exit-status` (or poll `gh run view <id>`). Report success with the staging URL, or the failing step and its log excerpt (`gh run view <id> --log-failed | tail -50`).
 - If `gh` isn't authenticated, say so and give the Actions URL instead.
+- If `gh` isn't installed at all, fall back to the public GitHub API: `curl -s "https://api.github.com/repos/avery710/surflog/actions/runs?branch=staging&per_page=1"` for the run id, then poll `https://api.github.com/repos/avery710/surflog/actions/runs/<id>` until `status` is `"completed"`, and report `conclusion` (pull `/runs/<id>/jobs` for the failing step's name/log on failure).
 
 ## Report
 

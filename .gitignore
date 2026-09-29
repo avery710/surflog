@@ -31,3 +31,6 @@ data/swelleye-readings/
 
 # Claude Code agent worktrees (temporary isolated copies of this repo)
 .claude/worktrees/
+
+# Personal feature backlog — local only (see .claude/skills/backlog)
+BACKLOG.md

@@ -193,6 +193,12 @@ Two implementations exist:
      — the calendar in particular stays the fixed-width white card next to
      the table, unchanged. Not checked in a browser.
 
+`BACKLOG.md` (added 2026-09-29) is Avery's list of future features and
+chores — **local only, gitignored** (not in the public repo, so it won't
+exist on a fresh clone or in cloud sessions). The project skill `.claude/skills/backlog/` handles "add X to
+the backlog" / ticking items into **Done** (short lines; details belong
+here in CLAUDE.md).
+
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
 `lib/spot-fit.ts`.
