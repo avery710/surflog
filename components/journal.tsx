@@ -130,7 +130,9 @@ export function Journal({
 
   return (
     <>
-      <header className="flex flex-wrap items-center justify-between gap-4 py-7.5 pb-5">
+      <header
+        className="sticky top-[calc(env(safe-area-inset-top)_+_0.75rem)] z-30 mt-[calc(env(safe-area-inset-top)_+_0.75rem)] flex flex-wrap items-center justify-between gap-4 rounded-full glass-header px-5 py-2.5"
+      >
         <h1 className="font-sans text-[30px] font-extrabold tracking-[-0.025em] leading-tight">
           Surflog
         </h1>
@@ -148,14 +150,40 @@ export function Journal({
         </div>
       </header>
 
-      <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+      {/* One shared panel for the four "about your surfing" sections —
+          goal, activity calendar, spot table, board rack — on request, so
+          they read as one dashboard group rather than four separate
+          floating cards. Tinted with --primary-soft (a pale wash of the
+          teal accent, see globals.css) rather than plain white so the
+          group visually separates from the page background; each section
+          keeps its own white bg-card surface (border + shadow) so it still
+          reads as a distinct block sitting on the tint — the calendar in
+          particular has to stay a white card per its own comment. Padding
+          is tighter on phones (p-3) than sm+ (p-5), same ratio as the
+          cards inside it. Spacing between sections is this wrapper's own
+          gap-4, not each section's old mt-6.5. */}
+      <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] border border-border bg-primary-soft p-3 sm:p-5">
+        <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
 
-      <div className="mt-6.5 flex flex-wrap items-start gap-4">
-        <ActivityCalendar sessions={sessions} />
-        <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
+        {/* Grid, not flex-wrap: a fixed calendar column beside a flexible
+            table only starts at `lg` (`lg:grid-cols-[344px_minmax(0,1fr)]`);
+            below that it's one column and both cards are full-width, each
+            on its own row. flex-wrap used to switch to two columns as soon
+            as there was room for the calendar's fixed 344px + the table's
+            min-w-320 (~sm/md), which left the table squeezed to ~320px in
+            that middle range while the calendar sat at its full comfortable
+            width beside it — the two blocks didn't fill the row evenly.
+            items-stretch (grid's own default, kept explicit) makes both
+            cards match the row's height — each fills that height itself
+            (h-full) and caps/scrolls its own content rather than growing
+            the row without bound. */}
+        <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[344px_minmax(0,1fr)]">
+          <ActivityCalendar sessions={sessions} />
+          <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
+        </div>
+
+        <BoardRack boards={boards} onSaved={upsertBoard} onDeleted={removeBoard} onRackChanged={setBoards} />
       </div>
-
-      <BoardRack boards={boards} onSaved={upsertBoard} onDeleted={removeBoard} />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-xl" closeLabel={t("entry.close")}>

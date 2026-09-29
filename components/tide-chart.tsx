@@ -6,10 +6,11 @@ import { fmt1 } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import type { TideEvent } from "@/lib/types";
 
-const H = 106;
+const H = 64;
 const PAD_X = 6;
-const TOP = 41; // pill (0–15) + a high's two-line label above its point
-const BOTTOM = 35; // a low's two-line label below its point
+const TOP = 29; // pill (0–15) + a high's one-line label above its point
+const BOTTOM = 15; // a low's one-line label below its point
+const DAY_MS = 24 * 3600 * 1000;
 const STEPS_PER_LEG = 20;
 
 // "YYYY-MM-DDTHH:mm" is Asia/Taipei local with no tz; parsing every value as
@@ -20,7 +21,8 @@ const ms = (local: string) => new Date(`${local.slice(0, 16)}:00Z`).getTime();
  * A schematic tide wave through the stored highs and lows around a session.
  * The low and high either side of the session are labelled on the curve with
  * time and height (highs above, lows below), and a dashed marker, pill and
- * dot show the session time. The rest of the wave is just the line. Only turning points are known, so each leg between two of
+ * dot show the session time. The session's whole day is in view (as far as
+ * the stored events reach); the rest of the wave is clipped. Only turning points are known, so each leg between two of
  * them is a half-cosine — it shows where in the cycle the session sat, not a
  * measured height at each moment. Sized in real pixels (measured), so text
  * and dots stay the same size at any tile width. Needs at least two events;
@@ -48,8 +50,20 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
   let svg: React.ReactNode = null;
   if (drawable) {
     const times = evs.map((e) => ms(e.time));
-    const tMin = times[0];
-    const tMax = times[times.length - 1];
+    const sessionMs = ms(sessionWhen);
+    const nextIdx = times.findIndex((tt) => tt > sessionMs);
+
+    // Visible window: the session's whole day (00:00–24:00), cut to where
+    // the stored events reach — the curve can't be drawn past the first or
+    // last turning point, and events only span ±14 h of the session. Falls
+    // back to the whole range if the day and the events don't overlap.
+    const dayStart = ms(`${sessionWhen.slice(0, 10)}T00:00`);
+    let tMin = Math.max(times[0], dayStart);
+    let tMax = Math.min(times[times.length - 1], dayStart + DAY_MS);
+    if (tMax <= tMin) {
+      tMin = times[0];
+      tMax = times[times.length - 1];
+    }
 
     // Real heights where every event has one; otherwise lows at the bottom
     // and highs at the top. Normalised to the events either way.
@@ -76,7 +90,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
     }
     const line = pts.join(" ");
 
-    const ts = Math.min(tMax, Math.max(tMin, ms(sessionWhen)));
+    const ts = Math.min(tMax, Math.max(tMin, sessionMs));
     const sx = x(ts);
     const sy = y(heightAt(ts));
     const pillW = 38;
@@ -84,19 +98,20 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
 
     // Keep it light: only the low and high either side of the session get a
     // dot and a label; the rest of the wave is just the line.
-    const sessionMs = ms(sessionWhen);
-    const nextIdx = times.findIndex((tt) => tt > sessionMs);
+    // (only if they fall inside the visible day — one off the edge is clipped)
     const labelled = new Set<number>(
-      nextIdx === -1 ? [evs.length - 1] : [nextIdx, ...(nextIdx > 0 ? [nextIdx - 1] : [])]
+      (nextIdx === -1 ? [evs.length - 1] : [nextIdx, ...(nextIdx > 0 ? [nextIdx - 1] : [])]).filter(
+        (i) => times[i] >= tMin && times[i] <= tMax
+      )
     );
 
     const sessionDay = sessionWhen.slice(0, 10);
-    // time on the first line, height under it
-    const labelLines = (e: TideEvent): [string, string | null] => {
+    // "20:26 · 1.2m" on one line, to keep the chart short
+    const label = (e: TideEvent) => {
       const day = e.time.slice(0, 10);
       const shift = day === sessionDay ? "" : ` ${day > sessionDay ? t("tide.nextDay") : t("tide.prevDay")}`;
       const h = fmt1(e.heightM);
-      return [`${e.time.slice(11, 16)}${shift}`, h != null ? `${h}m` : null];
+      return `${e.time.slice(11, 16)}${shift}${h != null ? ` · ${h}m` : ""}`;
     };
 
     svg = (
@@ -106,7 +121,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
         {evs.map((e, i) => {
           const px = x(times[i]);
           const py = y(levels[i]);
-          const anchor = px < 34 ? "start" : px > W - 34 ? "end" : "middle";
+          const anchor = px < 44 ? "start" : px > W - 44 ? "end" : "middle";
           const tx = anchor === "start" ? Math.max(px - 2, 1) : anchor === "end" ? Math.min(px + 2, W - 1) : px;
           return (
             <g key={`${e.type}-${e.time}`}>
@@ -116,7 +131,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
               {labelled.has(i) && (
                 <text
                   x={tx}
-                  y={e.type === "high" ? py - (labelLines(e)[1] ? 18 : 7) : py + 14}
+                  y={e.type === "high" ? py - 7 : py + 13}
                   textAnchor={anchor}
                   fontSize={10}
                   fontWeight={500}
@@ -126,12 +141,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
                   paintOrder="stroke"
                   strokeLinejoin="round"
                 >
-                  <tspan x={tx}>{labelLines(e)[0]}</tspan>
-                  {labelLines(e)[1] && (
-                    <tspan x={tx} dy={11}>
-                      {labelLines(e)[1]}
-                    </tspan>
-                  )}
+                  {label(e)}
                 </text>
               )}
             </g>

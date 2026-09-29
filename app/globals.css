@@ -11,7 +11,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-jakarta);
+  --font-sans: var(--font-funnel);
   --font-mono: var(--font-plex-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -39,6 +39,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -67,6 +68,14 @@
   --popover-foreground: #000000;
   --primary: #0e7c86; /* teal accent */
   --primary-foreground: #ffffff;
+  /* Pale tint of --primary, for the dashboard panel (goal/calendar/patterns/
+     boards) that groups the "about your surfing" sections above the session
+     list — see journal.tsx. Distinct from --accent (a shadcn interactive-
+     highlight token, e.g. select focus) even though the two are close in
+     hue; this one is a static background, not a hover/focus state. Pale
+     enough that black text and the calendar's grey/teal dots read the same
+     as they do on white. */
+  --primary-soft: #eaf4f4;
   --secondary: #f2f5f5; /* surface-2 */
   --secondary-foreground: #000000;
   --muted: #f2f5f5;
@@ -155,5 +164,30 @@
   .editor-content div,
   .notes-html div {
     min-height: 1em;
+  }
+}
+
+/* Liquid-glass sticky header (components/journal.tsx): translucent white,
+   blurred + saturated backdrop, a bright top edge and a soft hairline/shadow
+   at the bottom so it lifts off the cards scrolling underneath. Falls back to
+   solid white where backdrop-filter isn't supported. */
+.glass-header {
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-header {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.62) 100%
+    );
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 10px 28px -14px rgba(15, 40, 45, 0.3);
   }
 }

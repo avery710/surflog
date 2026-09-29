@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     ownerId: session.user.id,
     ...parsed.value,
     photoId: null,
+    isDefault: false,
     createdAt: now,
     updatedAt: now,
   };

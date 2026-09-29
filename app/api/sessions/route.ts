@@ -43,10 +43,6 @@ export async function POST(req: NextRequest) {
 
   const notesHtml = sanitizeNotesHtml(typeof body.notesHtml === "string" ? body.notesHtml : "");
   const notes = htmlToPlainText(notesHtml);
-  const rating =
-    typeof body.rating === "number" && body.rating >= 1 && body.rating <= 5
-      ? Math.round(body.rating)
-      : null;
 
   // Only ever the caller's own board — a foreign/unknown id is a 404.
   const board = await resolveOwnedBoardId(body.boardId, session.user.id);
@@ -86,7 +82,6 @@ export async function POST(req: NextRequest) {
     cond: null,
     condOpenMeteo,
     condCwaTide,
-    rating,
     // omitted (not null) when unset, so the insert has no board_id column at all
     ...(board.boardId ? { boardId: board.boardId } : {}),
     // same: omitted when no goal was set, so no goal_* columns in the insert

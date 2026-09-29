@@ -213,12 +213,20 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   }, [months.length]);
 
   return (
-    // w-full so the card fills the row on phone (matches Coinbase-ish full-
-    // bleed cards); fixed from sm: up so the dot grid never stretches —
-    // sized to fit 14 small fixed dots plus the short month-label column,
-    // see the report for the arithmetic.
-    <section className="w-full sm:w-[344px] sm:shrink-0">
-      <div className="rounded-[var(--r-card)] border border-border bg-card p-5 shadow-[var(--shadow-card)]">
+    // w-full through md so the card fills its own grid row (matches
+    // Coinbase-ish full-bleed cards) whenever it's stacked above the table;
+    // fixed from lg: up, once journal.tsx's grid puts it in its own 344px
+    // column beside the table, so the dot grid never stretches — sized to
+    // fit 14 small fixed dots plus the short month-label column, see the
+    // report for the arithmetic. lg: here must match the row's own
+    // `lg:grid-cols-[344px_...]` breakpoint, or this card would try to stay
+    // 344px inside a wider single-column row and leave blank space beside
+    // it. h-full lets it stretch to match PatternsTable's height when the
+    // two sit side by side (journal.tsx's grid row) — this card's own
+    // content stays top-aligned inside whatever extra height that adds, it
+    // never grows the dots/rail.
+    <section className="h-full w-full lg:w-[344px] lg:shrink-0">
+      <div className="h-full rounded-[var(--r-card)] border border-border bg-card p-5 shadow-[var(--shadow-card)]">
         <div className="flex items-stretch gap-2">
           <div
             ref={scrollRef}

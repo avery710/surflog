@@ -99,13 +99,16 @@ Two implementations exist:
 
    **As of 2026-09-25** (condition tiles, restyled on request):
    - **Tiles**: Swell (height, with arrow + compass point under it) ·
-     Period (split out of the swell tile into its own) · Wind · Tide.
+     Period (split out of the swell tile into its own) · Wind · Tide
+     (Water temp added after Wind 2026-09-29, see below).
      Every tile's big figure uses one style (`Figure` in
      `components/condition-tile.tsx`: 20px mono, foreground colour); the
      hover tooltips on figures were removed, and `components/ui/tooltip.tsx`
      with them.
    - **Wind tile** is two rows: `4.2 m/s  ● 中等風` (speed big, strength a
-     small grey note) and `← 東  側風` (teal bold arrow + compass point,
+     small grey note, text baseline-aligned with the speed since
+     2026-09-29 — the dot is `self-center` so it doesn't set the baseline)
+     and `← 東  側風` (teal bold arrow + compass point,
      then the shore mode as a small grey note, omitted when the spot has
      no `facing`, e.g. Taitung). The shore word is plain text now, no pill
      or tint. Gust is **not displayed** (tried as a line, then "only when
@@ -141,9 +144,54 @@ Two implementations exist:
      card can show: `cond.tideM`, `tideNote`, `seaTempC`, `airTempC` inputs
      removed. Existing values ride along untouched in the saved `cond`
      object; nothing deleted from the DB or CSV.
-   - `app/dev/activity-preview/` is a throwaway page (synthetic sessions,
-     1-4 months) for eyeballing the calendar — **delete before committing**;
-     the repo is public and it would deploy.
+   - `app/dev/activity-preview/` (synthetic sessions, 1-4 months) is for
+     eyeballing the calendar — now part of the `app/dev/` showcase (see
+     "Project agents" → `storybook`), gated by `app/dev/layout.tsx` and
+     `proxy.ts`'s dev-only bypass, so it's safe to commit like the rest of
+     `app/dev/`; no longer a throwaway to delete before committing.
+
+   **As of 2026-09-29** (uncommitted at time of writing, entry card; not
+   checked in a browser, type-checked and linted only):
+   - **Water temp tile** after Wind: `condOpenMeteo.seaTempC` big (Open-
+     Meteo marine `sea_surface_temperature`, °C, offshore grid node — model
+     output, not a measurement), `Air 25.5°C` / `氣溫` small print from
+     `airTempC` (weather `temperature_2m`). Hidden when both are null. No
+     new fetch: both were already stored, 8/8 sessions have them (checked
+     2026-09-29). The manual `cond.seaTempC`/`airTempC` are still not
+     shown. Real water temp would be CWA buoys (`O-B0075-001`), not built
+     — see "CWA vs Open-Meteo temperature" for how far off Open-Meteo is.
+   - **Tile layout**: on `lg` a column-major grid with two shared rows
+     (`lg:grid-flow-col lg:grid-rows-[auto_auto]`): Swell over Period,
+     Wind over Water temp, Tide spanning both rows — so Swell and Wind
+     are always the same height (was two flex columns, which didn't
+     align; changed on request). A missing Period/temp makes the tile
+     above it span both rows. Phones/tablets: Swell · Period · Wind, then Water temp
+     (1 col) + Tide (2 cols; 3 when there's no temp tile).
+   - **Tide chart shortened** (`components/tide-chart.tsx`, 106 → 64 px):
+     x-range is the session's whole day, 00:00–24:00, cut to where the
+     stored events reach (they span ±14 h + bracket, so an early session's
+     curve can stop before midnight). Cropping to just the session's leg
+     was tried first and replaced on request. Labels are one line,
+     `20:26 · 1.2m`, only on the bracketing low/high, and only when that
+     event is inside the day. The y-scale spans every stored event, so
+     the curve never clips into the time pill. On `lg` the tide tile spans
+     both rows, so it's a flex column and the chart is vertically centred
+     in the space under the headline (`subClassName="lg:my-auto"`, a
+     `ConditionTile` prop added for this) instead of hugging the top.
+   - **Dashboard panel**: the goal card, activity calendar, "What you've
+     surfed" table and board rack (`components/journal.tsx`) are now one
+     shared card instead of four separate floating ones, on request — a
+     `rounded-[var(--r-card)]` wrapper tinted `bg-primary-soft` (new token,
+     `app/globals.css`: `--primary-soft` a pale wash of `--primary`, mapped
+     to `--color-primary-soft` so `bg-primary-soft` works in Tailwind;
+     deliberately its own token rather than reusing `--accent`, which is a
+     shadcn interactive-highlight colour — e.g. select focus — not a
+     static panel background, even though the two hexes are close), with
+     tighter padding on phones (`p-3` vs `sm:p-5`) and `gap-4` between
+     sections instead of each section's old `mt-6.5`. Each section keeps
+     its own white `bg-card` surface (border + shadow) nested on the tint
+     — the calendar in particular stays the fixed-width white card next to
+     the table, unchanged. Not checked in a browser.
 
 `VALIDATION.md` holds the experiments run against the spot-fit model and their
 results, including the ones that killed features. Read it before changing
@@ -339,12 +387,15 @@ weather API for `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`.
 same endpoints `lib/openmeteo.ts` calls). The app accepts a session on any
 date (no min in the form, format-only check in the API); what's missing
 is conditions:
-- **Marine endpoint** (swell, period, direction, sea temp): data from
+- **Marine endpoint** (swell, period, direction): data from
   **early Oct 2021** (2021-09-01 null, 2021-10-05 present). Older → null.
 - **`sea_level_height_msl`** (→ `tideEvents`, the tide tile): from
   **~Nov/Dec 2022** (2022-11-01 null, 2022-12-01 present). Older → no tide.
-- **Wind** (`archive-api`, used for dates >6 days old): back to **1940**
-  (2010-01-01 returned data).
+- **`sea_surface_temperature`** (→ `seaTempC`, the water-temp tile): also
+  from **~Dec 2022** (2022-11-01 null, 2022-12-01 present; checked
+  2026-09-29), not Oct 2021 like swell.
+- **Wind** and **air temp** (`archive-api`, used for dates >6 days old):
+  back to **1940** (2010-01-01 returned data).
 So a fully filled card works back ~3.8 years from 2026-09; before Oct 2021
 only wind fills in. Exact start days not pinned down; they may also differ
 by grid node.
@@ -495,6 +546,34 @@ rising/falling agreed every hour), wind strength label 0.33, swell height
 Swelleye's tide times track CWA's closely (11:51 vs 11:47, 17:31 vs 17:43),
 so it likely uses CWA tides — unverified guess.
 
+### CWA vs Open-Meteo temperature (checked 2026-09-29, not built)
+
+CWA `O-B0075-002` (marine obs, hourly, last 30 days — `-001` is 48 h)
+has `SeaTemperature`/`Temperature` per station; station coordinates are
+in `O-B0076-001`, a **file** API
+(`/fileapi/v1/opendataapi/O-B0076-001?...&downloadType=WEB&format=JSON`),
+not the datastore. Compared 2026-08-30..09-28 for the 30 stations within
+25 km of a spot, against Open-Meteo at that spot's coordinate (what the
+card shows), ~717 hourly pairs each:
+- **Sea temp: Open-Meteo runs warm.** Bias −0.8 to +2.5 °C, typically
+  +1 °C; 20 of 29 stations ≥ +0.5. Worst on the north coast (Longdong/Fulong
+  +1.6 to +2.5, Keelung +1.9, Wushi +1.7, Penghu +1.8); best at Hualien
+  (−0.1), Tainan/Qigu (~0). Nearest to Jialeshui, Eluanbi buoy 46759A:
+  +1.0. Many stations are harbour tide gauges, which may not represent
+  the break either.
+- **Air temp** (9 stations): bias −0.4 to +1.4 °C, hourly MAE 0.8–1.8 —
+  fine for a card.
+So the water figure is roughly right but typically ~1 °C high. A per-spot
+CWA source would need a nearest-station map and is only 30 days back.
+
+**Decision 2026-09-29: keep Open-Meteo for the water-temp tile.** Same
+reasoning as "The automation problem": the bias is steady per spot, so
+comparing sessions at one spot still ranks correctly, and it fills every
+session (past, overseas) the same way. **No offset correction**: the
+bias varies by spot (~0 to +2.5 °C) and rests on 30 days of September
+only. Revisit if winter north-coast sessions start mattering, where
++2 °C could change wetsuit choice — that's where CWA buoys would earn it.
+
 ### Ruled out
 
 - **Windy** — Point Forecast API is EUR 990/year, and the free "testing" tier
@@ -552,8 +631,12 @@ Spot fit has **no outcome variable to test against**:
 - Neither forecast's height discriminates between spots, so no forecast number
   can be the target either.
 - The original artifact journal has **no rating field** — it was offered at
-  the start and declined. This repo has an optional 1-5 `rating` (see
-  "Entry schema"), but real sessions haven't used it yet.
+  the start and declined. This repo had an optional 1-5 `rating`, used on
+  3 sessions, and **removed it on request 2026-09-29** (UI, API, CSV,
+  types). The `sessions.rating` column and those 3 values are still in
+  the DB, unread — dropping it is a separate, irreversible call.
+  `goal_met` (see "Goal for next session") is the only outcome-like field
+  left.
 
 So the features can be computed but not checked. Weak corroboration exists —
 `facing` and `bestSwellDir` are independent published fields and they agree
@@ -561,8 +644,9 @@ So the features can be computed but not checked. Weak corroboration exists —
 the year") — but that is close to circular.
 
 **The fix is one field: a 1-5 star or even binary good/bad on each session.**
-It has come up three times and it is now load-bearing. Without it, spot fit
-stays a plausible unverified heuristic forever.
+It came up three times, was built, and was then removed at Avery's request
+(2026-09-29) — so don't re-add it unasked. Without an outcome, spot fit
+stays a plausible unverified heuristic.
 
 **Until it exists:** show these as description ("side-on to the swell",
 "outside the usual window", "tide suits this break"), never as a score. A
@@ -591,8 +675,8 @@ high — re-check against the corrected values, not old screenshots.
 ## Entry schema
 
 The artifact db (collection `sessions`) holds the version below without
-`ownerId`/`condOpenMeteo`/`condCwaTide`/`rating`. This repo's schema
-(`lib/types.ts`) is that plus all four, now implemented — backed by the `sessions` table in
+`ownerId`/`condOpenMeteo`/`condCwaTide`. This repo's schema
+(`lib/types.ts`) is that plus all three — backed by the `sessions` table in
 Supabase Postgres (`supabase/migrations/`), read/written through
 `lib/db.ts`. The old `data/sessions.json` file this used to be is gone; see
 `data/README.md` for where its 3 real rows ended up.
@@ -646,7 +730,6 @@ Open-Meteo still fetch and compute their own events independently; only the
     source: "cwa",
     fetchedAt: ISO string
   }
-  rating:     number | null   // 1-5, optional — see "The unfalsifiability problem"
   createdAt:  ISO string
   example?:   true       // the seeded demo row
 }
@@ -673,6 +756,11 @@ Session create/update 404s a `boardId` the caller doesn't own
 `/api/blob/:id`. Routes: `app/api/boards/**`. UI: `components/board-rack.tsx`
 (below the calendar/table), `components/board-select.tsx` (log form + edit
 panel), a board chip on each session card.
+**Default board** (migration `20260928100000_add_board_default.sql`,
+applied to the live project 2026-09-29): `boards.is_default`, at most one
+per owner (partial unique index). Set via `PUT /api/boards/:id/default`;
+the log form pre-selects it (`defaultBoardId()` in `lib/boards.ts`), or
+the only board when the rack has exactly one.
 
 **Goal for next session** (added 2026-09-28, migration
 `20260928000000_create_goals.sql`, applied to the live project 2026-09-28).
@@ -690,6 +778,21 @@ shows "met X of N" over sessions with the exact current text. Goal chip on
 each session card; `goal`/`goal_met` in the CSV. This is also the first
 outcome-like field — see "The unfalsifiability problem".
 
+**Goal shown as points (added 2026-09-29).** Still one `goals.text` column,
+still one `goal_met` per session — no new column, no per-point verdict.
+Points are just newline-separated lines within that same string (200 chars
+total, newlines included; `goalPoints()`/`joinGoalPoints()` in
+`lib/goal.ts` split/join and trim/drop-empty). The card
+(`components/goal.tsx`'s `GoalCard`) shows them as a bulleted list and
+edits them as a row per point (text input + × remove) plus an "add a
+point" input — Enter in the add input adds the point without leaving edit
+mode; committing (blur out of the whole block, or Enter in an existing
+row) joins and saves, same as the old single-line save. `GoalCheck` (log
+form / edit panel) also renders the bulleted list. `GoalChip` (session
+card) joins points with " · " onto one line — no room for a list there.
+CSV keeps the raw newline-joined text (`cell()` already quotes it). An
+old single-sentence goal is just a one-point list, no migration needed.
+
 **Spot descriptions** live outside sessions, in their own table
 `spot_notes` (`owner_id`, `spot`, `description`, `updated_at`; primary key
 `(owner_id, spot)`, migration `20260923000000_create_spot_notes_table.sql`).
@@ -697,10 +800,6 @@ A user's own free-text note per spot ("best at mid tide, crowded on
 weekends"), edited inline in the "What you've surfed" table via
 `PUT /api/spot-notes`; an empty description deletes the row. Per owner,
 like everything else — same RLS-on/no-policies access model as `sessions`.
-
-`rating` is wired into the UI (`components/rating-picker.tsx`) but still has
-zero real submissions as of 2026-09-18 — it only becomes useful once Capy
-actually starts rating sessions. Spot-fit is still unverified until then.
 
 ## Spots
 
@@ -825,12 +924,45 @@ Language; the choice lives in localStorage (`surflog:lang`), per browser.
 
 ## Project agents
 
-`.claude/agents/` — both run on Sonnet:
+`.claude/agents/` — all run on Sonnet:
 - **`data-source-engineer`** — Open-Meteo and CWA fetches, new datasets,
   spot harvesting into `lib/spots.ts`. Its file records the verified API
   shapes and gotchas.
 - **`localizer`** — translations, finding hard-coded strings,
   language-aware formatting.
+- **`ui-designer`** (added 2026-09-29) — look and feel: applies the
+  style references Avery gives (kept in the agent file's "Style
+  references" list), plus layout, responsive changes, the tide chart /
+  calendar SVG. No browser: it type-checks and
+  lints only, so visual checks stay with the main session.
+- **`storybook`** (added 2026-09-29) — a home-grown Storybook: dev-only
+  showcase pages under `app/dev/` rendering each component in all its
+  cases from synthetic fixtures (`app/dev/fixtures.ts`), indexed at
+  `/dev`. Real Storybook was offered and declined (heavier setup).
+  `app/dev/layout.tsx` 404s the whole tree in production, and `proxy.ts`
+  lets `/dev` through without sign-in only when `NODE_ENV !== "production"`
+  — both built 2026-09-29, so `app/dev/` pages are safe to commit.
+  Pages (the `/dev` index and each page's captions are the source of
+  truth for cases — don't copy case lists here):
+  - `/dev/entry-card` — session card, ~26 cases (missing period/temp/
+    tide, CWA vs Open-Meteo tide, manual `cond`, wind extremes, board,
+    goal chip, notes); en/zh-TW toggle, 375/768/1200 px frames.
+  - `/dev/dashboard` — the teal panel (goal, calendar, spots table, board
+    rack): empty/typical overviews plus goal, calendar, table and rack
+    edge cases. Mirrors `journal.tsx`'s panel markup locally (keep in
+    sync); `BoardRack` calls `fetch` itself, so its actions fail there.
+  - `/dev/activity-preview` — calendar with 1-4 months of history.
+  - `/dev/signin-preview`, `/dev/color-preview` — sign-in page, colour
+    swatches.
+  Limits, all pages: **no photos** (`/api/blob/:id` is owner-checked;
+  deliberately not bypassed), **Edit/Save/Delete/upload hit the real
+  API and fail**, and **width frames don't trigger `sm:`/`lg:`** — those
+  are viewport media queries, so resize the real window for breakpoints.
+
+- **`push-stag`** (added 2026-09-29) — commits and pushes to `staging`
+  only (`git push origin HEAD:staging`, never main, never force), after
+  running lint + typecheck like CI; keeps `.env*`, `reports/` and
+  Swelleye readings out; asks before applying pending migrations.
 
 New agent files only load when a Claude Code session starts.
 
@@ -844,8 +976,9 @@ New agent files only load when a Claude Code session starts.
 - Times are Asia/Taipei local, no timezone suffix stored.
 - UI: white background, black text, single light theme (no dark mode — removed
   on request). Rounded components, Coinbase-ish: 24px cards, 16px tiles, pill
-  buttons. Plus Jakarta Sans for UI and notes (notes were Newsreader serif
-  until 2026-09-22; switched to match the labels, on request), IBM Plex Mono
-  for readings. Teal accent `#0E7C86`.
+  buttons. Funnel Sans for UI and notes (since 2026-09-29, on request, to
+  match og.com's body/heading font; was Plus Jakarta Sans; notes were
+  Newsreader serif until 2026-09-22), IBM Plex Mono for readings. og.com's
+  display face (Lateral) is a paid trial font, deliberately not copied. Teal accent `#0E7C86`.
 - Notes are rich text with a markdown-ish `- ` shortcut for bullets. Capy writes
   notes in Chinese; don't break CJK handling.

@@ -50,6 +50,8 @@ const DICT = {
   "wind.strength.gale": { en: "Gale", "zh-TW": "大風" },
   "tile.height": { en: "Height", "zh-TW": "浪高" },
   "tile.period": { en: "Period", "zh-TW": "週期" },
+  "tile.temp": { en: "Water temp", "zh-TW": "水溫" },
+  "tile.airTemp": { en: "Air {t}°C", "zh-TW": "氣溫 {t}°C" },
   "cond.windSpeedLabel": { en: "speed", "zh-TW": "風速" },
   "cond.windDirLabel": { en: "direction", "zh-TW": "風向" },
   "cond.swellHeightLabel": { en: "height", "zh-TW": "浪高" },
@@ -71,7 +73,6 @@ const DICT = {
   "entry.photoAlt": { en: "Surf photo from {when}", "zh-TW": "{when} 的衝浪照片" },
   "entry.removePhoto": { en: "Remove photo", "zh-TW": "移除照片" },
   "entry.example": { en: "Example — delete whenever", "zh-TW": "範例——可隨時刪除" },
-  "entry.stars": { en: "{n} out of 5 stars", "zh-TW": "{n} 顆星（滿分 5）" },
   "badge.swelleyeForecast": { en: "Swelleye forecast", "zh-TW": "Swelleye 預報" },
   "badge.enteredByHand": { en: "Entered by hand", "zh-TW": "手動輸入" },
 
@@ -91,7 +92,6 @@ const DICT = {
     en: 'How it felt. What worked, what didn\'t. Type "- " for a bullet.',
     "zh-TW": "感覺如何？哪裡順、哪裡不順。輸入「- 」可建立項目符號。",
   },
-  "form.ratingOptional": { en: "Rating (optional)", "zh-TW": "評分（選填）" },
   "form.saveSession": { en: "Save session", "zh-TW": "儲存紀錄" },
   "form.saving": { en: "Saving…", "zh-TW": "儲存中…" },
   "form.autoFillHint": {
@@ -111,10 +111,6 @@ const DICT = {
   "cond.windGustMs": { en: "Gust m/s", "zh-TW": "陣風 m/s" },
   "cond.windDir": { en: "Wind from", "zh-TW": "風向" },
 
-  "rating.aria": { en: "Session rating", "zh-TW": "紀錄評分" },
-  "rating.star": { en: "{n} star", "zh-TW": "{n} 顆星" },
-  "rating.stars": { en: "{n} stars", "zh-TW": "{n} 顆星" },
-  "rating.clear": { en: "clear", "zh-TW": "清除" },
 
   "editor.placeholder": { en: "How it felt. What worked, what didn't.", "zh-TW": "感覺如何？哪裡順、哪裡不順。" },
   "editor.bullets": { en: "Bullets", "zh-TW": "項目符號" },
@@ -143,10 +139,6 @@ const DICT = {
     "zh-TW": "登入後即可記錄衝浪並查看你的日誌。",
   },
   "signin.continueGoogle": { en: "Continue with Google", "zh-TW": "使用 Google 繼續" },
-  "signin.privacy": {
-    en: "Each Google account gets its own private journal — nobody else can see it.",
-    "zh-TW": "每個 Google 帳號都有自己的私人日誌，其他人看不到。",
-  },
   "signin.err.OAuthAccountNotLinked": {
     en: "That Google account is already linked a different way. Try again.",
     "zh-TW": "這個 Google 帳號已用其他方式連結，請再試一次。",
@@ -162,6 +154,10 @@ const DICT = {
   "goal.add": { en: "Add a technique goal to work on next time", "zh-TW": "新增下次要練習的技巧目標" },
   "goal.placeholder": { en: "e.g. commit earlier on the takeoff", "zh-TW": "例如：起乘時早一點下定決心" },
   "goal.edit": { en: "Edit goal for next session", "zh-TW": "編輯下次衝浪的目標" },
+  "goal.addPoint": { en: "Add point", "zh-TW": "新增項目" },
+  "goal.editPoint": { en: "Point {n}", "zh-TW": "第 {n} 項" },
+  "goal.removePoint": { en: "Remove “{point}”", "zh-TW": "移除「{point}」" },
+  "goal.charsLeft": { en: "{n} characters left", "zh-TW": "剩下 {n} 字" },
   "goal.notTriedYet": { en: "Not tried yet — it'll show up when you log your next session.", "zh-TW": "還沒試過——下次新增紀錄時會出現。" },
   "goal.triedUnchecked": { en: "Tried in {n} session(s), not checked off yet", "zh-TW": "已在 {n} 次紀錄中嘗試，尚未確認" },
   "goal.progress": { en: "Met {met} of {n} times", "zh-TW": "{n} 次中達成 {met} 次" },
@@ -219,6 +215,14 @@ const DICT = {
   "board.changePhoto": { en: "Change photo", "zh-TW": "更換照片" },
   "board.removePhoto": { en: "Remove photo", "zh-TW": "移除照片" },
   "board.photoAlt": { en: "Photo of {name}", "zh-TW": "{name} 的照片" },
+  "board.default": { en: "Default", "zh-TW": "預設" },
+  "board.setDefault": { en: "Set as default", "zh-TW": "設為預設" },
+  "board.clearDefault": { en: "Clear default board", "zh-TW": "取消預設衝浪板" },
+  "board.onlyDefault": {
+    en: "Your only board is used by default",
+    "zh-TW": "只有一塊板時自動設為預設",
+  },
+  "toast.couldntSetDefault": { en: "Couldn't change the default board", "zh-TW": "無法變更預設衝浪板" },
   "board.save": { en: "Save board", "zh-TW": "儲存衝浪板" },
   "board.editLabel": { en: "Edit {name}", "zh-TW": "編輯「{name}」" },
   "board.lengthInvalid": {

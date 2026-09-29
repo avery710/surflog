@@ -54,19 +54,27 @@ export function PatternsTable({
   }
 
   return (
-    <section className="min-w-[320px] flex-1">
-      <div className="rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
-        <h2 className="px-3 pt-2 font-sans text-[13px] font-bold text-muted-foreground">
+    // h-full + max-h so this stretches to match ActivityCalendar's height
+    // (journal.tsx's grid row) without either growing unbounded — past the
+    // cap the row list scrolls internally instead of pushing the row, and
+    // everything else on the page, taller. w-full + min-w-0 (not min-w-320
+    // + flex-1) since the grid track itself is `minmax(0,1fr)` — this just
+    // fills whatever width the track gives it and lets the table's own
+    // horizontal scroll (min-w-[420px] on the <table>, overflow-auto below)
+    // handle anything narrower, rather than forcing the grid column wider.
+    <section className="h-full w-full min-w-0">
+      <div className="flex h-full max-h-[320px] flex-col rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+        <h2 className="shrink-0 px-3 pt-2 font-sans text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>
-        <div className="overflow-x-auto">
+        <div className="flex-1 overflow-auto">
           <table className="w-full min-w-[420px] border-separate [border-spacing:0_4px]">
             <thead>
               <tr>
                 {[t("form.spot"), t("patterns.sessions"), t("patterns.description")].map((h) => (
                   <th
                     key={h}
-                    className="px-4 pb-0.5 pt-2.5 text-left text-xs font-semibold text-[var(--faint)]"
+                    className="whitespace-nowrap px-4 pb-0.5 pt-2.5 text-left text-xs font-semibold text-[var(--faint)]"
                   >
                     {h}
                   </th>
@@ -82,7 +90,7 @@ export function PatternsTable({
                     <td className="rounded-l-[var(--r-tile)] bg-secondary px-4 py-2.5 align-top font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
                       {label}
                     </td>
-                    <td className="bg-secondary px-4 py-2.5 align-top font-mono text-[13.5px] tabular-nums">
+                    <td className="whitespace-nowrap bg-secondary px-4 py-2.5 align-top font-mono text-[13.5px] tabular-nums">
                       {r.n}
                     </td>
                     <td className="w-full rounded-r-[var(--r-tile)] bg-secondary px-2 py-1.5 align-top">

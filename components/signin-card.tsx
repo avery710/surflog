@@ -36,8 +36,6 @@ export function SignInCard({
           {t("signin.continueGoogle")}
         </button>
       </form>
-
-      <p className="mt-5 text-[12.5px] font-medium text-muted-foreground">{t("signin.privacy")}</p>
     </div>
   );
 }

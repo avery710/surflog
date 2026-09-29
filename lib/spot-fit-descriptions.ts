@@ -2,7 +2,8 @@
  * Turns a computed SpotFit into short description strings — NEVER a score.
  * See CLAUDE.md "The unfalsifiability problem": these features are
  * plausible and physically reasoned but have no outcome variable to test
- * against yet (that's what the `rating` field on a session is for). A number
+ * against yet (the per-session rating was removed 2026-09-29; `goal_met`
+ * is the only outcome-like field). A number
  * that looks authoritative and has never been tested is worse than no
  * number, so this file only ever returns descriptions.
  */

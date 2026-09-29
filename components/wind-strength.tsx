@@ -19,8 +19,10 @@ export function WindStrength({ speedMs, gustMs }: { speedMs: number; gustMs?: nu
   const { t } = useLang();
   const { key } = WIND_LEVELS[windLevelIndex(speedMs, gustMs)];
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span aria-hidden className={`size-2 rounded-full ${DOT[key]}`} />
+    // Baseline from the text (the dot is self-centred, so it doesn't take
+    // part), so a parent can line the label up with a figure's baseline.
+    <span className="inline-flex items-baseline gap-1.5">
+      <span aria-hidden className={`size-2 self-center rounded-full ${DOT[key]}`} />
       {t(`wind.strength.${key}`)}
     </span>
   );

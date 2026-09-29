@@ -3,7 +3,7 @@ import { boardLabel } from "./boards";
 import { spotLabel } from "./format";
 
 const HEAD = [
-  "date", "time", "spot", "rating", "board",
+  "date", "time", "spot", "board",
   "swell_m", "period_s", "swell_from", "wind_ms", "gust_ms", "wind_from",
   "tide_m", "sea_c", "air_c",
   "om_swell_m", "om_period_s", "om_swell_deg", "om_wind_ms", "om_wind_deg",
@@ -29,7 +29,6 @@ export function sessionsToCsv(sessions: Session[], boards: Board[] = []): string
         (s.when || "").slice(0, 10),
         (s.when || "").slice(11, 16),
         spotLabel(s.spot),
-        s.rating,
         (() => {
           const b = s.boardId ? boardById.get(s.boardId) : undefined;
           return b ? boardLabel(b) : null;

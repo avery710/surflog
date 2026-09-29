@@ -6,16 +6,18 @@ export function ConditionTile({
   unit,
   sub,
   className = "",
+  subClassName = "",
 }: {
   label: React.ReactNode;
   value: React.ReactNode;
   unit?: string;
   sub?: React.ReactNode;
   className?: string;
+  subClassName?: string;
 }) {
   return (
     <div
-      className={`min-w-0 shrink-0 grow basis-auto rounded-[var(--r-tile)] bg-secondary px-4 py-3.5 lg:min-w-[112px] ${className}`}
+      className={`min-w-0 shrink-0 grow basis-auto rounded-[var(--r-tile)] bg-secondary px-3 py-3 sm:px-4 sm:py-3.5 lg:min-w-[112px] ${className}`}
     >
       <span className="mb-1 block text-[13px] font-semibold tracking-[0.01em] text-[var(--faint)]">
         {label}
@@ -27,7 +29,7 @@ export function ConditionTile({
         ) : null}
       </span>
       {sub ? (
-        <span className="mt-0.5 block whitespace-nowrap text-[11.5px] font-medium text-muted-foreground">
+        <span className={`mt-0.5 block whitespace-nowrap text-[11.5px] font-medium text-muted-foreground ${subClassName}`}>
           {sub}
         </span>
       ) : null}

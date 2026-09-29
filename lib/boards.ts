@@ -56,6 +56,14 @@ export function boardLabel(board: Pick<Board, "brand" | "lengthIn">): string {
   return [board.brand.trim(), formatLength(board.lengthIn)].filter(Boolean).join(" ");
 }
 
+/** The board the log form pre-selects: the one marked default, or the only
+ *  board when the rack has exactly one. */
+export function defaultBoardId(boards: Pick<Board, "id" | "isDefault">[]): string | null {
+  const marked = boards.find((b) => b.isDefault);
+  if (marked) return marked.id;
+  return boards.length === 1 ? boards[0].id : null;
+}
+
 export function formatVolume(volumeL: number | null | undefined): string | null {
   if (volumeL == null || !Number.isFinite(volumeL)) return null;
   return `${Math.round(volumeL * 100) / 100} L`;

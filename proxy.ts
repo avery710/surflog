@@ -15,6 +15,14 @@ export default auth((req) => {
   const isAuthRoute = pathname.startsWith("/api/auth") || pathname === "/signin";
   if (isAuthRoute) return;
 
+  // /dev is the local-only component showcase (synthetic data, no
+  // Supabase/API calls) — see CLAUDE.md "Project agents" (storybook) and
+  // app/dev/layout.tsx, which 404s it outright in production. Letting it
+  // through here too only applies outside production, and only to this one
+  // path prefix; every other route's auth is untouched.
+  const isDevRoute = pathname === "/dev" || pathname.startsWith("/dev/");
+  if (isDevRoute && process.env.NODE_ENV !== "production") return;
+
   if (!req.auth) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });

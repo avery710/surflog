@@ -56,10 +56,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     patch.notesHtml = notesHtml;
     patch.notes = htmlToPlainText(notesHtml);
   }
-  if (body.rating === null) patch.rating = null;
-  else if (typeof body.rating === "number" && body.rating >= 1 && body.rating <= 5) {
-    patch.rating = Math.round(body.rating);
-  }
 
   // Only whether the goal was met is editable; the goal text itself is a
   // snapshot of what was set at log time.

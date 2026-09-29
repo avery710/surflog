@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,7 @@ import {
   MAX_BRAND,
   ROCKERS,
   boardLabel,
+  defaultBoardId,
   formatLength,
   formatVolume,
   joinLength,
@@ -40,16 +42,39 @@ export function BoardRack({
   boards,
   onSaved,
   onDeleted,
+  onRackChanged,
 }: {
   boards: Board[];
   onSaved: (b: Board) => void;
   onDeleted: (id: string) => void;
+  /** The whole rack, after the default moved (it touches two boards). */
+  onRackChanged: (boards: Board[]) => void;
 }) {
   const { t } = useLang();
   // null = closed, "new" = adding, otherwise the board being edited
   const [editing, setEditing] = useState<Board | "new" | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [defaultBusy, setDefaultBusy] = useState(false);
+  const defaultId = defaultBoardId(boards);
+  // A lone board is the default implicitly; nothing to toggle.
+  const onlyBoard = boards.length === 1;
+
+  async function toggleDefault(board: Board) {
+    setDefaultBusy(true);
+    try {
+      const res = await fetch(`/api/boards/${board.id}/default`, {
+        method: board.isDefault ? "DELETE" : "PUT",
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSetDefault"));
+      onRackChanged(body.boards as Board[]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("toast.couldntSetDefault"));
+    } finally {
+      setDefaultBusy(false);
+    }
+  }
 
   async function handleDelete(board: Board) {
     if (confirmingId !== board.id) {
@@ -71,7 +96,9 @@ export function BoardRack({
   }
 
   return (
-    <section className="mt-6.5">
+    // No mt here — this card sits inside journal.tsx's shared dashboard
+    // panel now, which spaces its sections itself (gap-4).
+    <section>
       <div className="rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-3">
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
@@ -128,6 +155,30 @@ export function BoardRack({
                       </span>
                     )}
                     <span className="mt-1 flex flex-wrap gap-1.5">
+                      {(b.id === defaultId || !onlyBoard) && (
+                        <button
+                          type="button"
+                          onClick={() => toggleDefault(b)}
+                          disabled={onlyBoard || defaultBusy}
+                          aria-pressed={b.id === defaultId}
+                          title={
+                            onlyBoard
+                              ? t("board.onlyDefault")
+                              : b.id === defaultId
+                                ? t("board.clearDefault")
+                                : undefined
+                          }
+                          className={
+                            "inline-flex h-7 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-colors disabled:cursor-default " +
+                            (b.id === defaultId
+                              ? "bg-[#0E7C86]/10 text-[#0E7C86]"
+                              : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground")
+                          }
+                        >
+                          {b.id === defaultId && <Check className="size-3" aria-hidden />}
+                          {b.id === defaultId ? t("board.default") : t("board.setDefault")}
+                        </button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

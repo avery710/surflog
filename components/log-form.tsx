@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import { RatingPicker } from "@/components/rating-picker";
 import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
 import { SPOTS, type Region } from "@/lib/spots";
@@ -22,6 +21,7 @@ import { DateField } from "@/components/date-field";
 import { spotLabel, taipeiNearestSlot, taipeiToday } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import { useDefaultSpot } from "@/lib/default-spot";
+import { defaultBoardId } from "@/lib/boards";
 import { TIME_SLOTS } from "@/lib/time-slots";
 import type { Board, Session } from "@/lib/types";
 
@@ -57,8 +57,9 @@ export function LogForm({
   const [date, setDate] = useState(taipeiToday);
   const [time, setTime] = useState(taipeiNearestSlot);
   const [notesHtml, setNotesHtml] = useState("");
-  const [rating, setRating] = useState<number | null>(null);
-  const [boardId, setBoardId] = useState<string | null>(null);
+  // undefined = not picked yet, so follow the rack's default board.
+  const [pickedBoardId, setBoardId] = useState<string | null | undefined>(undefined);
+  const boardId = pickedBoardId === undefined ? defaultBoardId(boards) : pickedBoardId;
   const [goalMet, setGoalMet] = useState<boolean | null>(null);
   const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -73,7 +74,6 @@ export function LogForm({
           spot,
           when: `${date}T${time}`,
           notesHtml,
-          rating,
           boardId,
           ...(goal ? { goalText: goal, goalMet } : {}),
         }),
@@ -82,7 +82,6 @@ export function LogForm({
       if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSave"));
       onCreated(body.session as Session);
       setNotesHtml("");
-      setRating(null);
       setGoalMet(null);
       setEditorKey((k) => k + 1);
       const filled = body.session?.condOpenMeteo != null;
@@ -167,12 +166,6 @@ export function LogForm({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-4">
-        <div className="flex flex-col gap-1.5">
-          <span className="pl-0.5 text-xs font-semibold text-muted-foreground">
-            {t("form.ratingOptional")}
-          </span>
-          <RatingPicker value={rating} onChange={setRating} />
-        </div>
         <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full min-w-[180px]" />
       </div>
 

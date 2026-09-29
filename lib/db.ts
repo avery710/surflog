@@ -30,7 +30,7 @@ interface SessionRow {
   cond: Session["cond"];
   cond_open_meteo: Session["condOpenMeteo"];
   cond_cwa_tide: Session["condCwaTide"];
-  rating: number | null;
+  rating?: number | null; // column kept; the rating feature was removed 2026-09-29, never read
   board_id?: string | null; // added by 20260925000000_create_boards_table.sql
   goal_text?: string | null; // added by 20260928000000_create_goals.sql
   goal_met?: boolean | null;
@@ -50,7 +50,6 @@ function rowToSession(row: SessionRow): Session {
     cond: row.cond ?? null,
     condOpenMeteo: row.cond_open_meteo ?? null,
     condCwaTide: row.cond_cwa_tide ?? null,
-    rating: row.rating,
     boardId: row.board_id ?? null,
     goalText: row.goal_text ?? null,
     goalMet: row.goal_met ?? null,
@@ -73,7 +72,6 @@ function sessionToRow(session: Partial<Session>): Partial<SessionRow> {
   if (session.cond !== undefined) row.cond = session.cond;
   if (session.condOpenMeteo !== undefined) row.cond_open_meteo = session.condOpenMeteo;
   if (session.condCwaTide !== undefined) row.cond_cwa_tide = session.condCwaTide;
-  if (session.rating !== undefined) row.rating = session.rating;
   if (session.boardId !== undefined) row.board_id = session.boardId;
   if (session.goalText !== undefined) row.goal_text = session.goalText;
   if (session.goalMet !== undefined) row.goal_met = session.goalMet;
@@ -190,6 +188,7 @@ interface BoardRow {
   rocker: Board["rocker"];
   note: string;
   photo_id: string | null;
+  is_default?: boolean; // added by 20260928100000_add_board_default.sql
   created_at: string;
   updated_at: string;
 }
@@ -207,6 +206,7 @@ function rowToBoard(row: BoardRow): Board {
     rocker: row.rocker ?? null,
     note: row.note ?? "",
     photoId: row.photo_id ?? null,
+    isDefault: row.is_default ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -222,6 +222,7 @@ function boardToRow(board: Partial<Board>): Partial<BoardRow> {
   if (board.rocker !== undefined) row.rocker = board.rocker;
   if (board.note !== undefined) row.note = board.note;
   if (board.photoId !== undefined) row.photo_id = board.photoId;
+  if (board.isDefault !== undefined) row.is_default = board.isDefault;
   if (board.createdAt !== undefined) row.created_at = board.createdAt;
   if (board.updatedAt !== undefined) row.updated_at = board.updatedAt;
   return row;
@@ -259,6 +260,17 @@ export async function updateBoard(id: string, patch: Partial<Board>): Promise<Bo
     .maybeSingle();
   const row = assertNoError(result) as BoardRow | null;
   return row ? rowToBoard(row) : null;
+}
+
+/** Make `id` the owner's only default board, or clear the default (null).
+ *  Clears first so the one-default-per-owner unique index never trips.
+ *  Callers must have checked that `id` belongs to `ownerId`. */
+export async function setDefaultBoard(ownerId: string, id: string | null): Promise<void> {
+  const supabase = getSupabase();
+  assertNoError(
+    await supabase.from(BOARDS).update({ is_default: false }).eq("owner_id", ownerId).eq("is_default", true)
+  );
+  if (id) assertNoError(await supabase.from(BOARDS).update({ is_default: true }).eq("id", id));
 }
 
 /** sessions.board_id is `on delete set null`, so sessions survive this. */

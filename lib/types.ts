@@ -10,9 +10,6 @@
  *   entered Swelleye headline reading (nothing here scrapes Swelleye — see
  *   "The automation problem"); `condOpenMeteo` is filled automatically,
  *   server-side, at save time.
- * - `rating`: "the fix is one field" — see CLAUDE.md "The unfalsifiability
- *   problem". Optional, 1-5, so spot-fit has something to eventually test
- *   against. Never required, never assumed present.
  */
 
 /** A single tide turning point (high or low), used by both `condCwaTide`
@@ -112,8 +109,6 @@ export interface Session {
   cond: Cond | null;
   condOpenMeteo: CondOpenMeteo | null;
   condCwaTide: CondCwaTide | null;
-  /** 1-5, optional. See CLAUDE.md "The unfalsifiability problem". */
-  rating: number | null;
   /** The owner's board this was surfed on (boards.id), or null. Optional so
    *  rows read before the boards migration still type-check. */
   boardId?: string | null;
@@ -142,9 +137,13 @@ export interface Board {
   note: string;
   /** photo_blobs id, served by /api/blob/:id (owner-checked); images only. */
   photoId: string | null;
+  /** Explicitly marked default (pre-selected when logging). At most one per
+   *  owner. Use defaultBoardId() in lib/boards.ts, which also treats a lone
+   *  board as the default. */
+  isDefault: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export type NewSession = Pick<Session, "spot" | "when"> &
-  Partial<Pick<Session, "notesHtml" | "notes" | "rating">>;
+  Partial<Pick<Session, "notesHtml" | "notes">>;

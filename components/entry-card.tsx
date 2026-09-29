@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Star, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConditionTile, Figure } from "@/components/condition-tile";
 import { EditPanel } from "@/components/edit-panel";
@@ -114,6 +114,7 @@ export function EntryCard({
 
   const om = session.condOpenMeteo;
   const cwa = session.condCwaTide;
+  const hasTemp = om?.seaTempC != null || om?.airTempC != null;
   const board = session.boardId ? boards.find((b) => b.id === session.boardId) : undefined;
   const manual = session.cond;
   const hasShore = !!fit && !fit.missing.includes("windDirDeg") && !fit.missing.includes("spot.facing");
@@ -170,9 +171,6 @@ export function EntryCard({
         <span className="rounded-full bg-secondary px-3 py-1 text-[13px] font-medium tabular-nums text-muted-foreground">
           {fmtWhen(session.when, lang)}
         </span>
-        {session.rating != null && (
-          <ReadOnlyStars value={session.rating} label={t("entry.stars", { n: session.rating })} />
-        )}
         <span className="flex-1" />
         <span className="flex flex-wrap gap-1.5">
           <Button
@@ -217,11 +215,22 @@ export function EntryCard({
       </div>
 
       {om ? (
-        <div className="grid grid-cols-2 gap-2.5 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5">
+        // Phones + tablets: swell · period · wind in one row, water temp +
+        // tide below. Desktop (lg): column-major grid with two shared rows —
+        // swell over period, wind over water temp, tide spanning both — so
+        // swell and wind (and period and temp) always line up in height.
+        <div
+          className={`grid grid-cols-3 gap-2 sm:gap-2.5 lg:grid-flow-col lg:grid-rows-[auto_auto] lg:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5 ${
+            tideSource
+              ? "lg:grid-cols-[minmax(112px,1fr)_minmax(min-content,1.3fr)_minmax(0,2fr)]"
+              : "lg:grid-cols-[minmax(112px,1fr)_minmax(min-content,1.3fr)]"
+          }`}
+        >
           {om && (
             <>
               <ConditionTile
                 label={t("tile.swellOpenMeteo")}
+                className={om.swellPeriodS == null ? "lg:row-span-2" : ""}
                 value={<Figure value={fmt1(om.swellHeightM)} unit="m" />}
                 sub={<DirSub deg={om.swellDirDeg} compass={compassLabel(toCompass(om.swellDirDeg), lang)} />}
               />
@@ -235,10 +244,10 @@ export function EntryCard({
               )}
               <ConditionTile
                 label={t("tile.wind")}
-                className="max-md:col-span-2"
+                className={`${om.swellPeriodS == null ? "col-span-2 lg:col-span-1" : ""} ${hasTemp ? "" : "lg:row-span-2"}`}
                 value={
                   <span className="flex flex-col gap-1">
-                    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                       <Figure value={fmt1(om.windSpeedMs)} unit="m/s" />
                       {om.windSpeedMs != null && (
                         <span className="font-sans text-[12px] font-medium tracking-normal text-muted-foreground">
@@ -259,6 +268,13 @@ export function EntryCard({
                   </span>
                 }
               />
+              {hasTemp && (
+                <ConditionTile
+                  label={t("tile.temp")}
+                  value={<Figure value={fmt1(om.seaTempC)} unit="°C" />}
+                  sub={om.airTempC != null ? t("tile.airTemp", { t: fmt1(om.airTempC) ?? "—" }) : undefined}
+                />
+              )}
             </>
           )}
           {/* CWA wins whenever it covers the session (see the comment above
@@ -268,7 +284,11 @@ export function EntryCard({
           {tideSource && (
             <ConditionTile
               label={tideSource === "cwa" ? t("tile.tideCwa") : t("tile.tideOpenMeteo")}
-              className="max-md:col-span-2"
+              className={`${hasTemp ? "col-span-2" : "col-span-3"} lg:col-span-1 lg:row-span-2 lg:flex lg:flex-col`}
+              // On lg the tile spans two rows and is taller than it needs
+              // to be; centre the chart in the space under the headline
+              // instead of leaving it all empty at the bottom.
+              subClassName="lg:my-auto"
               value={trendHeadline(tideTrendValue)}
               sub={
                 tideEvents.length >= 2 ? (
@@ -397,19 +417,6 @@ export function EntryCard({
         <div className="h-4" />
       )}
     </article>
-  );
-}
-
-function ReadOnlyStars({ value, label }: { value: number; label: string }) {
-  return (
-    <span className="flex items-center gap-0.5" aria-label={label}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <Star
-          key={n}
-          className={cn("size-3.5", n <= value ? "fill-warm text-warm" : "fill-transparent text-border")}
-        />
-      ))}
-    </span>
   );
 }
 

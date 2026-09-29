@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import { RatingPicker } from "@/components/rating-picker";
 import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
 import { SPOTS, type Region } from "@/lib/spots";
@@ -67,7 +66,6 @@ export function EditPanel({
   const [time, setTime] = useState(session.when.slice(11, 16));
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
-  const [rating, setRating] = useState<number | null>(session.rating);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
   const [goalMet, setGoalMet] = useState<boolean | null>(session.goalMet ?? null);
   const [saving, setSaving] = useState(false);
@@ -85,7 +83,6 @@ export function EditPanel({
         spot,
         when: `${date}T${time}`,
         notesHtml,
-        rating,
         cond: hasAnyCond(cond) ? cond : null,
         // only sent when changed, so an untouched board never needs a write
         ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
@@ -211,13 +208,6 @@ export function EditPanel({
           defaultHtml={notesHtml}
           onChangeHtml={setNotesHtml}
         />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="pl-0.5 text-xs font-semibold text-muted-foreground">
-          {t("form.ratingOptional")}
-        </span>
-        <RatingPicker value={rating} onChange={setRating} />
       </div>
 
       {(boards.length > 0 || boardId) && (
