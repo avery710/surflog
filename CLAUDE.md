@@ -791,9 +791,10 @@ total, newlines included; `goalPoints()`/`joinGoalPoints()` in
 `lib/goal.ts` split/join and trim/drop-empty). The card
 (`components/goal.tsx`'s `GoalCard`) shows them as a bulleted list and
 edits them as a row per point (text input + × remove) plus an "add a
-point" input — Enter in the add input adds the point without leaving edit
-mode; committing (blur out of the whole block, or Enter in an existing
-row) joins and saves, same as the old single-line save. `GoalCheck` (log
+point" input with a + button. **No Enter shortcut** (removed
+2026-09-29 on request — it clashed with 注音/倉頡 candidate selection even
+with an `isComposing` guard): points are added with +, the list saves when
+focus leaves the whole block, Escape cancels. `GoalCheck` (log
 form / edit panel) also renders the bulleted list. `GoalChip` (session
 card) joins points with " · " onto one line — no room for a list there.
 CSV keeps the raw newline-joined text (`cell()` already quotes it). An

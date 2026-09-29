@@ -109,12 +109,11 @@ export function GoalCard({
                     disabled={saving}
                     aria-label={t("goal.editPoint", { n: i + 1 })}
                     onChange={(e) => updatePoint(i, e.target.value)}
+                    // No Enter shortcut on purpose: it clashed with Chinese
+                    // input methods (注音/倉頡 confirm candidates with Enter).
+                    // Saving happens when focus leaves the card; Escape cancels.
                     onKeyDown={(e) => {
-                      // Enter confirms an IME candidate (注音/倉頡) — only act on a real Enter
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                        void commit();
-                      } else if (e.key === "Escape") {
+                      if (e.key === "Escape") {
                         cancelled.current = true;
                         setEditing(false);
                       }
@@ -140,11 +139,9 @@ export function GoalCard({
                   placeholder={t("goal.placeholder")}
                   aria-label={t("goal.addPoint")}
                   onChange={(e) => setNewPoint(e.target.value)}
+                  // No Enter shortcut here either (see above) — add with the + button.
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                      e.preventDefault();
-                      addPoint();
-                    } else if (e.key === "Escape") {
+                    if (e.key === "Escape") {
                       cancelled.current = true;
                       setEditing(false);
                     }
