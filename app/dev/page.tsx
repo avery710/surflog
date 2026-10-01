@@ -20,6 +20,18 @@ const PAGES = [
       "The teal-tinted panel above the session list (components/journal.tsx): GoalCard, activity calendar, the “What you've surfed” table, and the board rack together. Empty/typical/edge cases per section, en/zh-TW, fixed widths.",
   },
   {
+    href: "/dev/board-rack",
+    title: "Board rack",
+    description:
+      "components/board-rack.tsx — the board list: default-badge toggle, ⋯ menu, specs/note/rocker fields, the three-breakpoint photo layout. Empty/one/two/many boards, missing-field branches, en/zh-TW, fixed widths.",
+  },
+  {
+    href: "/dev/logo",
+    title: "Logo",
+    description:
+      "components/logo.tsx — the hand-built SURFLOG wordmark (bold/regular/tagline), large and at header size, black on white and white on teal, next to the current plain-text header for comparison.",
+  },
+  {
     href: "/dev/activity-preview",
     title: "Activity calendar",
     description:

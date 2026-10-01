@@ -31,11 +31,11 @@ Two implementations exist:
    README.md "Staging deploys"). A responsive-design pass also landed 2026-09-18: most of
    the UI was already mobile-friendly by construction, two real overflow
    risks got fixed (`entry-card.tsx`'s button row, `edit-panel.tsx`'s
-   refresh-conditions row) — see git log. **Live phone/tablet testing is
-   still owed**: the browser resize tool wasn't reliably shrinking the
-   viewport in this environment, and testing against the real authenticated
-   app would've meant weakening auth locally, which was deliberately not
-   done — see "Bugs already hit" if this needs revisiting.
+   refresh-conditions row) — see git log. **Phone/tablet layouts are now
+   checked with the cmux CLI** (2026-09-30, see "Testing in the browser
+   (cmux)"): `cmux browser … viewport 375 850` emulates the width inside
+   Avery's already signed-in cmux browser, so no auth weakening was
+   needed. A real physical device is still untested.
 
    **As of 2026-09-19**: still not deployed anywhere — no Vercel project
    existed. See README.md "Before deploying to Vercel" for what's left.
@@ -69,8 +69,8 @@ Two implementations exist:
      falls on another day). Same tile shape for both sources.
    - **CWA wins the tide tile when `condCwaTide.events` is non-empty**,
      else Open-Meteo `tideEvents` (then CWA's legacy single event, then
-     `seaLevelTrend`, for the trend headline). Label `Tide (CWA)` / plain
-     `Tide`. History: CWA-first until 2026-09-25, Open-Meteo-only
+     `seaLevelTrend`, for the trend headline). Label is plain `Tide`
+     for both since 2026-09-30 (was `Tide (CWA)` for CWA). History: CWA-first until 2026-09-25, Open-Meteo-only
      2026-09-25 to 2026-09-28 (for one consistent source), **back to
      CWA-first 2026-09-28** after Avery flagged the tide as inaccurate.
      Checked against two independent references for Jialeshui 2026-09-26
@@ -104,7 +104,8 @@ Two implementations exist:
      Every tile's big figure uses one style (`Figure` in
      `components/condition-tile.tsx`: 20px mono, foreground colour); the
      hover tooltips on figures were removed, and `components/ui/tooltip.tsx`
-     with them.
+     with them. (Funnel Sans bold was tried for these 2026-09-30 and
+     reverted the same day on request — keep them mono.)
    - **Wind tile** is two rows: `4.2 m/s  ● 中等風` (speed big, strength a
      small grey note, text baseline-aligned with the speed since
      2026-09-29 — the dot is `self-center` so it doesn't set the baseline)
@@ -129,17 +130,34 @@ Two implementations exist:
    **As of 2026-09-28** (uncommitted at time of writing):
    - **Activity calendar** (`components/activity-calendar.tsx`) redesigned
      on request after two swipe-grid iterations were rejected: no heading,
-     a fixed-width white card (`sm:w-[344px]`, full width on phones)
-     with months stacked vertically, oldest on top, current at the bottom.
+     a fixed-width white card (344px at the time, since narrowed to 260px
+     — see "As of 2026-09-30" below; full width on phones) with months
+     stacked vertically, oldest on top, current at the bottom.
      Each month = a short label (`Sep` / `9月`, no year; current month
-     dark, others the same light grey as the dots) + one 10px dot per day,
-     14 per row, no weekday alignment. Dots: teal = surfed, light grey =
-     past no-surf, grey outline = future; today gets no special marker.
-     Only months from the earliest session's month to now are shown. Max 3
-     months visible (`VISIBLE_MONTHS`, measured from rendered rows); older
-     ones via ↑/↓ buttons in a rail on the right, one month per click,
-     eased 380 ms scroll (instant under reduced motion). The past-month
-     label grey is low-contrast as text — accepted on request.
+     dark, others the same light grey as the dots) + one 10px dot per day.
+     **Changed 2026-09-30 on request: a proper Monday-first week grid, 7
+     dots per row instead of 14 with no weekday alignment** — day 1 sits
+     under its real weekday (`leadingEmptyDots()`, computed from the local
+     y/m/d `Date`, never an ISO string, so it can't UTC-shift); leading
+     slots before it are invisible, not styled as dots; the last row of a
+     month can be short. A faint Monday-first weekday header (M T W T F S S
+     / 一 二 三 四 五 六 日, via `t()`/`calendar.weekday.*`) sits once above
+     the whole card, not per month — it lines up with the dot columns below
+     purely because both use the same fixed-pixel grid track, regardless of
+     their separate flex containers. Dot size stayed at 10px (tried larger,
+     14px, first, sized back down on request); the gap between dots widened
+     from 6px to 10px on request, since 7-per-row freed up horizontal room.
+     Dots: teal = surfed, light grey = past no-surf, grey outline = future;
+     today gets no special marker. Only months from the earliest session's
+     month to now are shown. Max 2 months visible (`VISIBLE_MONTHS`, lowered
+     from 3 — a week-aligned month is now 4-6 dot rows instead of 2-3, so 3
+     would make the card noticeably taller than the table it sits beside;
+     measured from rendered rows, not guessed); older ones via ↑/↓ buttons
+     in a rail on the right, one month per click, eased 380 ms scroll
+     (instant under reduced motion). The past-month label grey is
+     low-contrast as text — accepted on request. Not checked in a browser —
+     eyeball a month starting on Sunday (6 rows), February, today's dot, and
+     zh-TW.
    - **Edit panel** (`components/edit-panel.tsx`) only offers fields the
      card can show: `cond.tideM`, `tideNote`, `seaTempC`, `airTempC` inputs
      removed. Existing values ride along untouched in the saved `cond`
@@ -178,6 +196,24 @@ Two implementations exist:
      both rows, so it's a flex column and the chart is vertically centred
      in the space under the headline (`subClassName="lg:my-auto"`, a
      `ConditionTile` prop added for this) instead of hugging the top.
+     **2026-09-30: labels back to two lines** (time, then height
+     underneath, e.g. `08:05` / `0.7m`, `+1d`/`-1d` staying on the time
+     line) — the one-line form above was too cramped once Avery looked at
+     it again. `H` grew 64 → 88 (`TOP` 29 → 41, `BOTTOM` 15 → 27, a new
+     `LINE_GAP` = 10 between a label's two stacked `<tspan>`s) to keep a
+     two-line label from clipping the top of the SVG or the session-time
+     pill (y 0–15), or the bottom edge; the plot area itself (`H - TOP -
+     BOTTOM`) stayed 20 px, so the curve is the same height as before, just
+     with more label room around it. Missing `heightM` still renders only
+     the time line, at the same position it held with one line. The
+     tile's own label lost "(CWA)" the same session — see the bullet
+     right below.
+   - **Tide tile label no longer names the source.** `tile.tideCwa` ("Tide
+     (CWA)" / "潮汐（氣象署）") was removed from `lib/i18n.tsx`; both CWA-
+     and Open-Meteo-backed tiles now show the plain `tile.tideOpenMeteo`
+     string ("Tide" / "潮汐"). The `tideSource` logic in
+     `components/entry-card.tsx` is unchanged — CWA still wins whenever it
+     has `events` — only the label stopped naming which source won.
    - **Dashboard panel**: the goal card, activity calendar, "What you've
      surfed" table and board rack (`components/journal.tsx`) are now one
      shared card instead of four separate floating ones, on request — a
@@ -189,13 +225,69 @@ Two implementations exist:
      static panel background, even though the two hexes are close), with
      tighter padding on phones (`p-3` vs `sm:p-5`) and `gap-4` between
      sections instead of each section's old `mt-6.5`. Each section keeps
-     its own white `bg-card` surface (border + shadow) nested on the tint
-     — the calendar in particular stays the fixed-width white card next to
-     the table, unchanged. Not checked in a browser.
+     its own white `bg-card` surface (border + shadow) nested on the tint.
+     **Superseded 2026-09-30** — the calendar no
+     longer sits next to the table; see below.
+   - **Session card header**: Edit / Add media / Delete buttons replaced
+     with one `⋯` (`MoreHorizontal`) icon-button menu (`components/ui/dropdown-menu.tsx`,
+     same one `user-menu.tsx` uses), items Edit / Add photos/video /
+     separator / Delete (red). The file `<input>` stays outside the menu
+     so it survives the menu closing when "Add photos/video" clicks it;
+     an uploading spinner now sits next to the `⋯` button since the old
+     button's "Uploading…" text is gone. Delete's old two-step inline
+     confirm doesn't work inside a menu, so it's now a `components/ui/dialog.tsx`
+     confirm ("Delete this session?" + spot/date) with Cancel/Delete.
+     `entry-card.tsx` only. Checked in cmux 2026-09-30: menu opens with the
+     three items, the delete dialog names the session, Escape cancels with
+     nothing deleted. "Add photos/video" (native file picker) can't be
+     driven from the CLI — untested. Header is two groups, spot+date
+     (wrapping) and a fixed actions column, so on a 375 px phone the date
+     drops under the spot name and `⋯` stays pinned top-right (with one
+     `flex-wrap` row, `⋯` was what wrapped). The board chip lost its
+     "Board / 衝浪板" label (screen-reader-only now): photo + name only.
+
+   **As of 2026-09-30** (dashboard panel, `components/journal.tsx` +
+   `components/activity-calendar.tsx` + `components/patterns-table.tsx`;
+   `app/dev/dashboard/page.tsx` kept in sync; measured in cmux at 1280 and
+   390 px — goal + 260 px calendar side by side, then stacked): rearranged on request — the calendar
+   card no longer needs as much space as it was given. Its content (a
+   Monday-first week grid: month-label column + 7×10px dots + the ↑/↓
+   rail) is only ~200px wide, so the old fixed 344px card next to the
+   table left a lot of blank white space on tablets/narrow desktops
+   between `sm` and `lg` — the actual complaint, reproducible at ~800px.
+   New layout, top to bottom inside the shared `bg-primary-soft` panel:
+   - **Row 1**: the goal card (flexible width) beside the activity
+     calendar (now content-sized, `sm:w-[260px] sm:shrink-0`, down from
+     344px — see the arithmetic in `activity-calendar.tsx`'s own
+     comment), from `sm` up; both full-width and stacked (goal above
+     calendar) below `sm`. `items-start`, not `items-stretch`: the goal
+     can run several lines (multiple points), and stretching the
+     calendar to match would just move the same blank-space problem
+     inside its own card — the calendar keeps its own natural,
+     content-sized height instead.
+   - **Row 2**: the "What you've surfed" table, full width at every
+     breakpoint now (it no longer shares a row/height with the
+     calendar; `ActivityCalendar`'s `h-full` and `PatternsTable`'s
+     matching `h-full max-h-[320px]` height-stretch were removed, its
+     own `max-h-[320px]` internal scroll cap kept).
+   - **Row 3**: the board rack, full width, unchanged.
+   Empty states checked by construction, not visually: no goal set
+   (`GoalCard`'s "add a goal" prompt) and the table's own
+   `sessions.length < 2 → null` don't leave a hole or stretch oddly,
+   since row 1 is a plain flex pairing (no shared grid track to leave
+   empty) and rows 2/3 are independent, no-height-matching blocks.
+   The calendar's own dot size/spacing/header/rail/`VISIBLE_MONTHS`
+   are untouched — only its card's outer width and the `h-full` height-
+   match changed. To eyeball: ~800px width (the original complaint,
+   should now show the goal+calendar row instead of a mostly-empty
+   calendar card), a phone width (everything stacked, calendar full
+   width), a long multi-point/Chinese goal beside the calendar (goal
+   card taller than the calendar — should not stretch it), and the
+   `sessions.length < 2` / no-goal empty states together.
 
 `BACKLOG.md` (added 2026-09-29) is Avery's list of future features and
 chores — **local only, gitignored** (not in the public repo, so it won't
-exist on a fresh clone or in cloud sessions). The project skill `.claude/skills/backlog/` handles "add X to
+exist on a fresh clone or in cloud sessions). The project skill `add-ticket` (`.claude/skills/add-ticket/`, renamed from `backlog` 2026-09-30) handles "add X to
 the backlog" / ticking items into **Done** (short lines; details belong
 here in CLAUDE.md).
 
@@ -762,11 +854,103 @@ Session create/update 404s a `boardId` the caller doesn't own
 `/api/blob/:id`. Routes: `app/api/boards/**`. UI: `components/board-rack.tsx`
 (below the calendar/table), `components/board-select.tsx` (log form + edit
 panel), a board chip on each session card.
-**Default board** (migration `20260928100000_add_board_default.sql`,
-applied to the live project 2026-09-29): `boards.is_default`, at most one
-per owner (partial unique index). Set via `PUT /api/boards/:id/default`;
-the log form pre-selects it (`defaultBoardId()` in `lib/boards.ts`), or
-the only board when the rack has exactly one.
+**常用 / go-to boards** (2026-09-30, migration
+`20260930000000_add_board_favorite.sql`, applied to the live project the
+same day; replaces the single default board of 2026-09-28/29).
+`boards.is_favorite`, any number per owner. Toggled from the board card's
+⋯ menu (設為常用 / 取消常用, `PUT`/`DELETE /api/boards/:id/favorite`); a
+teal "✓ 常用 / Go-to" badge shows on favourites only (status, not a
+button). Favourites are listed first in the rack and the log form's board
+picker (`sortBoards()` in `lib/boards.ts`). The log form pre-selects the
+**last-used board** (most recent session whose board still exists), else
+the only favourite, else the only board (`preselectBoardId()`). Why: Avery
+rotates a few boards, so "one default" didn't fit and 常用 reads as
+plural. The old `is_default` column + one-per-owner index are still in
+the DB, unread, so the previously deployed staging build keeps working —
+drop them in a later migration once staging runs this code.
+
+**Drag-and-drop reorder** (2026-09-30, migration
+`20260930100000_add_board_sort_order.sql`, applied to the live project the
+same day). The code reached the dev server a few minutes before the
+migration, and in that window every new board failed ("column
+boards.sort_order does not exist") — apply a migration before code that
+reads its column runs, even locally. Adds
+`boards.sort_order`, a flat per-owner integer, backfilled to match the
+order every rack already rendered in (常用 first, then the rest, both by
+`created_at`) so applying it doesn't visibly reorder anyone's boards.
+`listBoards()` now orders by `sort_order` then `created_at`; `createBoard()`
+always assigns `max(sort_order for that owner) + 1`, i.e. end of the rack,
+regardless of what the caller passes. **常用-first grouping still happens
+in `sortBoards()`, not in the column** — `sort_order` only orders boards
+*within* whichever group they're in (favourite or not), so toggling 常用
+doesn't need to touch it. New route `PUT /api/boards/order`,
+`{ ids: string[] }` = the caller's full new order; 400 for a malformed
+body, 404 (not partial-success) if the set of ids isn't exactly the
+caller's current rack — same "don't confirm a foreign id" rule as every
+other board route. Writes `sort_order` = array index per id, one request
+per drop, returns `{ boards }`.
+UI (`components/board-rack.tsx`, `@dnd-kit/core` + `@dnd-kit/sortable` +
+`@dnd-kit/utilities` — peer deps `react >=16.8`, so React 19.2 here is
+fine, verified via `npm view ... peerDependencies` before installing): a
+`GripVertical` handle at the **start of the name row** (leftmost reads as
+"grab here", and it's the one spot free at every breakpoint including the
+phone stack, where the photo already fills the row above — the ⋯ menu
+stays at the far right, untouched). The handle, not the whole card, is the
+drag surface (`setActivatorNodeRef` + dnd-kit's listeners on just the
+button) with `touch-action: none` scoped to it alone, so dragging works on
+touch without also scrolling the page — dnd-kit's own documented pattern
+for this. Two `<SortableContext>`s share one grid (常用 boards, then the
+rest — `rectSortingStrategy`, not the vertical-list one, since the grid is
+2-up from `sm`); a drop from one group onto the other is a no-op in
+`handleDragEnd` (nothing in state changes), so the card **snaps back to
+its own group** rather than toggling 常用 — chosen over "disallow" because
+dnd-kit doesn't make mid-drag group-crossing easy to block outright, and a
+snap-back reads the same to the user. Keyboard: Tab to a handle (it's a
+real `<button>`), Space to pick up, Arrow Up/Down to move within the
+group, Space to drop, Escape to cancel — dnd-kit's default `KeyboardSensor`
++ `sortableKeyboardCoordinates`, unmodified; **not verified in a browser**
+whether the keyboard drag *preview* (as opposed to the final drop, which
+`handleDragEnd` does guard) can visually cross the group boundary before
+snapping back. `prefers-reduced-motion` disables the per-card CSS
+transition (`usePrefersReducedMotion()`, a `useSyncExternalStore` hook —
+not `useEffect`+`setState`, see "Conventions") but not dnd-kit's own drag
+tracking. Reorder is optimistic (array reordered locally on drop, PUT
+fired after) with rollback + `toast.couldntReorder` on failure — same
+pattern applied to the existing 常用 toggle the same day, once Avery
+flagged it as laggy (0.6-1.7 s round trip): `toggleFavorite()` now flips
+the board locally first, then reconciles with the single updated board the
+route returns (`{ board }`, changed from `{ boards }` the same day) rather
+than waiting on a full list re-fetch. The route itself went from 3
+Supabase round trips to 1 (`setBoardFavorite()` updates with an
+`owner_id` filter and `.select()`; no matching row → 404). Measured in
+cmux: badge appears 47 ms after the click; request ~0.3 s.
+**排序 / Reorder mode** (option D, chosen 2026-09-30 over a louder handle,
+long-press, a coach mark or a caption): the ⋮⋮ handles only exist after
+tapping 排序 in the rack header (shown with 2+ boards); while it's on,
+完成 / Done replaces the header buttons, a hint line explains the 常用-first
+rule, each card's ⋯ menu is hidden, and dragging is disabled outside the
+mode (`useSortable({ disabled: !sorting })`). **In the mode the whole
+card is the drag surface** (changed the same day on request — was the ⋮⋮
+handle only; the ⋮⋮ icon was then removed entirely, and the hint reads
+"拖曳卡片調整順序，常用板固定在最前面。"): listeners + keyboard
+attributes on the `<li>`, `touch-none` only while sorting. Known trade-off:
+while sorting on a phone, a swipe starting on a card drags instead of
+scrolling, and phone cards are tall (full-width photo: 375–489 px each at
+375 px wide) — a compact sort layout (hide the big photo while sorting) is
+the likely next step if that bites. Verified in cmux at 375 px: mode
+on/off (card gets tabindex/touch-none/grab cursor only while sorting), and
+a keyboard drag on the focused card (Space, ↑, Space) reordered two 常用
+boards and saved — then moved back. Mouse/touch drag not driven from the
+CLI.
+Card layout (2026-09-30, measured in cmux): phones stack a full-width
+photo at its natural height (plain static `<img>`, nothing cropped) above
+the name row `name · 常用 badge · ⋯` (`name · 常用`, no ⋯, in 排序 mode) (⋯ transparent until hover /
+open), then specs and note; from `sm` the photo is a small square beside
+the text, capped at 96 px (absolutely-positioned `<img>` in a wrapper —
+a stretched plain `<img>` blew up to 329 px in WebKit and squeezed the
+text to one character wide).
+`components/board-select.tsx` (the log form / edit panel picker) already
+called `sortBoards()`, so it follows the saved order with no changes there.
 
 **Goal for next session** (added 2026-09-28, migration
 `20260928000000_create_goals.sql`, applied to the live project 2026-09-28).
@@ -785,7 +969,8 @@ each session card; `goal`/`goal_met` in the CSV. This is also the first
 outcome-like field — see "The unfalsifiability problem".
 
 **Goal shown as points (added 2026-09-29).** Still one `goals.text` column,
-still one `goal_met` per session — no new column, no per-point verdict.
+and originally one `goal_met` per session; per-point ticks came later the
+same day (see below).
 Points are just newline-separated lines within that same string (200 chars
 total, newlines included; `goalPoints()`/`joinGoalPoints()` in
 `lib/goal.ts` split/join and trim/drop-empty). The card
@@ -799,6 +984,34 @@ form / edit panel) also renders the bulleted list. `GoalChip` (session
 card) joins points with " · " onto one line — no room for a list there.
 CSV keeps the raw newline-joined text (`cell()` already quotes it). An
 old single-sentence goal is just a one-point list, no migration needed.
+
+**Per-point ticks (added 2026-09-29, migration
+`20260929000000_add_goal_points_met.sql`, applied to the live project the
+same day).** The log form and edit panel show one checkbox per point
+(`GoalCheck`); ticked = achieved, unticked = not — a plain two-state
+checkbox by Avery's choice, so a skipped point counts as not achieved.
+Stored in `sessions.goal_points_met` (jsonb boolean array, same order as
+that session's `goal_text` lines). `goal_met` is still written, derived as
+"all points achieved". Always read through `sessionPointsMet()`
+(`lib/goal.ts`): sessions from before this only have `goal_met`, which
+then stands for every point. **Counted per point by its own text
+(2026-09-30)**: the goal card used to count only sessions whose whole
+`goal_text` equalled the current goal, so adding/removing/editing any
+point reset every count to 0. Now `pointStats()` (`lib/goal.ts`) counts
+each current point across all sessions whose goal has a line with the
+**exact same wording** (after `goalPoints`' trim), reading the tick at
+that point's index in *that session's own* list (first occurrence if the
+text repeats); sessions with no ticks are skipped. So a point added later
+has a smaller total, a point removed and re-added gets its history back,
+and a reworded point starts fresh — deliberately no fuzzy matching (a
+wrong match would silently merge two goals). The card shows `met/total`
+per bullet; a faint "since {date}" only on points whose history starts
+later than the oldest point's; a faint "not tried yet" on a point with
+no history while others have some; the "Not tried yet" line under the
+list only when no point has any history. The old summary line ("Counts
+from N session(s)…", "Tried in N session(s), not checked off yet") was
+removed. The session chip shows
+"2/3 achieved"; CSV gains `goal_points_met` (`yes;no;yes`).
 
 **Spot descriptions** live outside sessions, in their own table
 `spot_notes` (`owner_id`, `spot`, `description`, `updated_at`; primary key
@@ -846,6 +1059,27 @@ Exceptions:
 - Several neighbours share a township (eight Yilan spots → 宜蘭縣頭城鎮,
   Jiupeng + Jialeshui → 屏東縣滿州鄉), which is expected — CWA's tide is
   per township, not per break.
+
+## Testing in the browser (cmux)
+
+Avery runs the app in cmux, whose browser is already signed in to the
+local dev server. **Use the cmux CLI to test UI changes** instead of only
+type-checking (Avery's standing instruction, 2026-09-30):
+- `cmux tree` lists surfaces: the `npm run dev` terminal and browser tabs
+  on `localhost:3000/` (real journal), `/dev/*` (showcase), staging.
+- `cmux browser surface:N reload | wait --load-state complete | eval '<js>'
+  | screenshot --out <png> | errors list | click <css> | press Escape`.
+  Measure layouts with `eval` + `getBoundingClientRect()` rather than
+  eyeballing screenshots.
+- `cmux browser surface:N viewport 375 850` emulates a phone; **always
+  `viewport reset` afterwards**. The native pane is ~425-810 px wide, i.e.
+  below `lg` — emulate 1280 for desktop layouts.
+- `cmux read-screen --surface <dev-terminal> --scrollback --lines 2000`
+  reads the dev server log (request timings, server errors).
+- Limits: native file pickers and `window.confirm` block automation — don't
+  trigger them; synthetic `hover` doesn't apply `:hover`; the tab is
+  Avery's **real** data — only reversible actions, and undo any test
+  change (e.g. a 常用 toggle) before finishing.
 
 ## Bugs already hit — don't repeat these
 
@@ -904,6 +1138,19 @@ Exceptions:
   in. If "the page shows no sessions", check that id before debugging
   anything else.
 
+- **"Supabase: JWT issued at future", intermittent 500 on `/`** (hit
+  often in dev; fixed 2026-09-30). Thrown from `listSessions` in the page's
+  server render. Not our clock (local and Supabase's `Date` header matched
+  to the second) and not reproducible on demand (0/80 direct requests):
+  Supabase's gateway turns the `sb_secret_` key into a fresh JWT per
+  request, and PostgREST/Storage occasionally sees its `iat` a moment in
+  its own future. Fix: `lib/supabase.ts` passes a custom `global.fetch`
+  that retries only that error (up to 2 retries, 250/500 ms); everything
+  else passes straight through. Tested with a mocked fetch (one blip →
+  recovers; persistent → still errors after 3 tries; other 401s → not
+  retried). If it ever shows up after 3 tries, it's a real Supabase
+  incident, not this.
+
 ## Localization
 
 Bilingual since 2026-09-22: English and Traditional Chinese as used in
@@ -958,6 +1205,9 @@ Language; the choice lives in localStorage (`surflog:lang`), per browser.
     rack): empty/typical overviews plus goal, calendar, table and rack
     edge cases. Mirrors `journal.tsx`'s panel markup locally (keep in
     sync); `BoardRack` calls `fetch` itself, so its actions fail there.
+  - `/dev/board-rack` — the board list alone: empty/one/two/many boards,
+    the default-badge `onlyBoard` toggle, missing brand/length/specs/note,
+    rocker values, long CJK names/notes.
   - `/dev/activity-preview` — calendar with 1-4 months of history.
   - `/dev/signin-preview`, `/dev/color-preview` — sign-in page, colour
     swatches.

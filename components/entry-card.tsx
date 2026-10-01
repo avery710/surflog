@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { ImagePlus, Loader2, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ConditionTile, Figure } from "@/components/condition-tile";
 import { EditPanel } from "@/components/edit-panel";
 import { cn } from "cn";
@@ -18,6 +26,7 @@ import { DirectionArrow } from "@/components/direction-arrow";
 import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
 import { GoalChip } from "@/components/goal";
+import { sessionPointsMet } from "@/lib/goal";
 import { boardLabel } from "@/lib/boards";
 import type { Board, Session, TideEvent } from "@/lib/types";
 
@@ -36,33 +45,16 @@ export function EntryCard({
   const { lang, t } = useLang();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const confirmTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (confirmTimeout.current) clearTimeout(confirmTimeout.current);
-    };
-  }, []);
 
   const spot = spotBySlug(session.spot);
   const fit = computeSessionFit(spot, session);
 
-  // Two-step confirm instead of window.confirm(): a native confirm() dialog
+  // Confirm dialog instead of window.confirm(): a native confirm() dialog
   // blocks the whole tab's render thread until dismissed — bad UX in
   // general, and it freezes browser automation tooling outright.
-  function handleDeleteClick() {
-    if (!confirmingDelete) {
-      setConfirmingDelete(true);
-      confirmTimeout.current = setTimeout(() => setConfirmingDelete(false), 4000);
-      return;
-    }
-    if (confirmTimeout.current) clearTimeout(confirmTimeout.current);
-    void performDelete();
-  }
-
   async function performDelete() {
     setDeleting(true);
     try {
@@ -73,7 +65,6 @@ export function EntryCard({
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("toast.couldntDelete"));
       setDeleting(false);
-      setConfirmingDelete(false);
     }
   }
 
@@ -164,55 +155,106 @@ export function EntryCard({
 
   return (
     <article className={cardClass}>
-      <div className="flex flex-wrap items-center gap-3 px-6 pt-5.5 pb-3.5">
-        <span className="text-[21px] font-bold tracking-[-0.02em] leading-tight">
-          {spotLabel(session.spot, lang)}
-        </span>
-        <span className="rounded-full bg-secondary px-3 py-1 text-[13px] font-medium tabular-nums text-muted-foreground">
-          {fmtWhen(session.when, lang)}
-        </span>
-        <span className="flex-1" />
-        <span className="flex flex-wrap gap-1.5">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="rounded-full"
-            onClick={() => setEditing(true)}
+      {/* Spot + date wrap inside their own group; the actions stay a fixed
+          right-hand column, so on a phone the date drops under the spot
+          name while ⋯ stays pinned top-right (with one flex-wrap row, ⋯
+          was what wrapped, onto its own line). */}
+      <div className="flex items-start gap-2 px-6 pt-5.5 pb-3.5">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5 pt-1.5">
+          <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
+            {spotLabel(session.spot, lang)}
+          </span>
+          <span className="rounded-full bg-secondary px-3 py-1 text-[13px] font-medium tabular-nums text-muted-foreground">
+            {fmtWhen(session.when, lang)}
+          </span>
+        </div>
+        {uploading && (
+          <span role="status" aria-label={t("entry.uploading")} className="flex h-10 shrink-0 items-center">
+            <Loader2 className="size-4 animate-spin motion-reduce:animate-none text-muted-foreground" aria-hidden />
+          </span>
+        )}
+        {/* Kept outside the dropdown's content so it survives the menu
+            closing/unmounting — the "Add photos/video" item just clicks
+            this ref. */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,video/*"
+          hidden
+          onChange={handleUpload}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground aria-expanded:bg-secondary aria-expanded:text-foreground"
+            aria-label={t("entry.actions")}
           >
-            {t("entry.edit")}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="rounded-full"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? t("entry.uploading") : t("entry.addMedia")}
-          </Button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*,video/*"
-            hidden
-            onChange={handleUpload}
-          />
-          <Button
-            variant={confirmingDelete ? "destructive" : "secondary"}
-            size="sm"
-            className="rounded-full text-muted-foreground hover:bg-destructive hover:text-white"
-            onClick={handleDeleteClick}
-            onBlur={() => setConfirmingDelete(false)}
-            disabled={deleting}
-          >
-            {deleting
-              ? t("entry.deleting")
-              : confirmingDelete
-                ? t("entry.reallyDelete")
-                : t("entry.delete")}
-          </Button>
-        </span>
+            <MoreHorizontal className="size-5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onSelect={() => setEditing(true)}>
+              <Pencil />
+              {t("entry.edit")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              // Fire the click synchronously, in the same event as the
+              // menu's own onSelect-close — WebKit only grants a file
+              // picker to a still-live user-activation event, and an
+              // async close (e.g. via preventDefault + a later click())
+              // can lose it. Don't preventDefault; let the menu close.
+              onSelect={() => fileRef.current?.click()}
+              disabled={uploading}
+            >
+              <ImagePlus />
+              {t("entry.addMedia")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => setDeleteDialogOpen(true)}
+              className="text-destructive focus:bg-destructive/10"
+            >
+              <Trash2 />
+              {t("entry.delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          if (!deleting) setDeleteDialogOpen(open);
+        }}
+      >
+        <DialogContent closeLabel={t("entry.close")}>
+          <DialogHeader>
+            <DialogTitle>{t("entry.deleteTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("entry.deleteDescription", {
+                spot: spotLabel(session.spot, lang),
+                when: fmtWhen(session.when, lang),
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="rounded-full"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              {t("edit.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-full"
+              onClick={() => void performDelete()}
+              disabled={deleting}
+            >
+              {deleting ? t("entry.deleting") : t("entry.delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {om ? (
         // Phones + tablets: swell · period · wind in one row, water temp +
@@ -283,7 +325,7 @@ export function EntryCard({
               tide stays stored but never shown here. */}
           {tideSource && (
             <ConditionTile
-              label={tideSource === "cwa" ? t("tile.tideCwa") : t("tile.tideOpenMeteo")}
+              label={t("tile.tideOpenMeteo")}
               className={`${hasTemp ? "col-span-2" : "col-span-3"} lg:col-span-1 lg:row-span-2 lg:flex lg:flex-col`}
               // On lg the tile spans two rows and is taller than it needs
               // to be; centre the chart in the space under the headline
@@ -352,7 +394,7 @@ export function EntryCard({
       ) : null}
 
       {board && <BoardChip board={board} />}
-      {session.goalText && <GoalChip goal={session.goalText} met={session.goalMet ?? null} />}
+      {session.goalText && <GoalChip goal={session.goalText} pointsMet={sessionPointsMet(session)} />}
 
       {session.notesHtml && (
         <div
@@ -449,7 +491,9 @@ function BoardChip({ board }: { board: Board }) {
         ) : (
           <span className="size-1.5 shrink-0" aria-hidden />
         )}
-        <span className="shrink-0 text-[12px] font-semibold text-muted-foreground">{t("entry.board")}</span>
+        {/* No visible "Board" / 衝浪板 label (removed on request) — the
+            photo and name read as a board; screen readers still get it. */}
+        <span className="sr-only">{t("entry.board")}</span>
         <span className="min-w-0 truncate text-[13.5px] font-bold tracking-[-0.01em]">{name}</span>
       </span>
     </div>

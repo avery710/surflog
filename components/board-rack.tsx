@@ -1,17 +1,42 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { Check, MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -24,10 +49,10 @@ import {
   MAX_BRAND,
   ROCKERS,
   boardLabel,
-  defaultBoardId,
   formatLength,
   formatVolume,
   joinLength,
+  sortBoards,
   splitLength,
 } from "@/lib/boards";
 import { useLang } from "@/lib/i18n";
@@ -47,53 +72,130 @@ export function BoardRack({
   boards: Board[];
   onSaved: (b: Board) => void;
   onDeleted: (id: string) => void;
-  /** The whole rack, after the default moved (it touches two boards). */
+  /** The whole rack, replaced — used for anything touching more than one
+   *  board at once: the 常用 toggle (optimistic update + reconcile/
+   *  rollback) and drag-and-drop reorder (optimistic reorder + reconcile/
+   *  rollback), both in this file. */
   onRackChanged: (boards: Board[]) => void;
 }) {
   const { t } = useLang();
   // null = closed, "new" = adding, otherwise the board being edited
   const [editing, setEditing] = useState<Board | "new" | null>(null);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  // Delete now goes through a confirm dialog (like entry-card's), not an
+  // inline "really delete?" toggle — there's no room for that second state
+  // inside a dropdown menu item.
+  const [confirmBoard, setConfirmBoard] = useState<Board | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [defaultBusy, setDefaultBusy] = useState(false);
-  const defaultId = defaultBoardId(boards);
-  // A lone board is the default implicitly; nothing to toggle.
-  const onlyBoard = boards.length === 1;
+  // 常用 / go-to: any number of boards; they're listed first. (Not what the
+  // log form pre-selects — that's the last-used board, preselectBoardId().)
+  // Optimistic (2026-09-30, on request — the round trip was taking
+  // 0.6-1.7 s and the badge/reorder felt laggy): flip it locally first so
+  // the badge and the favourites-first order update immediately, then
+  // reconcile with the server's copy of just that one board; on failure,
+  // put the pre-toggle rack back and toast.
+  const [sorting, setSorting] = useState(false);
+  // Leaves 排序 mode by itself if the rack drops below two boards.
+  const sortingOn = sorting && boards.length >= 2;
 
-  async function toggleDefault(board: Board) {
-    setDefaultBusy(true);
+  async function toggleFavorite(board: Board) {
+    const next = !board.isFavorite;
+    const optimistic = boards.map((b) => (b.id === board.id ? { ...b, isFavorite: next } : b));
+    onRackChanged(optimistic);
     try {
-      const res = await fetch(`/api/boards/${board.id}/default`, {
-        method: board.isDefault ? "DELETE" : "PUT",
+      const res = await fetch(`/api/boards/${board.id}/favorite`, {
+        method: next ? "PUT" : "DELETE",
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSetDefault"));
-      onRackChanged(body.boards as Board[]);
+      if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSetFavorite"));
+      const updated = body.board as Board;
+      onRackChanged(optimistic.map((b) => (b.id === updated.id ? updated : b)));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("toast.couldntSetDefault"));
-    } finally {
-      setDefaultBusy(false);
+      onRackChanged(boards);
+      toast.error(e instanceof Error ? e.message : t("toast.couldntSetFavorite"));
     }
   }
 
-  async function handleDelete(board: Board) {
-    if (confirmingId !== board.id) {
-      setConfirmingId(board.id);
-      return;
-    }
+  // Drag-and-drop reorder (2026-09-30). Boards drag only within their own
+  // group — 常用 boards always stay first (CLAUDE.md "Board rack"), so a
+  // drop onto the other group is ignored rather than toggling 常用: the
+  // dragged card just animates back to its last in-group slot, since
+  // nothing in state changes. Two <SortableContext>s below (favourites,
+  // the rest) enforce this for pointer/touch drags; this check is the
+  // backstop for keyboard drags, whose preview can cross the boundary.
+  const sensors = useSensors(
+    // Pointer covers mouse and touch; a drag handle with touch-action:none
+    // (see SortableBoardCard) is what keeps touch drags from also
+    // scrolling the page, per dnd-kit's own "drag handle" pattern. A small
+    // activation distance stops a plain tap/scroll-starting touch on the
+    // handle from being read as a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Keyboard: Tab to a handle, Space to pick up, Arrow Up/Down to move,
+    // Space to drop, Escape to cancel — dnd-kit's default keyboard sensor
+    // behaviour, unmodified.
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const current = sortBoards(boards);
+    const activeBoard = current.find((b) => b.id === active.id);
+    const overBoard = current.find((b) => b.id === over.id);
+    if (!activeBoard || !overBoard || activeBoard.isFavorite !== overBoard.isFavorite) return;
+
+    // Reorder just the active board's group, then splice it back into the
+    // full rack — the other group's slots (and its own contiguous block,
+    // favourites-first) are untouched.
+    const groupIds = current.filter((b) => b.isFavorite === activeBoard.isFavorite).map((b) => b.id);
+    const reorderedGroup = arrayMove(groupIds, groupIds.indexOf(active.id as string), groupIds.indexOf(over.id as string));
+    let gi = 0;
+    const fullOrder = current.map((b) => (b.isFavorite === activeBoard.isFavorite ? reorderedGroup[gi++] : b.id));
+
+    const byId = new Map(boards.map((b) => [b.id, b]));
+    const optimistic = fullOrder.map((id) => byId.get(id)!);
+    onRackChanged(optimistic);
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/boards/order", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: fullOrder }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body?.error ?? t("toast.couldntReorder"));
+        onRackChanged(body.boards as Board[]);
+      } catch (e) {
+        onRackChanged(boards);
+        toast.error(e instanceof Error ? e.message : t("toast.couldntReorder"));
+      }
+    })();
+  }
+
+  async function confirmDelete() {
+    const board = confirmBoard;
+    if (!board) return;
     setDeletingId(board.id);
     try {
       const res = await fetch(`/api/boards/${board.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(t("toast.couldntDelete"));
       onDeleted(board.id);
       toast.success(t("toast.boardDeleted"));
+      setConfirmBoard(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("toast.couldntDelete"));
     } finally {
       setDeletingId(null);
-      setConfirmingId(null);
     }
   }
+
+  // Split once for both the two <SortableContext>s below and their id
+  // lists — 常用 first, each group in its own drag order (sort_order).
+  const ordered = sortBoards(boards);
+  const favoriteBoards = ordered.filter((b) => b.isFavorite);
+  const otherBoards = ordered.filter((b) => !b.isFavorite);
+  const favoriteIds = favoriteBoards.map((b) => b.id);
+  const otherIds = otherBoards.map((b) => b.id);
 
   return (
     // No mt here — this card sits inside journal.tsx's shared dashboard
@@ -104,110 +206,78 @@ export function BoardRack({
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.boards")}
           </h2>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="rounded-full"
-            onClick={() => setEditing("new")}
-          >
-            {t("board.add")}
-          </Button>
+          {/* 排序 mode (option D, 2026-09-30): the ⋮⋮ drag handles only
+              appear after tapping 排序 / Reorder, so the cards stay quiet
+              the rest of the time. Only offered with 2+ boards; while it's
+              on, 完成 / Done replaces the header buttons and each card's ⋯
+              menu is hidden, so a tap can't open a menu mid-sort. */}
+          <div className="flex items-center gap-1.5">
+            {sortingOn ? (
+              <Button size="sm" className="rounded-full" onClick={() => setSorting(false)}>
+                {t("board.sortDone")}
+              </Button>
+            ) : (
+              <>
+                {boards.length >= 2 && (
+                  <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setSorting(true)}>
+                    {t("board.sort")}
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => setEditing("new")}
+                >
+                  {t("board.add")}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
+        {sortingOn && (
+          <p className="px-3 pb-1 text-[12.5px] font-medium text-muted-foreground">{t("board.sortHint")}</p>
+        )}
         {boards.length === 0 ? (
           <p className="px-3 pt-1 pb-3 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
         ) : (
-          <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {boards.map((b) => {
-              const name = boardLabel(b);
-              const specs = [
-                formatLength(b.lengthIn),
-                formatVolume(b.volumeL),
-                b.rocker ? t("board.rockerValue", { r: t(`board.rocker.${b.rocker}`) }) : null,
-              ].filter(Boolean);
-              return (
-                <li
-                  key={b.id}
-                  className="flex min-w-0 gap-3 rounded-[var(--r-tile)] bg-secondary p-3"
-                >
-                  {b.photoId ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={`/api/blob/${b.photoId}`}
-                      alt={t("board.photoAlt", { name })}
-                      loading="lazy"
-                      className="size-16 shrink-0 rounded-[12px] bg-background object-cover"
-                    />
-                  ) : (
-                    <div className="size-16 shrink-0 rounded-[12px] bg-background" aria-hidden />
-                  )}
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="truncate text-[15px] font-bold tracking-[-0.015em]">
-                      {b.brand || name}
-                    </span>
-                    {specs.length > 0 && (
-                      <span className="font-mono text-[12.5px] text-muted-foreground">
-                        {specs.join(" · ")}
-                      </span>
-                    )}
-                    {b.note && (
-                      <span className="line-clamp-2 text-[13px] leading-snug break-words text-muted-foreground">
-                        {b.note}
-                      </span>
-                    )}
-                    <span className="mt-1 flex flex-wrap gap-1.5">
-                      {(b.id === defaultId || !onlyBoard) && (
-                        <button
-                          type="button"
-                          onClick={() => toggleDefault(b)}
-                          disabled={onlyBoard || defaultBusy}
-                          aria-pressed={b.id === defaultId}
-                          title={
-                            onlyBoard
-                              ? t("board.onlyDefault")
-                              : b.id === defaultId
-                                ? t("board.clearDefault")
-                                : undefined
-                          }
-                          className={
-                            "inline-flex h-7 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-colors disabled:cursor-default " +
-                            (b.id === defaultId
-                              ? "bg-[#0E7C86]/10 text-[#0E7C86]"
-                              : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground")
-                          }
-                        >
-                          {b.id === defaultId && <Check className="size-3" aria-hidden />}
-                          {b.id === defaultId ? t("board.default") : t("board.setDefault")}
-                        </button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 rounded-full bg-background px-3 text-xs"
-                        aria-label={t("board.editLabel", { name })}
-                        onClick={() => setEditing(b)}
-                      >
-                        {t("entry.edit")}
-                      </Button>
-                      <Button
-                        variant={confirmingId === b.id ? "destructive" : "ghost"}
-                        size="sm"
-                        className="h-7 rounded-full bg-background px-3 text-xs text-muted-foreground hover:bg-destructive hover:text-white"
-                        onClick={() => handleDelete(b)}
-                        onBlur={() => setConfirmingId((id) => (id === b.id ? null : id))}
-                        disabled={deletingId === b.id}
-                      >
-                        {deletingId === b.id
-                          ? t("entry.deleting")
-                          : confirmingId === b.id
-                            ? t("entry.reallyDelete")
-                            : t("entry.delete")}
-                      </Button>
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {/* Two independent sortable groups sharing one grid — 常用
+                  boards drag among themselves, the rest among themselves.
+                  A drop from one group onto the other is a no-op in
+                  handleDragEnd (above), so the card animates back to its
+                  own group instead of toggling 常用. rectSortingStrategy,
+                  not the vertical-list one, because this grid is 2-up from
+                  sm — a plain vertical strategy assumes one column. */}
+              <SortableContext items={favoriteIds} strategy={rectSortingStrategy}>
+                {favoriteBoards.map((b) => (
+                  <SortableBoardCard
+                    key={b.id}
+                    board={b}
+                    t={t}
+                    onEdit={setEditing}
+                    onToggleFavorite={toggleFavorite}
+                    onDeleteRequest={setConfirmBoard}
+                    sorting={sortingOn}
+                  />
+                ))}
+              </SortableContext>
+              <SortableContext items={otherIds} strategy={rectSortingStrategy}>
+                {otherBoards.map((b) => (
+                  <SortableBoardCard
+                    key={b.id}
+                    board={b}
+                    t={t}
+                    onEdit={setEditing}
+                    onToggleFavorite={toggleFavorite}
+                    onDeleteRequest={setConfirmBoard}
+                    sorting={sortingOn}
+                  />
+                ))}
+              </SortableContext>
+            </ul>
+          </DndContext>
         )}
       </div>
 
@@ -228,7 +298,240 @@ export function BoardRack({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation — a dialog, not the old inline "really
+          delete?" toggle, now that Delete lives inside the overflow menu. */}
+      <Dialog
+        open={confirmBoard != null}
+        onOpenChange={(open) => {
+          if (!open && deletingId == null) setConfirmBoard(null);
+        }}
+      >
+        <DialogContent closeLabel={t("entry.close")}>
+          <DialogHeader>
+            <DialogTitle>{t("board.deleteTitle")}</DialogTitle>
+            {confirmBoard && (
+              <DialogDescription>
+                {t("board.deleteDescription", { name: boardLabel(confirmBoard) })}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              className="rounded-full"
+              onClick={() => setConfirmBoard(null)}
+              disabled={deletingId != null}
+            >
+              {t("edit.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              className="rounded-full"
+              onClick={() => void confirmDelete()}
+              disabled={deletingId != null}
+            >
+              {deletingId != null ? t("entry.deleting") : t("entry.delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
+  );
+}
+
+function subscribeReducedMotion(callback: () => void) {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
+/** useSyncExternalStore, not useEffect+setState (see CLAUDE.md
+ *  "Conventions") — same shape as useLang()'s own storage read. Server
+ *  snapshot is `false` so hydration always starts from "animate", matching
+ *  the vast majority of visitors; a reduced-motion client corrects itself
+ *  on the first render after mount. */
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false
+  );
+}
+
+/** One draggable board card. Split out of BoardRack's render because
+ *  useSortable() is a hook — it has to run once per card component
+ *  instance, not once per loop iteration inside .map(). */
+function SortableBoardCard({
+  board: b,
+  t,
+  onEdit,
+  onToggleFavorite,
+  onDeleteRequest,
+  sorting,
+}: {
+  board: Board;
+  t: ReturnType<typeof useLang>["t"];
+  onEdit: (b: Board) => void;
+  onToggleFavorite: (b: Board) => void;
+  onDeleteRequest: (b: Board) => void;
+  /** 排序 mode: show the ⋮⋮ handle (and hide ⋯). Dragging is off otherwise. */
+  sorting: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: b.id,
+    disabled: !sorting,
+  });
+  const reducedMotion = usePrefersReducedMotion();
+  const name = boardLabel(b);
+  const specs = [
+    formatLength(b.lengthIn),
+    formatVolume(b.volumeL),
+    b.rocker ? t("board.rockerValue", { r: t(`board.rocker.${b.rocker}`) }) : null,
+  ].filter(Boolean);
+  // 常用 badge — pure status, shown only on go-to boards; the toggle lives
+  // in the ⋯ menu (option A, 2026-09-30).
+  const favoriteBadge = b.isFavorite && (
+    <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-[#0E7C86]/10 px-2 text-xs font-semibold text-[#0E7C86]">
+      <Check className="size-3" aria-hidden />
+      {t("board.favorite")}
+    </span>
+  );
+
+  return (
+    // In 排序 mode the whole card is the drag surface (on request
+    // 2026-09-30 — was the ⋮⋮ handle only): dnd-kit's listeners and the
+    // keyboard attributes (tabindex, role, aria) go on the <li> itself, and
+    // `touch-none` is on the card only while sorting, so outside the mode
+    // swiping over a card still scrolls the page. Trade-off: while sorting on
+    // a phone, a swipe that starts on a card drags it instead of scrolling.
+    <li
+      ref={(node) => {
+        setNodeRef(node);
+        setActivatorNodeRef(node);
+      }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition: reducedMotion ? undefined : transition,
+        zIndex: isDragging ? 10 : undefined,
+        opacity: isDragging ? 0.6 : undefined,
+      }}
+      {...(sorting ? { ...attributes, ...listeners, "aria-label": t("board.dragHandle", { name }) } : {})}
+      className={
+        "relative grid min-w-0 grid-cols-1 gap-2 rounded-[var(--r-tile)] bg-secondary p-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-3" +
+        (sorting
+          ? " cursor-grab touch-none select-none outline-none ring-[#0E7C86]/40 focus-visible:ring-4 active:cursor-grabbing" +
+            (isDragging ? " shadow-lg" : "")
+          : "")
+      }
+    >
+      {/*
+        Three breakpoints share this one wrapper (`lg:contents`
+        makes it disappear at lg so the photo and text column
+        become direct children of the li's grid again):
+        - below sm (phone, one rack column, narrow): stacked in
+          one column, left-aligned — photo on top, full card
+          width, then name/specs/note below it. The image itself
+          is 100% wide with its natural height (a plain static
+          <img>, `h-auto`) — on request 2026-09-30, after a
+          fixed 112px-tall letterboxed box. Safe here because
+          nothing stretches it: this is a one-column stack, not
+          the stretched row that blew up in WebKit (see below).
+          Nothing is cropped; a tall portrait photo makes a tall
+          card. A board with no photo renders no box at all here
+          (`hidden`), not an empty placeholder square.
+        - sm to lg (the 2-up rack grid, still a narrow column
+          per board): unchanged from before this pass — photo
+          beside name/specs/note in a 2-col row
+          (`sm:grid-cols-[auto_minmax(0,1fr)]`), photo matching
+          that row's height, `object-cover`. Kept as-is rather
+          than stacked too: it already fit this width, and
+          stacking every 2-up card would make the rack much
+          taller for no clarity gain.
+        - lg: photo left of a column with name row (⠿ handle ·
+          name · 常用 badge · ⋯), specs, note; photo matching that
+          column's height. There's no separate button row any
+          more at any breakpoint.
+        The image is absolutely positioned inside a wrapper, so
+        its own (large) pixel size can't drive the layout — a
+        plain <img> with aspect-square + stretch did the
+        opposite in WebKit (2026-09-30): the photo grew to its
+        natural size and squeezed the text to one character
+        wide. At sm+ the wrapper is capped at 96px and fills
+        the row (h-full, width from aspect-square) to match the
+        text column; a board with a note (or a narrow phone)
+        makes that column tall, and an uncapped photo would
+        grow and squeeze the text further.
+      */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] lg:contents">
+        <div
+          className={
+            "relative w-full overflow-hidden rounded-[12px] bg-background sm:aspect-square sm:h-full sm:max-h-24 sm:min-h-16 sm:min-w-16 sm:max-w-24 sm:w-auto" +
+            (b.photoId ? "" : " hidden sm:block")
+          }
+        >
+          {b.photoId && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/api/blob/${b.photoId}`}
+              alt={t("board.photoAlt", { name })}
+              loading="lazy"
+              className="block h-auto w-full sm:absolute sm:inset-0 sm:size-full sm:object-cover"
+            />
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {/* Name row: name, the 常用 badge (go-to boards only), and ⋯ at
+              the far right; the name truncates first. In 排序 mode ⋯ is
+              hidden — the whole card is the drag surface then (see the
+              <li>), with no handle icon. ⋯ has no fill at rest; the
+              round background only shows on hover / while open. */}
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate text-[15px] font-bold tracking-[-0.015em]">
+              {b.brand || name}
+            </span>
+            {favoriteBadge}
+            <span className="flex-1" />
+            {!sorting && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="-my-1.5 -mr-1.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-4 focus-visible:ring-ring/30 aria-expanded:bg-muted aria-expanded:text-foreground lg:size-7"
+                  aria-label={t("board.actionsLabel", { name })}
+                >
+                  <MoreHorizontal className="size-4" aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => onToggleFavorite(b)}>
+                    <Star />
+                    {b.isFavorite ? t("board.unsetFavorite") : t("board.setFavorite")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => onEdit(b)}>
+                    <Pencil />
+                    {t("entry.edit")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => onDeleteRequest(b)}
+                    className="text-destructive focus:bg-destructive/10"
+                  >
+                    <Trash2 />
+                    {t("entry.delete")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+          {specs.length > 0 && (
+            <span className="font-mono text-[12.5px] text-muted-foreground">{specs.join(" · ")}</span>
+          )}
+          {b.note && (
+            <span className="line-clamp-2 text-[13px] leading-snug break-words text-muted-foreground">
+              {b.note}
+            </span>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }
 

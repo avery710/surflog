@@ -163,25 +163,33 @@ export function Journal({
           cards inside it. Spacing between sections is this wrapper's own
           gap-4, not each section's old mt-6.5. */}
       <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] border border-border bg-primary-soft p-3 sm:p-5">
-        <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
-
-        {/* Grid, not flex-wrap: a fixed calendar column beside a flexible
-            table only starts at `lg` (`lg:grid-cols-[344px_minmax(0,1fr)]`);
-            below that it's one column and both cards are full-width, each
-            on its own row. flex-wrap used to switch to two columns as soon
-            as there was room for the calendar's fixed 344px + the table's
-            min-w-320 (~sm/md), which left the table squeezed to ~320px in
-            that middle range while the calendar sat at its full comfortable
-            width beside it — the two blocks didn't fill the row evenly.
-            items-stretch (grid's own default, kept explicit) makes both
-            cards match the row's height — each fills that height itself
-            (h-full) and caps/scrolls its own content rather than growing
-            the row without bound. */}
-        <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[344px_minmax(0,1fr)]">
+        {/* Row 1, sm: up: goal (flexible width) beside the calendar
+            (content-sized, ~260px — see ActivityCalendar's own comment for
+            the arithmetic). The calendar used to get a fixed 344px column
+            only from `lg`, with the table beside it — but the calendar's
+            actual content (a 7-dot week grid + month label + scroll rail)
+            is only ~200px wide, so between `sm` and `lg` it sat in its own
+            full-width card with a lot of blank white space (reported on a
+            ~800px tablet). Pairing it with the goal card instead — short
+            text, so it fits beside a narrow fixed column at any width —
+            uses that space instead of wasting it, and needs no fixed-width
+            table on the other side. items-start, not items-stretch: the
+            goal can run to several lines (multiple points), and stretching
+            the calendar to match would just recreate the same blank-space
+            problem inside its own card. Below `sm` both stack full-width,
+            goal above calendar (their natural DOM order). */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="min-w-0 flex-1">
+            <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+          </div>
           <ActivityCalendar sessions={sessions} />
-          <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
         </div>
 
+        {/* Row 2: the spot table, now full width on every breakpoint since
+            it no longer shares a row with the calendar. */}
+        <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
+
+        {/* Row 3: board rack, full width. */}
         <BoardRack boards={boards} onSaved={upsertBoard} onDeleted={removeBoard} onRackChanged={setBoards} />
       </div>
 
@@ -195,6 +203,7 @@ export function Journal({
             ownerId={user.id}
             recentSpot={sessions[0]?.spot}
             boards={boards}
+            sessions={sessions}
             goal={goal}
           />
         </DialogContent>

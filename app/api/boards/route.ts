@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     ownerId: session.user.id,
     ...parsed.value,
     photoId: null,
-    isDefault: false,
+    isFavorite: false,
+    sortOrder: null, // createBoard() computes the real end-of-rack value
     createdAt: now,
     updatedAt: now,
   };

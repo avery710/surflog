@@ -3,30 +3,54 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "cn";
-import { useLang, type Lang } from "@/lib/i18n";
+import { useLang, type Lang, type TKey } from "@/lib/i18n";
 import { taipeiToday } from "@/lib/format";
 import type { Session } from "@/lib/types";
 
 /** Dot grid geometry — small and fixed, never stretched to fill the card.
- *  14 per row (31-day month -> 14 + 14 + 3) with an exact CSS grid track
- *  count, so wrapping doesn't depend on flex-wrap rounding. */
+ *  A proper week grid now: 7 per row, Monday-first, day 1 sits under its
+ *  real weekday (leading empty slots before it) — see `leadingEmptyDots()`.
+ *  Fixed pixel column widths (not fractional), so the grid never depends on
+ *  flex-wrap rounding, and the weekday header row below lines up with it
+ *  exactly regardless of the two rows' different flex containers. Dot size
+ *  kept at the original 10px (unchanged from the 14-per-row layout; tried
+ *  larger at 14px first, sized back down on request). Gap widened to 10px
+ *  (from the original 6px) on request, for more breathing room between
+ *  dots now that there's only 7 per row instead of 14. */
 const DOT_PX = 10;
-const GAP_PX = 6;
-const DOTS_PER_ROW = 14;
+const GAP_PX = 10;
+const DOTS_PER_ROW = 7;
 const DOTS_GRID_STYLE: React.CSSProperties = {
   gridTemplateColumns: `repeat(${DOTS_PER_ROW}, ${DOT_PX}px)`,
   gap: `${GAP_PX}px`,
 };
 
+/** Monday-first weekday header above the dot grid — one line, once, not
+ *  repeated per month (a proper week grid reads faster with the columns
+ *  labelled, and this only costs one row for the whole card). Keys, not
+ *  literal letters, so zh-TW gets 一二三四五六日 instead of MTWTFSS. */
+const WEEKDAY_KEYS: TKey[] = [
+  "calendar.weekday.mon",
+  "calendar.weekday.tue",
+  "calendar.weekday.wed",
+  "calendar.weekday.thu",
+  "calendar.weekday.fri",
+  "calendar.weekday.sat",
+  "calendar.weekday.sun",
+];
+
 /** At most this many months are visible without scrolling; older ones
- *  scroll above. Month rows aren't a fixed height (a 28-day Feb is 2 dot
- *  rows, a 30/31-day month is 3), so "3 months" is measured from the
- *  actual rendered rows (see the layout effect below) rather than a single
- *  guessed CSS max-height — this constant is also the initial/SSR fallback
- *  before that measurement runs. */
-const VISIBLE_MONTHS = 3;
+ *  scroll above. Month rows aren't a fixed height (a 28-day Feb with a
+ *  Monday-first 1st is 4 dot rows, a 31-day month starting on a Sunday is
+ *  6), so "2 months" is measured from the actual rendered rows (see the
+ *  layout effect below) rather than a single guessed CSS max-height — this
+ *  constant is also the initial/SSR fallback before that measurement runs.
+ *  Lowered from 3 to 2 when the grid went from 14-per-row to 7-per-row: a
+ *  week-aligned month is now 4-6 dot rows instead of 2-3, so 3 months would
+ *  make this card noticeably taller than the table it usually sits beside. */
+const VISIBLE_MONTHS = 2;
 const ROW_GAP_PX = 8; // matches the `space-y-2` gap between month rows
-const MONTH_LIST_MAX_HEIGHT_FALLBACK = 176;
+const MONTH_LIST_MAX_HEIGHT_FALLBACK = 190;
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -35,6 +59,15 @@ function pad2(n: number): string {
 /** Days in a month; `month` is 0-based, matching `Date`'s own convention. */
 function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
+}
+
+/** How many empty slots precede day 1 in a Monday-first week grid.
+ *  `new Date(year, month, 1).getDay()` reads the weekday off the *local*
+ *  calendar date (Sun=0..Sat=6) since it's built from y/m/d components, not
+ *  parsed from an ISO string — no UTC shift, matching how every other date
+ *  in this file is handled. Shifted so Monday is 0 and Sunday is 6. */
+function leadingEmptyDots(year: number, month: number): number {
+  return (new Date(year, month, 1).getDay() + 6) % 7;
 }
 
 /** Short month label for a row, e.g. "Sep" / "9月" — no year, this is a
@@ -213,20 +246,42 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   }, [months.length]);
 
   return (
-    // w-full through md so the card fills its own grid row (matches
-    // Coinbase-ish full-bleed cards) whenever it's stacked above the table;
-    // fixed from lg: up, once journal.tsx's grid puts it in its own 344px
-    // column beside the table, so the dot grid never stretches — sized to
-    // fit 14 small fixed dots plus the short month-label column, see the
-    // report for the arithmetic. lg: here must match the row's own
-    // `lg:grid-cols-[344px_...]` breakpoint, or this card would try to stay
-    // 344px inside a wider single-column row and leave blank space beside
-    // it. h-full lets it stretch to match PatternsTable's height when the
-    // two sit side by side (journal.tsx's grid row) — this card's own
-    // content stays top-aligned inside whatever extra height that adds, it
-    // never grows the dots/rail.
-    <section className="h-full w-full lg:w-[344px] lg:shrink-0">
-      <div className="h-full rounded-[var(--r-card)] border border-border bg-card p-5 shadow-[var(--shadow-card)]">
+    // Full width below `sm` (stacked above/below the goal card, one column,
+    // no horizontal scroll risk); fixed content-width from `sm` up, once
+    // journal.tsx's row puts it beside the goal card — sm:shrink-0 so the
+    // goal's flex-1 never eats into it. 260px comfortably fits the actual
+    // content: the w-8 (32px) month-label column + gap-2 (8px) + the 7×10px
+    // dot grid with 10px gaps (130px) + gap-2 (8px) + the w-5 (20px)
+    // up/down rail, all inside the card's own p-5 (20px) padding —
+    // 32+8+130+8+20 = 198px content + 40px padding ≈ 238px minimum, +22px
+    // slack. Deliberately much narrower than the old 344px (a leftover
+    // from when this card had to share a row with the wider table instead)
+    // — that left ~100px of blank white space on every screen size, which
+    // is what prompted this pass. No h-full: it no longer needs to stretch
+    // to match a sibling's height (journal.tsx pairs it with the goal card
+    // using items-start, not items-stretch), so it just sizes to its own
+    // content.
+    <section className="w-full sm:w-[260px] sm:shrink-0">
+      <div className="rounded-[var(--r-card)] border border-border bg-card p-5 shadow-[var(--shadow-card)]">
+        {/* Weekday header, once for the whole card (not per month) — sits
+            outside the scrollable month list so it never scrolls away, and
+            lines up with the dot columns below purely because both use the
+            same fixed DOT_PX/GAP_PX grid, regardless of their separate flex
+            containers' widths. */}
+        <div className="mb-2 flex items-center gap-2">
+          <span className="w-8 shrink-0" />
+          <div className="grid" style={DOTS_GRID_STYLE}>
+            {WEEKDAY_KEYS.map((key) => (
+              <span
+                key={key}
+                className="text-center font-sans text-[10px] leading-none font-medium text-[var(--faint)]"
+                style={{ width: DOT_PX }}
+              >
+                {t(key)}
+              </span>
+            ))}
+          </div>
+        </div>
         <div className="flex items-stretch gap-2">
           <div
             ref={scrollRef}
@@ -239,6 +294,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
           >
             {months.map(({ year, month }) => {
               const total = daysInMonth(year, month);
+              const leading = leadingEmptyDots(year, month);
               const isCurrentMonth = year === ty && month === tm - 1;
               return (
                 <div
@@ -262,6 +318,18 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
                     {monthLabel(year, month, lang)}
                   </span>
                   <div className="grid" style={DOTS_GRID_STYLE}>
+                    {/* Empty slots before day 1, so it sits under its real
+                        weekday instead of always starting at column 1 —
+                        invisible, not styled as a dot (no fill/border), and
+                        out of the tab order/title tour since there's no date
+                        behind them. */}
+                    {Array.from({ length: leading }, (_, i) => (
+                      <span
+                        key={`empty-${i}`}
+                        aria-hidden="true"
+                        style={{ width: DOT_PX, height: DOT_PX }}
+                      />
+                    ))}
                     {Array.from({ length: total }, (_, i) => {
                       const dayNum = i + 1;
                       const key = `${year}-${pad2(month + 1)}-${pad2(dayNum)}`;

@@ -26,6 +26,7 @@ You own Surflog's look and feel. Avery gives style direction (a site to match, a
 Direction Avery has given, newest last. When you apply a new one, add it here (date, source, what was taken, what was deliberately not) so later sessions keep it.
 
 - 2026-09-29 — **og.com**: English UI font → Funnel Sans (its body/heading font). Its display face, Lateral, is a paid trial font — not copied.
+- 2026-09-30 — **Rejected**: prominent condition figures (tile numbers, tide Rising/Falling) in Funnel Sans bold. Tried and reverted the same day on request — they stay IBM Plex Mono (`font-mono`, medium).
 - 2026-09-29 — **Avery**: dashboard sections in one teal-tint card (goal /
   calendar / patterns table / board rack wrapped in a single
   `bg-primary-soft` panel, `components/journal.tsx` + `--primary-soft` in
@@ -52,7 +53,7 @@ Direction Avery has given, newest last. When you apply a new one, add it here (d
 ## Verify
 
 1. `npx tsc --noEmit -p .` and `npx eslint <changed files>`. If node fails with a missing `restore-node-options.cjs` preload, run with `NODE_OPTIONS` unset.
-2. You have no browser. Say plainly in your report that the change was type-checked and linted only, not checked visually, and list what the main session should eyeball (which breakpoint, which edge case: missing period, no tide, no temp, long Chinese labels).
+2. Check it in the browser with the cmux CLI — see CLAUDE.md "Testing in the browser (cmux)" for the commands and limits (emulate widths with `viewport`, always `viewport reset` after; measure with `eval` + `getBoundingClientRect()`; the localhost tab is Avery's real data — reversible actions only, undo test changes). Prefer the `/dev/*` showcase tab for edge cases. Report what you measured at which widths, and say plainly what you couldn't check (file pickers, hover, real devices).
 
 ## Report
 

@@ -7,13 +7,17 @@
  * next session"). The card sits above the journal and is edited inline
  * (same click-to-edit / blur-to-save shape as the spot descriptions in
  * patterns-table.tsx, extended to a row per point). Each logged session
- * snapshots the whole joined text and one met / not-yet verdict for the
- * list as a whole — see supabase/migrations/20260928000000_create_goals.sql.
+ * snapshots the whole joined text plus one achieved/not tick per point
+ * (`goal_points_met`; older sessions only have the whole-goal `goal_met`,
+ * read through `sessionPointsMet()`). The card counts each point by its
+ * own wording across all sessions (`pointStats()`), so editing one point
+ * doesn't reset the others.
  */
 import { useRef, useState } from "react";
 import { Check, Plus, Target, X } from "lucide-react";
 import { cn } from "cn";
-import { goalPoints, joinGoalPoints, MAX_GOAL } from "@/lib/goal";
+import { fmtDate } from "@/lib/format";
+import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats } from "@/lib/goal";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
 
@@ -27,19 +31,24 @@ export function GoalCard({
   /** Resolves true if saved, so the card knows whether to leave edit mode. */
   onSave: (text: string) => Promise<boolean>;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [editing, setEditing] = useState(false);
   const [points, setPoints] = useState<string[]>([]);
   const [newPoint, setNewPoint] = useState("");
   const [saving, setSaving] = useState(false);
   const cancelled = useRef(false);
 
-  // How it's gone so far: sessions logged against this exact goal text
-  // (the whole list, joined — one met/not-yet verdict per session, not
-  // per point).
-  const tried = goal ? sessions.filter((s) => s.goalText === goal) : [];
-  const assessed = tried.filter((s) => s.goalMet != null);
-  const met = assessed.filter((s) => s.goalMet).length;
+  // How it's gone so far, per point, matched by the point's own text in
+  // every session (not the whole goal text) — see pointStats().
+  const stats = pointStats(goalPoints(goal), sessions);
+  const anyHistory = stats.some((st) => st.total > 0);
+  // "since" only on points that started later than the oldest one: that's
+  // what explains why their totals are smaller. On every bullet it would
+  // just repeat the same date.
+  const firstSince = stats.reduce<string | null>(
+    (min, st) => (st.since && (!min || st.since < min) ? st.since : min),
+    null
+  );
 
   function startEdit() {
     cancelled.current = false;
@@ -176,7 +185,26 @@ export function GoalCard({
               {shownPoints.length ? (
                 <ul className="list-disc space-y-0.5 pl-4 text-[14.5px] font-bold leading-snug tracking-[-0.01em] break-words">
                   {shownPoints.map((p, i) => (
-                    <li key={i}>{p}</li>
+                    <li key={i}>
+                      {p}
+                      {stats[i]?.total ? (
+                        <span className="ml-2 whitespace-nowrap text-[12px] font-semibold tabular-nums text-[#0E7C86]">
+                          {t("goal.pointCount", { met: stats[i].met, n: stats[i].total })}
+                        </span>
+                      ) : null}
+                      {stats[i]?.since && stats[i].since !== firstSince && (
+                        <span className="ml-1.5 whitespace-nowrap text-[11px] font-medium text-[var(--faint)]">
+                          {t("goal.pointSince", { date: fmtDate(stats[i].since.slice(0, 10), lang, false) })}
+                        </span>
+                      )}
+                      {/* A point with no history yet, next to ones that have
+                          some — quiet, so it doesn't read as 0/0. */}
+                      {anyHistory && !stats[i]?.total && (
+                        <span className="ml-2 whitespace-nowrap text-[11px] font-medium text-[var(--faint)]">
+                          {t("goal.pointNew")}
+                        </span>
+                      )}
+                    </li>
                   ))}
                 </ul>
               ) : (
@@ -184,13 +212,11 @@ export function GoalCard({
               )}
             </button>
           )}
-          {goal && !editing && (
+          {/* Only when no point has any history — once one does, the
+              per-point counts say it all. */}
+          {goal && !editing && !anyHistory && (
             <p className="px-2 pt-1 text-[12.5px] font-medium text-muted-foreground">
-              {tried.length === 0
-                ? t("goal.notTriedYet")
-                : assessed.length === 0
-                  ? t("goal.triedUnchecked", { n: tried.length })
-                  : t("goal.progress", { met, n: assessed.length })}
+              {t("goal.notTriedYet")}
             </p>
           )}
         </div>
@@ -199,82 +225,66 @@ export function GoalCard({
   );
 }
 
-/** Met / Not yet toggle. Clicking the selected option clears it (null =
- *  not assessed). */
-export function GoalMetPicker({
-  value,
-  onChange,
-}: {
-  value: boolean | null;
-  onChange: (v: boolean | null) => void;
-}) {
-  const { t } = useLang();
-  const options: { v: boolean; label: string; Icon: typeof Check }[] = [
-    { v: true, label: t("goal.met"), Icon: Check },
-    { v: false, label: t("goal.notYet"), Icon: X },
-  ];
-  return (
-    <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("goal.didYouMeetIt")}>
-      {options.map(({ v, label, Icon }) => (
-        <button
-          key={String(v)}
-          type="button"
-          role="radio"
-          aria-checked={value === v}
-          onClick={() => onChange(value === v ? null : v)}
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[13px] font-semibold transition-colors",
-            value === v
-              ? v
-                ? "border-[#0E7C86] bg-[#0E7C86] text-white"
-                : "border-foreground bg-foreground text-background"
-              : "border-border bg-background text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Icon className="size-3.5" aria-hidden />
-          {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/** The goal box in the log form / edit panel: the goal text plus the
- *  met / not-yet toggle. */
+/** The goal box in the log form / edit panel: one checkbox per point —
+ *  ticked = achieved this session, unticked = not. */
 export function GoalCheck({
   goal,
   value,
   onChange,
 }: {
   goal: string;
-  value: boolean | null;
-  onChange: (v: boolean | null) => void;
+  value: boolean[];
+  onChange: (v: boolean[]) => void;
 }) {
   const { t } = useLang();
   const points = goalPoints(goal);
   return (
-    <div className="flex flex-col gap-2 rounded-[var(--r-tile)] bg-secondary px-4 py-3">
-      <div className="flex items-start gap-2">
-        <Target className="mt-0.5 size-4 shrink-0 text-[#0E7C86]" aria-hidden />
-        <div className="min-w-0">
-          <div className="text-xs font-semibold text-muted-foreground">{t("goal.didYouMeetIt")}</div>
-          <ul className="list-disc space-y-0.5 pl-4 text-[14.5px] font-bold leading-snug break-words">
-            {points.map((p, i) => (
-              <li key={i}>{p}</li>
-            ))}
-          </ul>
-        </div>
+    <fieldset className="flex flex-col gap-2 rounded-[var(--r-tile)] bg-secondary px-4 py-3">
+      <legend className="sr-only">{t("goal.whichDidYouAchieve")}</legend>
+      <div className="flex items-center gap-2">
+        <Target className="size-4 shrink-0 text-[#0E7C86]" aria-hidden />
+        <span className="text-xs font-semibold text-muted-foreground">{t("goal.whichDidYouAchieve")}</span>
       </div>
-      <GoalMetPicker value={value} onChange={onChange} />
-    </div>
+      <div className="flex flex-col gap-1">
+        {points.map((p, i) => {
+          const checked = value[i] ?? false;
+          return (
+            <label
+              key={i}
+              className="flex cursor-pointer items-start gap-2.5 rounded-[10px] px-1 py-1 hover:bg-background/60"
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => onChange(points.map((_, j) => (j === i ? e.target.checked : (value[j] ?? false))))}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden
+                className={cn(
+                  "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[6px] border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-ring/30",
+                  checked ? "border-[#0E7C86] bg-[#0E7C86] text-white" : "border-border bg-background"
+                )}
+              >
+                {checked && <Check className="size-3" strokeWidth={3.5} />}
+              </span>
+              <span className="min-w-0 text-[14.5px] font-bold leading-snug break-words">{p}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 
-/** Session card: the goal this session was logged against, and the verdict.
- *  Points join onto one line here (the chip has no room for a list). */
-export function GoalChip({ goal, met }: { goal: string; met: boolean | null }) {
+/** Session card: the goal this session was logged against, and how many of
+ *  its points were achieved. Points join onto one line here (the chip has
+ *  no room for a list). */
+export function GoalChip({ goal, pointsMet }: { goal: string; pointsMet: boolean[] | null }) {
   const { t } = useLang();
   const compact = goalPoints(goal).join(" · ");
+  const met = pointsMet?.filter(Boolean).length ?? 0;
+  const n = pointsMet?.length ?? 0;
   return (
     <div className="flex min-w-0 px-6 pt-2.5 pb-0.5">
       <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary py-1 pr-1 pl-3">
@@ -284,15 +294,17 @@ export function GoalChip({ goal, met }: { goal: string; met: boolean | null }) {
         </span>
         <span
           className={cn(
-            "shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold",
-            met === true
-              ? "bg-[#0E7C86] text-white"
-              : met === false
-                ? "bg-foreground text-background"
-                : "text-muted-foreground"
+            "shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums",
+            !pointsMet
+              ? "text-muted-foreground"
+              : met === n
+                ? "bg-[#0E7C86] text-white"
+                : met > 0
+                  ? "bg-[#0E7C86]/15 text-[#0E7C86]"
+                  : "bg-foreground text-background"
           )}
         >
-          {met === true ? t("goal.met") : met === false ? t("goal.notYet") : t("goal.notAssessed")}
+          {!pointsMet ? t("goal.notAssessed") : t("goal.chipCount", { met, n })}
         </span>
       </span>
     </div>

@@ -54,16 +54,15 @@ export function PatternsTable({
   }
 
   return (
-    // h-full + max-h so this stretches to match ActivityCalendar's height
-    // (journal.tsx's grid row) without either growing unbounded — past the
-    // cap the row list scrolls internally instead of pushing the row, and
-    // everything else on the page, taller. w-full + min-w-0 (not min-w-320
-    // + flex-1) since the grid track itself is `minmax(0,1fr)` — this just
-    // fills whatever width the track gives it and lets the table's own
-    // horizontal scroll (min-w-[420px] on the <table>, overflow-auto below)
-    // handle anything narrower, rather than forcing the grid column wider.
-    <section className="h-full w-full min-w-0">
-      <div className="flex h-full max-h-[320px] flex-col rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+    // Full width — this is its own row in journal.tsx now, not sharing one
+    // with ActivityCalendar (moved to sit beside the goal card instead, see
+    // journal.tsx). max-h caps how tall it can grow with many spots; past
+    // that the row list scrolls internally rather than pushing the rest of
+    // the page down. min-w-0 lets the table's own horizontal scroll
+    // (min-w-[420px] on the <table>, overflow-auto below) handle anything
+    // narrower than that, rather than forcing this section wider.
+    <section className="w-full min-w-0">
+      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
         <h2 className="shrink-0 px-3 pt-2 font-sans text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>

@@ -18,6 +18,7 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
+import { goalPoints, sessionPointsMet } from "@/lib/goal";
 import { SPOTS, type Region } from "@/lib/spots";
 import { spotLabel } from "@/lib/format";
 import { useLang, type TKey } from "@/lib/i18n";
@@ -67,7 +68,8 @@ export function EditPanel({
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
-  const [goalMet, setGoalMet] = useState<boolean | null>(session.goalMet ?? null);
+  const initialPointsMet = goalPoints(session.goalText).map((_, i) => sessionPointsMet(session)?.[i] ?? false);
+  const [pointsMet, setPointsMet] = useState<boolean[]>(initialPointsMet);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -86,7 +88,7 @@ export function EditPanel({
         cond: hasAnyCond(cond) ? cond : null,
         // only sent when changed, so an untouched board never needs a write
         ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
-        ...(session.goalText && goalMet !== (session.goalMet ?? null) ? { goalMet } : {}),
+        ...(session.goalText && pointsMet.some((m, i) => m !== initialPointsMet[i]) ? { goalPointsMet: pointsMet } : {}),
         ...extra,
       }),
     });
@@ -217,7 +219,7 @@ export function EditPanel({
       )}
 
       {session.goalText && (
-        <GoalCheck goal={session.goalText} value={goalMet} onChange={setGoalMet} />
+        <GoalCheck goal={session.goalText} value={pointsMet} onChange={setPointsMet} />
       )}
 
       <div className="flex flex-wrap gap-2">

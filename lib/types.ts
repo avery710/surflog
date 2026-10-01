@@ -118,6 +118,10 @@ export interface Session {
    *  Optional so rows read before the goals migration still type-check. */
   goalText?: string | null;
   goalMet?: boolean | null;
+  /** One achieved/not per goal point, same order as `goalText`'s lines;
+   *  null on sessions logged before per-point ticks. Read it through
+   *  `sessionPointsMet()` (lib/goal.ts), which falls back to `goalMet`. */
+  goalPointsMet?: boolean[] | null;
   createdAt: string;
   example?: true;
 }
@@ -137,10 +141,16 @@ export interface Board {
   note: string;
   /** photo_blobs id, served by /api/blob/:id (owner-checked); images only. */
   photoId: string | null;
-  /** Explicitly marked default (pre-selected when logging). At most one per
-   *  owner. Use defaultBoardId() in lib/boards.ts, which also treats a lone
-   *  board as the default. */
-  isDefault: boolean;
+  /** Marked 常用 / "go-to" — any number per owner. Listed first in the rack
+   *  and the board picker (sortBoards() in lib/boards.ts). Not what the log
+   *  form pre-selects: that's the most recently used board. */
+  isFavorite: boolean;
+  /** Manual drag-and-drop position (added 2026-09-30, see CLAUDE.md "Board
+   *  rack"). A flat per-owner sequence — 常用 boards still render first via
+   *  sortBoards()'s isFavorite comparator; this only orders *within* a
+   *  group, same job created_at did before this column existed. Null only
+   *  transiently (assigned on every insert by lib/db.ts's createBoard). */
+  sortOrder: number | null;
   createdAt: string;
   updatedAt: string;
 }

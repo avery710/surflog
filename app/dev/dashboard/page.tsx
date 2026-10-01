@@ -69,14 +69,19 @@ function DashboardPanel({
     // verbatim, including journal.tsx's own comment on why it's tinted
     // (--primary-soft) while each section keeps a white bg-card surface.
     <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] border border-border bg-primary-soft p-3 sm:p-5">
-      <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
-
-      {/* Grid, not flex-wrap — see journal.tsx: fixed 344px calendar column
-          beside a flexible table only from lg: up; one column below that. */}
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[344px_minmax(0,1fr)]">
+      {/* Row 1, sm: up — goal (flexible) beside the calendar (content-sized,
+          ~260px), items-start not items-stretch. See journal.tsx for why:
+          the calendar's own content is only ~200px wide, so pairing it with
+          the short goal card uses the space a full-width calendar card used
+          to waste between sm and lg. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="min-w-0 flex-1">
+          <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
+        </div>
         <ActivityCalendar sessions={sessions} />
-        <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={devSaveSpotNote} />
       </div>
+
+      <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={devSaveSpotNote} />
 
       <BoardRack
         boards={boards}
@@ -177,7 +182,7 @@ const typicalBoardA = fakeBoard({
   lengthIn: 74,
   volumeL: 29.5,
   rocker: "medium",
-  isDefault: true,
+  isFavorite: true,
 });
 const typicalBoardB = fakeBoard({
   id: "dev-dash-typical-board-b",
@@ -185,7 +190,7 @@ const typicalBoardB = fakeBoard({
   lengthIn: 68,
   volumeL: 25,
   rocker: "low",
-  isDefault: false,
+  isFavorite: false,
 });
 // 12 sessions, 3 spots, 2 months. The 6 most recent are logged against the
 // current goal (3 met, 2 not yet, 1 unchecked -> assessed 5, met 3 -> "met
@@ -349,7 +354,7 @@ const boardOneSessions: Session[] = [0, 8].map((daysAgo) =>
   dashSession({ spot: "jialeshui", when: `${minusDays(todayYmd, daysAgo)}T07:00` })
 );
 const boardOne = [
-  fakeBoard({ id: "dev-dash-board-one", brand: "Pyzel Ghost", lengthIn: 74, volumeL: 29.5, rocker: "medium", isDefault: true }),
+  fakeBoard({ id: "dev-dash-board-one", brand: "Pyzel Ghost", lengthIn: 74, volumeL: 29.5, rocker: "medium", isFavorite: true }),
 ];
 
 const manyBoards: Board[] = [
@@ -359,7 +364,7 @@ const manyBoards: Board[] = [
     lengthIn: 74,
     volumeL: 29.5,
     rocker: "medium",
-    isDefault: true,
+    isFavorite: true,
     note: "Daily driver, good in most conditions.",
   }),
   fakeBoard({ id: "dev-dash-board-2", brand: "Firewire Dominator", lengthIn: 70, volumeL: 32, rocker: "low" }),
@@ -594,10 +599,10 @@ export default function DashboardPreviewPage() {
 
       <div className="mt-4 flex flex-col gap-2">
         <div className="rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4 py-3 text-[13px] text-foreground">
-          <strong>Widths only emulate the component&apos;s own box.</strong> The calendar/table split is a{" "}
-          <code>lg:</code> grid breakpoint (real viewport media query, not this frame&apos;s width) — below 1024px
-          the browser window itself, both stack in one column full-width. The 1200px frame below will still show
-          the stacked layout unless the browser window itself is that wide.
+          <strong>Widths only emulate the component&apos;s own box.</strong> The goal/calendar pairing is a{" "}
+          <code>sm:</code> flex breakpoint (real viewport media query, not this frame&apos;s width) — it switches to
+          side by side once the actual browser window is 640px or wider, regardless of how narrow this frame is
+          drawn. The 375px frame below will still show them paired unless the browser window itself is under 640px.
         </div>
         <div className="rounded-[var(--r-tile)] bg-secondary px-4 py-3 text-[13px] text-foreground">
           <strong>Editing here doesn&apos;t persist.</strong> GoalCard&apos;s and the spot table&apos;s inline edits

@@ -6,6 +6,7 @@ import { spotBySlug } from "@/lib/spots";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
 import { resolveOwnedBoardId } from "@/lib/board-access";
+import { parsePointsMet } from "@/lib/goal";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { Cond, Session } from "@/lib/types";
 
@@ -57,10 +58,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     patch.notes = htmlToPlainText(notesHtml);
   }
 
-  // Only whether the goal was met is editable; the goal text itself is a
-  // snapshot of what was set at log time.
-  if (existing.goalText && (body.goalMet === null || typeof body.goalMet === "boolean")) {
-    patch.goalMet = body.goalMet;
+  // Only which points were achieved is editable; the goal text itself is a
+  // snapshot of what was set at log time. goalMet follows as "all achieved".
+  if (existing.goalText) {
+    const pointsMet = parsePointsMet(body.goalPointsMet, existing.goalText);
+    if (pointsMet) {
+      patch.goalPointsMet = pointsMet;
+      patch.goalMet = pointsMet.every(Boolean);
+    } else if (body.goalMet === null || typeof body.goalMet === "boolean") {
+      patch.goalMet = body.goalMet;
+    }
   }
 
   // Only ever the caller's own board — a foreign/unknown id is a 404, and

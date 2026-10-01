@@ -12,6 +12,31 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null;
 
+const SKEW_RETRIES = 2;
+
+/**
+ * Supabase's API gateway turns the `sb_secret_` key into a short-lived JWT
+ * on every request, and now and then PostgREST/Storage sees that JWT's
+ * `iat` a moment ahead of its own clock and rejects it: "JWT issued at
+ * future" (hit often in dev, 2026-09-30 — the page 500s from
+ * listSessions). It's clock skew between Supabase's own servers (ours
+ * matched theirs to the second) and the same request succeeds a moment
+ * later, so retry exactly that error, briefly. Anything else passes
+ * through untouched.
+ */
+async function fetchWithSkewRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  // A streamed body can only be sent once; everything this app sends
+  // (JSON strings, Blobs/Buffers for photo uploads) can be resent.
+  const canRetry = !(init?.body instanceof ReadableStream);
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(input, init);
+    if (res.ok || !canRetry || attempt >= SKEW_RETRIES || ![400, 401, 403].includes(res.status)) return res;
+    const text = await res.clone().text();
+    if (!text.includes("issued at future")) return res;
+    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+  }
+}
+
 export function getSupabase(): SupabaseClient {
   if (client) return client;
 
@@ -22,6 +47,9 @@ export function getSupabase(): SupabaseClient {
       "SUPABASE_URL / SUPABASE_SECRET_KEY are not set — see .env.example"
     );
   }
-  client = createClient(url, key, { auth: { persistSession: false } });
+  client = createClient(url, key, {
+    auth: { persistSession: false },
+    global: { fetch: fetchWithSkewRetry },
+  });
   return client;
 }

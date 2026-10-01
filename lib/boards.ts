@@ -56,11 +56,31 @@ export function boardLabel(board: Pick<Board, "brand" | "lengthIn">): string {
   return [board.brand.trim(), formatLength(board.lengthIn)].filter(Boolean).join(" ");
 }
 
-/** The board the log form pre-selects: the one marked default, or the only
- *  board when the rack has exactly one. */
-export function defaultBoardId(boards: Pick<Board, "id" | "isDefault">[]): string | null {
-  const marked = boards.find((b) => b.isDefault);
-  if (marked) return marked.id;
+/** 常用 boards first, otherwise the rack's own order (stable) — used by the
+ *  board rack and the board picker. The incoming order is whatever
+ *  `boards` is already in (DB order by sort_order, added 2026-09-30 for
+ *  drag-and-drop — see CLAUDE.md "Board rack"); this only adds the
+ *  favourites-first grouping on top, so dragging within a group and
+ *  toggling 常用 both "just work" without this function knowing about
+ *  drag at all. Array.sort is stable (ES2019+), so ties keep that order. */
+export function sortBoards<T extends Pick<Board, "isFavorite">>(boards: T[]): T[] {
+  return [...boards].sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite));
+}
+
+/** The board the log form pre-selects: the one used in the most recent
+ *  session that still exists in the rack; else the only 常用 board, or the
+ *  only board. Several boards can be 常用, so "favourite" alone can't pick. */
+export function preselectBoardId(
+  boards: Pick<Board, "id" | "isFavorite">[],
+  sessions: { when: string; boardId?: string | null }[]
+): string | null {
+  const ids = new Set(boards.map((b) => b.id));
+  const lastUsed = [...sessions]
+    .sort((a, b) => b.when.localeCompare(a.when))
+    .find((s) => s.boardId && ids.has(s.boardId));
+  if (lastUsed?.boardId) return lastUsed.boardId;
+  const favorites = boards.filter((b) => b.isFavorite);
+  if (favorites.length === 1) return favorites[0].id;
   return boards.length === 1 ? boards[0].id : null;
 }
 

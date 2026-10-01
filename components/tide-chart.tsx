@@ -6,10 +6,11 @@ import { fmt1 } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import type { TideEvent } from "@/lib/types";
 
-const H = 64;
+const LINE_GAP = 10; // baseline-to-baseline spacing for a label's two stacked lines
+const TOP = 41; // pill (0–15) + a high's two-line label (time, height) above its point
+const BOTTOM = 27; // a low's two-line label (time, height) below its point
+const H = 88;
 const PAD_X = 6;
-const TOP = 29; // pill (0–15) + a high's one-line label above its point
-const BOTTOM = 15; // a low's one-line label below its point
 const DAY_MS = 24 * 3600 * 1000;
 const STEPS_PER_LEG = 20;
 
@@ -106,12 +107,14 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
     );
 
     const sessionDay = sessionWhen.slice(0, 10);
-    // "20:26 · 1.2m" on one line, to keep the chart short
-    const label = (e: TideEvent) => {
+    // Time (with +1d/-1d day-shift) on its own line, height under it — null
+    // when the event has no stored height, in which case only the time line
+    // renders.
+    const labelLines = (e: TideEvent): [string, string | null] => {
       const day = e.time.slice(0, 10);
       const shift = day === sessionDay ? "" : ` ${day > sessionDay ? t("tide.nextDay") : t("tide.prevDay")}`;
       const h = fmt1(e.heightM);
-      return `${e.time.slice(11, 16)}${shift}${h != null ? ` · ${h}m` : ""}`;
+      return [`${e.time.slice(11, 16)}${shift}`, h != null ? `${h}m` : null];
     };
 
     svg = (
@@ -128,22 +131,36 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
               {labelled.has(i) && (
                 <circle cx={px} cy={py} r={2.5} className="fill-card stroke-primary" strokeWidth={1.25} />
               )}
-              {labelled.has(i) && (
-                <text
-                  x={tx}
-                  y={e.type === "high" ? py - 7 : py + 13}
-                  textAnchor={anchor}
-                  fontSize={10}
-                  fontWeight={500}
-                  className="fill-muted-foreground stroke-card"
-                  stroke="currentColor"
-                  strokeWidth={3}
-                  paintOrder="stroke"
-                  strokeLinejoin="round"
-                >
-                  {label(e)}
-                </text>
-              )}
+              {labelled.has(i) &&
+                (() => {
+                  const [line1, line2] = labelLines(e);
+                  // The line nearest the point (height, for a high; time,
+                  // for a low) sits at the same offset as the old one-line
+                  // label; the other line stacks LINE_GAP further out.
+                  const labelY =
+                    e.type === "high" ? py - 7 - (line2 ? LINE_GAP : 0) : py + 13;
+                  return (
+                    <text
+                      x={tx}
+                      y={labelY}
+                      textAnchor={anchor}
+                      fontSize={10}
+                      fontWeight={500}
+                      className="fill-muted-foreground stroke-card"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      paintOrder="stroke"
+                      strokeLinejoin="round"
+                    >
+                      <tspan x={tx}>{line1}</tspan>
+                      {line2 && (
+                        <tspan x={tx} dy={LINE_GAP}>
+                          {line2}
+                        </tspan>
+                      )}
+                    </text>
+                  );
+                })()}
             </g>
           );
         })}

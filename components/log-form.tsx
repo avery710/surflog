@@ -16,12 +16,13 @@ import {
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
+import { goalPoints } from "@/lib/goal";
 import { SPOTS, type Region } from "@/lib/spots";
 import { DateField } from "@/components/date-field";
 import { spotLabel, taipeiNearestSlot, taipeiToday } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import { useDefaultSpot } from "@/lib/default-spot";
-import { defaultBoardId } from "@/lib/boards";
+import { preselectBoardId } from "@/lib/boards";
 import { TIME_SLOTS } from "@/lib/time-slots";
 import type { Board, Session } from "@/lib/types";
 
@@ -34,6 +35,7 @@ export function LogForm({
   ownerId,
   recentSpot,
   boards = [],
+  sessions = [],
   goal = null,
 }: {
   onCreated: (s: Session) => void;
@@ -41,6 +43,8 @@ export function LogForm({
   /** Spot of the user's most recent session — fallback when no default is set. */
   recentSpot?: string;
   boards?: Board[];
+  /** The owner's sessions — only used to pre-select the last-used board. */
+  sessions?: Session[];
   /** The owner's current goal for next session — snapshotted onto the session. */
   goal?: string | null;
 }) {
@@ -57,10 +61,10 @@ export function LogForm({
   const [date, setDate] = useState(taipeiToday);
   const [time, setTime] = useState(taipeiNearestSlot);
   const [notesHtml, setNotesHtml] = useState("");
-  // undefined = not picked yet, so follow the rack's default board.
+  // undefined = not picked yet, so follow the last-used board.
   const [pickedBoardId, setBoardId] = useState<string | null | undefined>(undefined);
-  const boardId = pickedBoardId === undefined ? defaultBoardId(boards) : pickedBoardId;
-  const [goalMet, setGoalMet] = useState<boolean | null>(null);
+  const boardId = pickedBoardId === undefined ? preselectBoardId(boards, sessions) : pickedBoardId;
+  const [pointsMet, setPointsMet] = useState<boolean[]>([]);
   const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -75,14 +79,15 @@ export function LogForm({
           when: `${date}T${time}`,
           notesHtml,
           boardId,
-          ...(goal ? { goalText: goal, goalMet } : {}),
+          // unticked points count as not achieved; pad to one per point
+          ...(goal ? { goalText: goal, goalPointsMet: goalPoints(goal).map((_, i) => pointsMet[i] ?? false) } : {}),
         }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSave"));
       onCreated(body.session as Session);
       setNotesHtml("");
-      setGoalMet(null);
+      setPointsMet([]);
       setEditorKey((k) => k + 1);
       const filled = body.session?.condOpenMeteo != null;
       toast.success(filled ? t("toast.savedFilled") : t("toast.saved"));
@@ -171,7 +176,7 @@ export function LogForm({
 
       {goal && (
         <div className="mt-4">
-          <GoalCheck goal={goal} value={goalMet} onChange={setGoalMet} />
+          <GoalCheck goal={goal} value={pointsMet} onChange={setPointsMet} />
         </div>
       )}
 

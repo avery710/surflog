@@ -28,7 +28,7 @@ The repo is public and every route deploys. So:
 - **A grid of labelled cases**, each with a short caption saying what's special ("no period", "CWA tide, session between events", "wind with no spot facing → no shore word").
 - **Cover the edges the code actually branches on**: grep the component for `== null`, `?.`, ternaries and `.length` checks, and give each branch a case. Typical ones: every optional block null, one field missing at a time, extreme values (0 m swell, gale wind, 17 h tide gap), past vs. forecast dates, long notes, many photos, long Chinese spot names and notes.
 - **Both languages**: a toggle, or each case in `en` and `zh-TW` (use the app's own `LanguageProvider` / `setLang`, not a fake).
-- **Widths**: show the component in fixed-width frames (e.g. 375 px phone, 768 px tablet, 1200 px desktop) so breakpoint layouts are visible on one screen, since the browser resize tool here is unreliable (see CLAUDE.md). Note: frames only emulate width for the component's own box — Tailwind `sm:`/`lg:` are viewport media queries, so say that on the page, and use a real narrow window when breakpoints matter.
+- **Widths**: show the component in fixed-width frames (e.g. 375 px phone, 768 px tablet, 1200 px desktop) so breakpoint layouts are visible on one screen. Note: frames only emulate width for the component's own box — Tailwind `sm:`/`lg:` are viewport media queries, so say that on the page; for real breakpoint checks use `cmux browser … viewport <w> <h>` (then `viewport reset`).
 - Interactive components (edit panel, goal editor, log form): render them live, with no-op or `console.log` handlers instead of API calls.
 - Page styling stays minimal and out of the way — the components are the point.
 
@@ -40,4 +40,4 @@ Update its showcase in the same pass: new branch → new case; removed field →
 
 1. `npx tsc --noEmit -p .` and `npx eslint app/dev`. If node errors about a missing `restore-node-options.cjs`, unset `NODE_OPTIONS`.
 2. If a dev server is running (`curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/dev`), check each page you touched returns 200 locally.
-3. You have no browser. Report: pages added/updated, the cases on each, and the URLs to open (`http://localhost:3000/dev/...`). Don't claim anything looks right visually.
+3. Open each page you touched in the cmux browser (CLI — see CLAUDE.md "Testing in the browser (cmux)"): `cmux tree` to find a browser surface, `goto` the page, `errors list`, and a quick `eval` that the cases rendered. Report: pages added/updated, the cases on each, the URLs (`http://localhost:3000/dev/...`), and what you checked vs. only type-checked.

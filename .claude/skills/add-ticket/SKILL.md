@@ -1,9 +1,9 @@
 ---
-name: backlog
-description: Add a feature idea, fix or chore to Surflog's BACKLOG.md, or move one to Done. Use when Avery says "add X to the backlog", "note this for later", "backlog: …", "remember to build X someday", or asks to tick off / list backlog items.
+name: add-ticket
+description: Add a feature idea, fix or chore to Surflog's BACKLOG.md, or move one to Done. Use when Avery says "add a ticket", "add X to the backlog", "note this for later", "backlog: …", "remember to build X someday", or asks to tick off / list backlog items.
 ---
 
-# backlog — keep BACKLOG.md current
+# add-ticket — keep BACKLOG.md current
 
 `BACKLOG.md` (repo root) is Avery's list of future work. It's **local
 only** — gitignored, never committed. It has four sections, in this

@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { boardLabel } from "@/lib/boards";
+import { boardLabel, sortBoards } from "@/lib/boards";
 import { useLang } from "@/lib/i18n";
 import type { Board } from "@/lib/types";
 
@@ -42,9 +42,10 @@ export function BoardSelect({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE}>{t("form.noBoard")}</SelectItem>
-          {boards.map((b) => (
+          {sortBoards(boards).map((b) => (
             <SelectItem key={b.id} value={b.id}>
               {boardLabel(b)}
+              {b.isFavorite && <span className="ml-1.5 text-[#0E7C86]">· {t("board.favorite")}</span>}
             </SelectItem>
           ))}
         </SelectContent>
