@@ -16,20 +16,26 @@ export function ConditionTile({
   subClassName?: string;
 }) {
   return (
+    // Shrunk 2026-10-01 (smaller padding, min-width, figure/label sizes) so
+    // the condition tiles read as secondary, supporting info under the now-
+    // prominent notes — see entry-card.tsx's comment above where this is
+    // used. lg:min-w- is deliberately small; callers that need a specific
+    // lg width (e.g. the tide tile, which must leave room for its chart)
+    // set it themselves via `className`.
     <div
-      className={`min-w-0 shrink-0 grow basis-auto rounded-[var(--r-tile)] bg-secondary px-3 py-3 sm:px-4 sm:py-3.5 lg:min-w-[112px] ${className}`}
+      className={`min-w-0 shrink-0 grow basis-auto rounded-[var(--r-tile)] bg-secondary px-2.5 py-2 sm:px-3 sm:py-2.5 lg:min-w-[60px] ${className}`}
     >
-      <span className="mb-1 block text-[13px] font-semibold tracking-[0.01em] text-[var(--faint)]">
+      <span className="mb-0.5 block text-[11px] font-semibold tracking-[0.01em] text-[var(--faint)]">
         {label}
       </span>
-      <span className="whitespace-nowrap font-mono text-[16px] font-medium tracking-[-0.02em] tabular-nums">
+      <span className="whitespace-nowrap font-mono text-[14px] font-medium tracking-[-0.02em] tabular-nums">
         {value ?? "—"}
         {value != null && unit ? (
-          <span className="ml-0.5 text-[11px] font-normal text-muted-foreground">{unit}</span>
+          <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">{unit}</span>
         ) : null}
       </span>
       {sub ? (
-        <span className={`mt-0.5 block whitespace-nowrap text-[11.5px] font-medium text-muted-foreground ${subClassName}`}>
+        <span className={`mt-0.5 block whitespace-nowrap text-[10.5px] font-medium text-muted-foreground ${subClassName}`}>
           {sub}
         </span>
       ) : null}
@@ -37,13 +43,18 @@ export function ConditionTile({
   );
 }
 
-/** A prominent figure in the headline style shared by every tile. */
+/**
+ * A prominent figure in the headline style shared by every tile. Shrunk
+ * 20px -> 16px (2026-10-01, smaller cards) — still `font-mono`, kept
+ * uniform across every tile (see CLAUDE.md: tried Funnel Sans bold once,
+ * reverted the same day).
+ */
 export function Figure({ value, unit }: { value: React.ReactNode; unit?: string }) {
   return (
-    <span className="text-[20px] leading-tight">
+    <span className="text-[16px] leading-tight">
       {value ?? "—"}
       {value != null && unit ? (
-        <span className="ml-0.5 text-[11px] font-normal text-muted-foreground">{unit}</span>
+        <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">{unit}</span>
       ) : null}
     </span>
   );

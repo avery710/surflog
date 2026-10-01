@@ -71,14 +71,14 @@ const CASES: CaseDef[] = [
     id: "no-period",
     title: "No swell period",
     caption:
-      "swellPeriodS null → the Period tile is omitted; Wind takes its column on phone (col-span-2), Swell spans both rows on lg.",
+      "swellPeriodS null → the Period tile is omitted; Swell and Wind each take col-span-2 on phone (filling the 3-col row); from sm up (a single flex row across the whole card, 2026-10-01) they're just equal flex-1 tiles like the rest.",
     session: fakeSession({ condOpenMeteo: fakeCondOpenMeteo({ swellPeriodS: null }) }),
   },
   {
     id: "no-temp",
     title: "No sea or air temp",
     caption:
-      "seaTempC and airTempC both null → no water-temp tile at all; Tide takes col-span-3 on phone, Wind spans both rows on lg.",
+      "seaTempC and airTempC both null → no water-temp tile at all; Tide takes col-span-3 on phone. From sm up it's a wider flex-[1.6] tile for its mini curve (restored small, 2026-10-01 — see CLAUDE.md) while the others are flex-1.",
     session: fakeSession({ condOpenMeteo: fakeCondOpenMeteo({ seaTempC: null, airTempC: null }) }),
   },
   {
@@ -110,13 +110,13 @@ const CASES: CaseDef[] = [
     id: "cwa-legacy-single",
     title: "CWA, single legacy event (no `events`)",
     caption:
-      "condCwaTide.events has exactly one item (rows saved before the 2026-09-24 widening only ever stored the nearest event, or only one side of the bracket existed) → tideEvents.length < 2, so TideEventsSub's plain text renders instead of TideChart.",
+      "condCwaTide.events has exactly one item, after the 16:00 session (rows saved before the 2026-09-24 widening only ever stored the nearest event, or only one side of the bracket existed) → TideEventsSub shows just that one line.",
     session: fakeSession({
       condCwaTide: fakeCondCwaTide({
         tideM: 1.2,
         tideType: "high",
-        time: "2026-09-25T14:05",
-        events: [fakeTideEvent({ type: "high", time: "2026-09-25T14:05", heightM: 1.2 })],
+        time: "2026-09-25T20:05",
+        events: [fakeTideEvent({ type: "high", time: "2026-09-25T20:05", heightM: 1.2 })],
       }),
     }),
   },
@@ -132,9 +132,9 @@ const CASES: CaseDef[] = [
   },
   {
     id: "early-morning-clip",
-    title: "Early-morning session, curve stops early",
+    title: "Early-morning session, no upcoming event stored",
     caption:
-      "05:00 session, day's stored events end at 02:10 → TideChart clips to the session's own calendar day, so the curve only covers 00:00–02:10 and stops well short of the tile's right edge.",
+      "05:00 session, both stored events (20:26 the day before, 02:10 that morning) are already in the past → TideEventsSub has nothing after the session time to show; the tile still shows its rising/falling headline from tideTrend(), just no small print.",
     session: fakeSession({
       when: "2026-09-26T05:00",
       condCwaTide: fakeCondCwaTide({
@@ -152,7 +152,7 @@ const CASES: CaseDef[] = [
     id: "mixed-tide-gap",
     title: "Mixed tide, ~17h gap, session mid-gap",
     caption:
-      "屏東縣滿州鄉-style mixed tide: low 07:10 → high next day 00:34 (17h24m apart). Session sits at 16:00, roughly mid-gap — the curve is one long, mostly-flat leg.",
+      "屏東縣滿州鄉-style mixed tide: low 07:10 → high next day 00:34 (17h24m apart). Session sits at 16:00, roughly mid-gap — the low is already past, so only the next event (high, +1d) shows in the small print.",
     session: fakeSession({
       when: "2026-10-04T16:00",
       condCwaTide: fakeCondCwaTide({
@@ -344,10 +344,11 @@ export default function EntryCardPreviewPage() {
 
       <div className="mt-4 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4 py-3 text-[13px] text-foreground">
         <strong>Widths only emulate the component&apos;s own box.</strong> Tailwind <code>sm:</code>/<code>lg:</code>{" "}
-        classes (entry-card.tsx uses <code>lg:</code> a lot, for its condition-tile grid) are real viewport media
-        queries — they respond to the browser window&apos;s width, not this frame&apos;s. To actually see the{" "}
-        <code>lg:</code> layout, resize the real browser window past 1024px; the 1200px frame below will still show
-        the sub-1024 (mobile/tablet) grid unless the browser itself is that wide.
+        classes (entry-card.tsx&apos;s condition-tile row switches from a 3-col grid to one full-width flex row at{" "}
+        <code>sm:</code>, 2026-10-01) are real viewport media queries — they respond to the browser window&apos;s
+        width, not this frame&apos;s. To actually see the single-row layout, resize the real browser window past
+        640px; the 768/1200px frames below will still show the sub-640 (phone) grid unless the browser itself is
+        that wide.
       </div>
 
       <section className="mt-8">

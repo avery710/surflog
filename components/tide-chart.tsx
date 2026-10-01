@@ -2,37 +2,41 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { fmt1 } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import type { TideEvent } from "@/lib/types";
 
-const LINE_GAP = 10; // baseline-to-baseline spacing for a label's two stacked lines
-const TOP = 41; // pill (0–15) + a high's two-line label (time, height) above its point
-const BOTTOM = 27; // a low's two-line label (time, height) below its point
-const H = 88;
-const PAD_X = 6;
+// Shrunk 2026-10-01 so the Tide tile fits in the same single flex row as
+// every other condition tile (see CLAUDE.md "As of 2026-10-01") instead of
+// needing its own taller two-row span. No pill (the session's own time
+// already shows in the card header) and one-line labels (time only, no
+// height — the height figure was dropped so a label fits in a small TOP/
+// BOTTOM margin; CLAUDE.md's two-line version remains in git history if
+// more room is ever available again).
+const TOP = 13; // a high's one-line time label above its point
+const BOTTOM = 13; // a low's one-line time label below its point
+const H = 40;
+const PAD_X = 4;
 const DAY_MS = 24 * 3600 * 1000;
-const STEPS_PER_LEG = 20;
+const STEPS_PER_LEG = 16;
 
 // "YYYY-MM-DDTHH:mm" is Asia/Taipei local with no tz; parsing every value as
 // UTC keeps the arithmetic consistent without depending on the viewer's zone.
 const ms = (local: string) => new Date(`${local.slice(0, 16)}:00Z`).getTime();
 
 /**
- * A schematic tide wave through the stored highs and lows around a session.
- * The low and high either side of the session are labelled on the curve with
- * time and height (highs above, lows below), and a dashed marker, pill and
- * dot show the session time. The session's whole day is in view (as far as
- * the stored events reach); the rest of the wave is clipped. Only turning points are known, so each leg between two of
- * them is a half-cosine — it shows where in the cycle the session sat, not a
- * measured height at each moment. Sized in real pixels (measured), so text
- * and dots stay the same size at any tile width. Needs at least two events;
- * renders nothing for a single-event legacy row (the caller shows text then).
+ * A small schematic tide wave through the stored highs and lows around a
+ * session. The low and high either side of the session are labelled with
+ * just their time (dot + dashed marker for the session itself); only
+ * turning points are known, so each leg between two of them is a
+ * half-cosine — it shows where in the cycle the session sat, not a measured
+ * height at each moment. Sized in real pixels (measured), so text and dots
+ * stay the same size at any tile width. Needs at least two events; renders
+ * nothing for a single-event legacy row (the caller shows text then).
  */
 export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessionWhen: string }) {
   const { t } = useLang();
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [W, setW] = useState(280);
+  const [W, setW] = useState(140);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -94,8 +98,6 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
     const ts = Math.min(tMax, Math.max(tMin, sessionMs));
     const sx = x(ts);
     const sy = y(heightAt(ts));
-    const pillW = 38;
-    const pillX = Math.min(W - pillW / 2 - 1, Math.max(pillW / 2 + 1, sx));
 
     // Keep it light: only the low and high either side of the session get a
     // dot and a label; the rest of the wave is just the line.
@@ -107,82 +109,54 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
     );
 
     const sessionDay = sessionWhen.slice(0, 10);
-    // Time (with +1d/-1d day-shift) on its own line, height under it — null
-    // when the event has no stored height, in which case only the time line
-    // renders.
-    const labelLines = (e: TideEvent): [string, string | null] => {
+    // Time only (with +1d/-1d day-shift) — the height figure was dropped
+    // 2026-10-01 so a label fits in the shrunk TOP/BOTTOM margin.
+    const label = (e: TideEvent) => {
       const day = e.time.slice(0, 10);
       const shift = day === sessionDay ? "" : ` ${day > sessionDay ? t("tide.nextDay") : t("tide.prevDay")}`;
-      const h = fmt1(e.heightM);
-      return [`${e.time.slice(11, 16)}${shift}`, h != null ? `${h}m` : null];
+      return `${e.time.slice(11, 16)}${shift}`;
     };
 
     svg = (
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block" role="img" aria-label={t("tide.chartLabel")}>
-        <path d={line} fill="none" className="stroke-primary" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        <line x1={sx} x2={sx} y1={15} y2={H - BOTTOM + 8} className="stroke-primary" strokeWidth={1} strokeDasharray="3 3" />
+        <path d={line} fill="none" className="stroke-primary" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+        <line x1={sx} x2={sx} y1={2} y2={H - 2} className="stroke-primary" strokeWidth={1} strokeDasharray="2 2" opacity={0.6} />
         {evs.map((e, i) => {
           const px = x(times[i]);
           const py = y(levels[i]);
-          const anchor = px < 44 ? "start" : px > W - 44 ? "end" : "middle";
+          const anchor = px < 20 ? "start" : px > W - 20 ? "end" : "middle";
           const tx = anchor === "start" ? Math.max(px - 2, 1) : anchor === "end" ? Math.min(px + 2, W - 1) : px;
           return (
             <g key={`${e.type}-${e.time}`}>
               {labelled.has(i) && (
-                <circle cx={px} cy={py} r={2.5} className="fill-card stroke-primary" strokeWidth={1.25} />
+                <circle cx={px} cy={py} r={2} className="fill-card stroke-primary" strokeWidth={1} />
               )}
-              {labelled.has(i) &&
-                (() => {
-                  const [line1, line2] = labelLines(e);
-                  // The line nearest the point (height, for a high; time,
-                  // for a low) sits at the same offset as the old one-line
-                  // label; the other line stacks LINE_GAP further out.
-                  const labelY =
-                    e.type === "high" ? py - 7 - (line2 ? LINE_GAP : 0) : py + 13;
-                  return (
-                    <text
-                      x={tx}
-                      y={labelY}
-                      textAnchor={anchor}
-                      fontSize={10}
-                      fontWeight={500}
-                      className="fill-muted-foreground stroke-card"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                      paintOrder="stroke"
-                      strokeLinejoin="round"
-                    >
-                      <tspan x={tx}>{line1}</tspan>
-                      {line2 && (
-                        <tspan x={tx} dy={LINE_GAP}>
-                          {line2}
-                        </tspan>
-                      )}
-                    </text>
-                  );
-                })()}
+              {labelled.has(i) && (
+                <text
+                  x={tx}
+                  y={e.type === "high" ? py - 5 : py + 10.5}
+                  textAnchor={anchor}
+                  fontSize={8.5}
+                  fontWeight={500}
+                  className="fill-muted-foreground stroke-card"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                  paintOrder="stroke"
+                  strokeLinejoin="round"
+                >
+                  {label(e)}
+                </text>
+              )}
             </g>
           );
         })}
-        <rect x={pillX - pillW / 2} y={1} width={pillW} height={14} rx={7} className="fill-primary" />
-        <text
-          x={pillX}
-          y={11.2}
-          textAnchor="middle"
-          className="fill-primary-foreground"
-          fontSize={9.5}
-          fontWeight={600}
-          fontFamily="ui-monospace, monospace"
-        >
-          {sessionWhen.slice(11, 16)}
-        </text>
-        <circle cx={sx} cy={sy} r={4.5} className="fill-primary stroke-card" strokeWidth={2} />
+        <circle cx={sx} cy={sy} r={3} className="fill-primary stroke-card" strokeWidth={1.5} />
       </svg>
     );
   }
 
   return (
-    <div ref={wrapRef} className="mt-1 w-full overflow-hidden">
+    <div ref={wrapRef} className="mt-0.5 w-full overflow-hidden">
       {svg}
     </div>
   );

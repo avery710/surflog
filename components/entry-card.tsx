@@ -20,8 +20,8 @@ import { toCompass } from "@/lib/openmeteo";
 import { computeSessionFit } from "@/lib/session-fit";
 import { compassLabel, fmt1, fmtWhen, spotLabel } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
-import { TideEventsSub, tideTrend } from "@/components/tide-events";
 import { TideChart } from "@/components/tide-chart";
+import { TideEventsSub, tideTrend } from "@/components/tide-events";
 import { DirectionArrow } from "@/components/direction-arrow";
 import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
@@ -130,9 +130,7 @@ export function EntryCard({
     om?.seaLevelTrend ??
     null;
   const trendHeadline = (trend: "rising" | "falling" | null) =>
-    trend ? (
-      <span className="text-[20px] leading-tight capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>
-    ) : null;
+    trend ? <Figure value={<span className="capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>} /> : null;
 
   const cardClass =
     "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-border bg-card shadow-[var(--shadow-card)]";
@@ -158,9 +156,10 @@ export function EntryCard({
       {/* Spot + date wrap inside their own group; the actions stay a fixed
           right-hand column, so on a phone the date drops under the spot
           name while ⋯ stays pinned top-right (with one flex-wrap row, ⋯
-          was what wrapped, onto its own line). */}
-      <div className="flex items-start gap-2 px-6 pt-5.5 pb-3.5">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5 pt-1.5">
+          was what wrapped, onto its own line). Vertical padding tightened
+          2026-10-01 (smaller cards, notes as the focus — see below). */}
+      <div className="flex items-start gap-2 px-6 pt-4 pb-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
           <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
             {spotLabel(session.spot, lang)}
           </span>
@@ -257,51 +256,63 @@ export function EntryCard({
       </Dialog>
 
       {om ? (
-        // Phones + tablets: swell · period · wind in one row, water temp +
-        // tide below. Desktop (lg): column-major grid with two shared rows —
-        // swell over period, wind over water temp, tide spanning both — so
-        // swell and wind (and period and temp) always line up in height.
-        <div
-          className={`grid grid-cols-3 gap-2 sm:gap-2.5 lg:grid-flow-col lg:grid-rows-[auto_auto] lg:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5 ${
-            tideSource
-              ? "lg:grid-cols-[minmax(112px,1fr)_minmax(min-content,1.3fr)_minmax(0,2fr)]"
-              : "lg:grid-cols-[minmax(112px,1fr)_minmax(min-content,1.3fr)]"
-          }`}
-        >
+        // Phones (<sm): a 3-col grid, swell/period/wind then temp+tide.
+        // sm and up (tablet and desktop, 2026-10-01): one flex row that
+        // fills the card's full width, not just desktop — a tablet-width
+        // card used to sit at half-width in two grid rows, with no reason
+        // the tiles couldn't share one row once they'd shrunk (see
+        // condition-tile.tsx). Flex weights aren't quite equal: Wind needs
+        // the most room (its two rows of text are the row's longest, and
+        // wrap to 4 lines — stretching the whole row — if squeezed as
+        // narrow as the others), Period the least (just a number), and the
+        // tide tile gets a bigger share (flex-[1.6] + a min-width) so its
+        // mini curve has room — see tide-chart.tsx. Stretched (not
+        // items-start) so every tile in the row shares the row's tallest
+        // height, content staying top-aligned inside — equal tile heights
+        // at every breakpoint, including the phone grid rows (CSS Grid's
+        // own default stretch already handled those). overflow-x-auto is
+        // just a safety net if a very narrow sm width can't fit five tiles;
+        // it shouldn't be needed at 768px and up.
+        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-nowrap sm:items-stretch sm:gap-2 sm:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5">
           {om && (
             <>
               <ConditionTile
                 label={t("tile.swellOpenMeteo")}
-                className={om.swellPeriodS == null ? "lg:row-span-2" : ""}
+                className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-1 sm:basis-0 sm:shrink`}
                 value={<Figure value={fmt1(om.swellHeightM)} unit="m" />}
                 sub={<DirSub deg={om.swellDirDeg} compass={compassLabel(toCompass(om.swellDirDeg), lang)} />}
               />
               {om.swellPeriodS != null && (
                 <ConditionTile
                   label={t("tile.period")}
+                  className="sm:flex-[0.7] sm:basis-0 sm:shrink"
                   value={
                     <Figure value={fmt1(om.swellPeriodS)} unit="s" />
                   }
                 />
               )}
+              {/* Wind gets extra flex weight: its two rows (speed+strength,
+                  then direction+shore word) are the row's longest text and
+                  wrap to 4 lines — stretching the whole row taller — if
+                  squeezed to the same width as Period's bare number. */}
               <ConditionTile
                 label={t("tile.wind")}
-                className={`${om.swellPeriodS == null ? "col-span-2 lg:col-span-1" : ""} ${hasTemp ? "" : "lg:row-span-2"}`}
+                className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-[1.3] sm:basis-0 sm:shrink`}
                 value={
-                  <span className="flex flex-col gap-1">
-                    <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="flex flex-col gap-0.5">
+                    <span className="inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
                       <Figure value={fmt1(om.windSpeedMs)} unit="m/s" />
                       {om.windSpeedMs != null && (
-                        <span className="font-sans text-[12px] font-medium tracking-normal text-muted-foreground">
+                        <span className="font-sans text-[11px] font-medium tracking-normal text-muted-foreground">
                           <WindStrength speedMs={om.windSpeedMs} gustMs={om.windGustMs} />
                         </span>
                       )}
                     </span>
                     {(hasShore || om.windDirDeg != null) && (
-                      <span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
                         <DirSub deg={om.windDirDeg} compass={compassLabel(toCompass(om.windDirDeg), lang)} />
                         {hasShore && (
-                          <span className="font-sans text-[12px] font-medium tracking-normal text-muted-foreground">
+                          <span className="font-sans text-[11px] font-medium tracking-normal text-muted-foreground">
                             <WindShoreBadge mode={fit.windMode} />
                           </span>
                         )}
@@ -313,6 +324,7 @@ export function EntryCard({
               {hasTemp && (
                 <ConditionTile
                   label={t("tile.temp")}
+                  className="sm:flex-1 sm:basis-0 sm:shrink"
                   value={<Figure value={fmt1(om.seaTempC)} unit="°C" />}
                   sub={om.airTempC != null ? t("tile.airTemp", { t: fmt1(om.airTempC) ?? "—" }) : undefined}
                 />
@@ -322,15 +334,13 @@ export function EntryCard({
           {/* CWA wins whenever it covers the session (see the comment above
               `tideSource`); Open-Meteo's tideEvents is the fallback for
               past/overseas sessions CWA can't reach. The manual Swelleye
-              tide stays stored but never shown here. */}
+              tide stays stored but never shown here. The mini curve needs
+              at least two events to draw a shape; a lone legacy CWA event
+              falls back to the plain next-low/next-high text. */}
           {tideSource && (
             <ConditionTile
               label={t("tile.tideOpenMeteo")}
-              className={`${hasTemp ? "col-span-2" : "col-span-3"} lg:col-span-1 lg:row-span-2 lg:flex lg:flex-col`}
-              // On lg the tile spans two rows and is taller than it needs
-              // to be; centre the chart in the space under the headline
-              // instead of leaving it all empty at the bottom.
-              subClassName="lg:my-auto"
+              className={`${hasTemp ? "col-span-2" : "col-span-3"} sm:flex-[1.6] sm:basis-0 sm:shrink sm:min-w-[110px]`}
               value={trendHeadline(tideTrendValue)}
               sub={
                 tideEvents.length >= 2 ? (
@@ -348,7 +358,7 @@ export function EntryCard({
           duplicates its tiles, so it's stored but not shown (and only
           shown when Open-Meteo has nothing for the session). */}
       {manual && om ? null : manual ? (
-        <div className="grid grid-cols-2 gap-2.5 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-6 pt-1 pb-1.5">
+        <div className="grid grid-cols-2 gap-2 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-6 pt-0 pb-1.5">
           <ConditionTile
             label={t("tile.swellSwelleye")}
             value={fmt1(manual.swellHeightM)}
@@ -383,7 +393,7 @@ export function EntryCard({
           />
         </div>
       ) : !om ? (
-        <div className="mx-6 mb-2 mt-1 flex flex-wrap items-center gap-3 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4.5 py-4">
+        <div className="mx-6 mb-2 mt-0.5 flex flex-wrap items-center gap-3 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4.5 py-4">
           <p className="min-w-[180px] flex-1 text-[14.5px] font-medium text-foreground">
             {t("entry.noCoords")}
           </p>
@@ -393,18 +403,22 @@ export function EntryCard({
         </div>
       ) : null}
 
+      {/* Board/goal chips and notes sit below the condition tiles — reverted
+          2026-10-01 after a same-day attempt to lead with notes instead; the
+          cards (conditions) stay the primary read order, the log beneath
+          them. */}
       {board && <BoardChip board={board} />}
       {session.goalText && <GoalChip goal={session.goalText} pointsMet={sessionPointsMet(session)} />}
 
       {session.notesHtml && (
         <div
-          className="notes-html px-6 pt-2.5 pb-1.5 font-sans text-[15px] leading-[1.65]"
+          className="notes-html px-6 pt-1 pb-2.5 font-sans text-[15px] leading-[1.6] text-foreground"
           dangerouslySetInnerHTML={{ __html: session.notesHtml }}
         />
       )}
 
       {session.photos.length > 0 && (
-        <div className="flex flex-wrap gap-2.5 px-6 pt-3 pb-1.5">
+        <div className="flex flex-wrap gap-2.5 px-6 pt-1.5 pb-1.5">
           {session.photos.map((p) => (
             <div
               key={p.id}
@@ -443,7 +457,7 @@ export function EntryCard({
       )}
 
       {session.example || (manual && !om) ? (
-        <div className="flex flex-wrap items-center gap-2 px-6 pt-2.5 pb-5">
+        <div className="flex flex-wrap items-center gap-2 px-6 pt-1.5 pb-4">
         {session.example && (
           <span className="rounded-full bg-[var(--warm-soft)] px-3.5 py-1 text-[11.5px] font-semibold text-warm">
             {t("entry.example")}
@@ -456,7 +470,7 @@ export function EntryCard({
         )}
         </div>
       ) : (
-        <div className="h-4" />
+        <div className="h-3" />
       )}
     </article>
   );
@@ -466,7 +480,7 @@ export function EntryCard({
 function DirSub({ deg, compass }: { deg: number | null | undefined; compass: string | null | undefined }) {
   if (deg == null) return null;
   return (
-    <span className="inline-flex items-baseline gap-1 font-sans text-[12px] font-bold text-primary">
+    <span className="inline-flex items-baseline gap-1 font-sans text-[11px] font-bold text-primary">
       <DirectionArrow deg={deg} className="relative top-[2px] size-3" strokeWidth={3.5} />
       {compass}
     </span>
@@ -478,7 +492,7 @@ function BoardChip({ board }: { board: Board }) {
   const { t } = useLang();
   const name = boardLabel(board);
   return (
-    <div className="flex min-w-0 px-6 pt-2.5 pb-0.5">
+    <div className="flex min-w-0 px-6 pt-1.5 pb-0.5">
       <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary py-1 pr-3.5 pl-1">
         {board.photoId ? (
           // eslint-disable-next-line @next/next/no-img-element
