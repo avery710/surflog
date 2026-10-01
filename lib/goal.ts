@@ -73,8 +73,6 @@ export type PointStat = {
   met: number;
   /** Sessions whose goal had this point and recorded ticks. */
   total: number;
-  /** Earliest counted session's `when`, or null when total is 0. */
-  since: string | null;
 };
 
 /** Per-point history for the goal card. Each point is counted by its own
@@ -98,7 +96,7 @@ export function pointStats(
     goalPointsMet?: boolean[] | null;
   }[]
 ): PointStat[] {
-  const stats = points.map((point) => ({ point, met: 0, total: 0, since: null as string | null }));
+  const stats = points.map((point) => ({ point, met: 0, total: 0 }));
   for (const s of sessions) {
     const own = goalPoints(s.goalText);
     if (!own.length) continue;
@@ -109,7 +107,6 @@ export function pointStats(
       if (i < 0) continue;
       st.total += 1;
       if (ticks[i]) st.met += 1;
-      if (st.since == null || s.when < st.since) st.since = s.when;
     }
   }
   return stats;

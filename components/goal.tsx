@@ -16,7 +16,6 @@
 import { useRef, useState } from "react";
 import { Check, Plus, Target, X } from "lucide-react";
 import { cn } from "cn";
-import { fmtDate } from "@/lib/format";
 import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats } from "@/lib/goal";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
@@ -31,7 +30,7 @@ export function GoalCard({
   /** Resolves true if saved, so the card knows whether to leave edit mode. */
   onSave: (text: string) => Promise<boolean>;
 }) {
-  const { t, lang } = useLang();
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [points, setPoints] = useState<string[]>([]);
   const [newPoint, setNewPoint] = useState("");
@@ -42,13 +41,6 @@ export function GoalCard({
   // every session (not the whole goal text) — see pointStats().
   const stats = pointStats(goalPoints(goal), sessions);
   const anyHistory = stats.some((st) => st.total > 0);
-  // "since" only on points that started later than the oldest one: that's
-  // what explains why their totals are smaller. On every bullet it would
-  // just repeat the same date.
-  const firstSince = stats.reduce<string | null>(
-    (min, st) => (st.since && (!min || st.since < min) ? st.since : min),
-    null
-  );
 
   function startEdit() {
     cancelled.current = false;
@@ -192,11 +184,6 @@ export function GoalCard({
                           {t("goal.pointCount", { met: stats[i].met, n: stats[i].total })}
                         </span>
                       ) : null}
-                      {stats[i]?.since && stats[i].since !== firstSince && (
-                        <span className="ml-1.5 whitespace-nowrap text-[11px] font-medium text-[var(--faint)]">
-                          {t("goal.pointSince", { date: fmtDate(stats[i].since.slice(0, 10), lang, false) })}
-                        </span>
-                      )}
                       {/* A point with no history yet, next to ones that have
                           some — quiet, so it doesn't read as 0/0. */}
                       {anyHistory && !stats[i]?.total && (

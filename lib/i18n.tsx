@@ -168,7 +168,6 @@ const DICT = {
   "goal.notTriedYet": { en: "Not tried yet — it'll show up when you log your next session.", "zh-TW": "還沒試過——下次新增紀錄時會出現。" },
   "goal.whichDidYouAchieve": { en: "Which did you achieve?", "zh-TW": "這次達成了哪些？" },
   "goal.pointCount": { en: "{met}/{n}", "zh-TW": "{met}/{n}" },
-  "goal.pointSince": { en: "since {date}", "zh-TW": "自 {date} 起" },
   "goal.pointNew": { en: "not tried yet", "zh-TW": "尚未嘗試" },
   "goal.chipCount": { en: "{met}/{n} achieved", "zh-TW": "達成 {met}/{n}" },
   "goal.notAssessed": { en: "Not checked", "zh-TW": "未確認" },
