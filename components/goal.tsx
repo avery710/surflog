@@ -17,7 +17,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Check, Plus, Target, X } from "lucide-react";
 import { cn } from "cn";
 import { CALENDAR_CARD_HEIGHT_PX } from "@/components/activity-calendar";
-import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats } from "@/lib/goal";
+import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats, type GoalRename } from "@/lib/goal";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
 
@@ -38,11 +38,14 @@ export function GoalCard({
   goal: string | null;
   sessions: Session[];
   /** Resolves true if saved, so the card knows whether to leave edit mode. */
-  onSave: (text: string) => Promise<boolean>;
+  onSave: (text: string, renames: GoalRename[]) => Promise<boolean>;
 }) {
   const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [points, setPoints] = useState<string[]>([]);
+  // Each row's text when editing began (null = added this edit), so a
+  // changed row can be sent as a rename for past sessions.
+  const [origins, setOrigins] = useState<(string | null)[]>([]);
   const [newPoint, setNewPoint] = useState("");
   const [saving, setSaving] = useState(false);
   const cancelled = useRef(false);
@@ -104,6 +107,7 @@ export function GoalCard({
   function startEdit() {
     cancelled.current = false;
     setPoints(goalPoints(goal));
+    setOrigins(goalPoints(goal));
     setNewPoint("");
     setEditing(true);
   }
@@ -112,11 +116,13 @@ export function GoalCard({
     const p = newPoint.trim();
     if (!p) return;
     setPoints((prev) => [...prev, p]);
+    setOrigins((prev) => [...prev, null]);
     setNewPoint("");
   }
 
   function removePoint(i: number) {
     setPoints((prev) => prev.filter((_, idx) => idx !== i));
+    setOrigins((prev) => prev.filter((_, idx) => idx !== i));
     newPointRef.current?.focus();
   }
 
@@ -134,7 +140,11 @@ export function GoalCard({
       return;
     }
     setSaving(true);
-    const ok = await onSave(next);
+    const renames = points.flatMap((p, i) => {
+      const from = origins[i];
+      return from != null && p.trim() && p.trim() !== from ? [{ from, to: p.trim() }] : [];
+    });
+    const ok = await onSave(next, renames);
     setSaving(false);
     if (ok) setEditing(false);
   }
@@ -168,7 +178,13 @@ export function GoalCard({
         style={{ "--goal-card-h": `${CALENDAR_CARD_HEIGHT_PX}px` } as React.CSSProperties}
       >
         <div className="flex min-w-0 flex-1 flex-col">
-          <h2 className="shrink-0 px-2 pb-0.5 font-sans text-[13px] font-bold text-muted-foreground">
+          {/* No horizontal padding here (unlike the px-2 used by the body
+              rows below, for their own hover/input backgrounds) — the card's
+              own px-5 already matches the 20px left edge every other
+              dashboard-panel title sits at (patterns-table.tsx's p-2+px-3,
+              board-rack.tsx's p-2+pl-3); the old px-2 pushed this one 8px
+              further in than the others. */}
+          <h2 className="shrink-0 pb-0.5 font-sans text-[13px] font-bold text-muted-foreground">
             {t("goal.title")}
           </h2>
           {editing ? (
@@ -378,8 +394,10 @@ export function GoalChip({ goal, pointsMet }: { goal: string; pointsMet: boolean
   const n = pointsMet?.length ?? 0;
   return (
     <div className="flex min-w-0 px-6 pt-2.5 pb-0.5">
+      {/* No icon here (removed on request, 2026-10-01) — it was decorative
+          (aria-hidden), so dropping it doesn't change what a screen reader
+          announces; the chip's meaning is carried entirely by its text. */}
       <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary py-1 pr-1 pl-3">
-        <Target className="size-3.5 shrink-0 text-[#0E7C86]" aria-hidden />
         {compact && (
           <span className="min-w-0 truncate text-[13.5px] font-bold tracking-[-0.01em]" title={goal}>
             {compact}

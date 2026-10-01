@@ -13,6 +13,7 @@
  * Multi-user (2026-09-18): every session is scoped by `ownerId` (a Google
  * account's stable subject id — see auth.ts).
  */
+import { applyGoalRenames, type GoalRename } from "./goal";
 import { getSupabase } from "./supabase";
 import type { Board, Session } from "./types";
 
@@ -177,6 +178,34 @@ export async function setGoal(ownerId: string, text: string): Promise<void> {
       )
     : await table.delete().eq("owner_id", ownerId);
   if (result.error) throw new Error(`Supabase: ${result.error.message}`);
+}
+
+/** Carries reworded goal points into the owner's past session snapshots.
+ *  Returns the sessions whose goal text changed. */
+export async function renameGoalPointsInSessions(
+  ownerId: string,
+  renames: GoalRename[]
+): Promise<{ id: string; goalText: string }[]> {
+  if (!renames.length) return [];
+  const result = await getSupabase()
+    .from(TABLE)
+    .select("id, goal_text")
+    .eq("owner_id", ownerId)
+    .not("goal_text", "is", null);
+  const rows = assertNoError(result) as { id: string; goal_text: string }[];
+  const changed = rows.flatMap((r) => {
+    const next = applyGoalRenames(r.goal_text, renames);
+    return next ? [{ id: r.id, goalText: next }] : [];
+  });
+  for (const c of changed) {
+    const res = await getSupabase()
+      .from(TABLE)
+      .update({ goal_text: c.goalText })
+      .eq("id", c.id)
+      .eq("owner_id", ownerId);
+    if (res.error) throw new Error(`Supabase: ${res.error.message}`);
+  }
+  return changed;
 }
 
 const BOARDS = "boards";

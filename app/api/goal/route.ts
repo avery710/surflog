@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { setGoal } from "@/lib/db";
-import { MAX_GOAL } from "@/lib/goal";
+import { renameGoalPointsInSessions, setGoal } from "@/lib/db";
+import { MAX_GOAL, type GoalRename } from "@/lib/goal";
 
 /** PUT /api/goal — set (or, with empty text, clear) the caller's own
- *  "goal for next session". Always scoped to the caller. */
+ *  "goal for next session". Optional `renames` ({from, to}[]) rewords those
+ *  points in the caller's past session snapshots too; added/removed points
+ *  never touch past sessions. Always scoped to the caller. */
 export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -16,6 +18,19 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: `goal is limited to ${MAX_GOAL} characters` }, { status: 400 });
   }
 
+  const rawRenames: unknown = body?.renames ?? [];
+  const renames = Array.isArray(rawRenames)
+    ? rawRenames.filter(
+        (r): r is GoalRename =>
+          typeof r?.from === "string" &&
+          typeof r?.to === "string" &&
+          r.from.length <= MAX_GOAL &&
+          r.to.length <= MAX_GOAL
+      )
+    : null;
+  if (!renames) return NextResponse.json({ error: "renames must be an array" }, { status: 400 });
+
   await setGoal(session.user.id, text);
-  return NextResponse.json({ text: text || null });
+  const sessions = await renameGoalPointsInSessions(session.user.id, renames);
+  return NextResponse.json({ text: text || null, sessions });
 }

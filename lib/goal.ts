@@ -24,6 +24,18 @@ export function joinGoalPoints(points: string[]): string {
     .join("\n");
 }
 
+export type GoalRename = { from: string; to: string };
+
+/** Rewords lines of a session's goal snapshot in place (exact-text match,
+ *  applied simultaneously so swaps work). Line order — and so the
+ *  per-point ticks indexed by it — is unchanged. Null if nothing changed. */
+export function applyGoalRenames(text: string, renames: GoalRename[]): string | null {
+  const map = new Map(renames.filter((r) => r.to.trim()).map((r) => [r.from.trim(), r.to.trim()]));
+  const before = goalPoints(text);
+  const after = before.map((p) => map.get(p) ?? p);
+  return after.some((p, i) => p !== before[i]) ? joinGoalPoints(after) : null;
+}
+
 /** Validates a per-point "achieved" array against the goal it belongs to:
  *  exactly one boolean per point, else null. */
 export function parsePointsMet(value: unknown, goalText: string | null | undefined): boolean[] | null {

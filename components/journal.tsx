@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
-import { EntryCard } from "@/components/entry-card";
+import { SessionList } from "@/components/session-list";
 import { PatternsTable } from "@/components/patterns-table";
 import { BoardRack } from "@/components/board-rack";
 import { GoalCard } from "@/components/goal";
@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { downloadCsv } from "@/lib/csv";
+import type { GoalRename } from "@/lib/goal";
 import { useLang } from "@/lib/i18n";
 import type { Board, Session } from "@/lib/types";
 
@@ -85,16 +86,22 @@ export function Journal({
   }
 
   /** Resolves true if saved, so the card knows whether to leave edit mode. */
-  async function saveGoal(text: string): Promise<boolean> {
+  async function saveGoal(text: string, renames: GoalRename[]): Promise<boolean> {
     try {
       const res = await fetch("/api/goal", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, renames }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSaveGoal"));
       setGoal(body.text ?? null);
+      const renamed = new Map<string, string>(
+        (body.sessions ?? []).map((s: { id: string; goalText: string }) => [s.id, s.goalText])
+      );
+      if (renamed.size) {
+        setSessions((prev) => prev.map((s) => (renamed.has(s.id) ? { ...s, goalText: renamed.get(s.id)! } : s)));
+      }
       return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("toast.couldntSaveGoal"));
@@ -221,9 +228,7 @@ export function Journal({
           {sessions.length === 0 ? (
             <EmptyState />
           ) : (
-            sessions.map((s) => (
-              <EntryCard key={s.id} session={s} boards={boards} onUpdated={upsert} onDeleted={remove} />
-            ))
+            <SessionList sessions={sessions} boards={boards} onUpdated={upsert} onDeleted={remove} />
           )}
         </div>
       </section>
