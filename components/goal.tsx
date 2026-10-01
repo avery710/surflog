@@ -13,12 +13,22 @@
  * own wording across all sessions (`pointStats()`), so editing one point
  * doesn't reset the others.
  */
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, Plus, Target, X } from "lucide-react";
 import { cn } from "cn";
+import { CALENDAR_CARD_HEIGHT_PX } from "@/components/activity-calendar";
 import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats } from "@/lib/goal";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
+
+/** Shared type style for a goal point's text — the display bullet list and
+ *  the edit-mode inputs both use this, so toggling into/out of edit mode
+ *  doesn't change the point text's size, weight, line-height or tracking
+ *  (2026-10-01, on request: the inputs used to be a plain 16px). Below
+ *  16px, so focusing one of these inputs zooms the viewport on iOS
+ *  Safari — accepted here, since matching the display text mattered more
+ *  than avoiding that; not worked around in this change. */
+const POINT_TEXT_CLASS = "text-[14.5px] font-bold leading-snug tracking-[-0.01em]";
 
 export function GoalCard({
   goal,
@@ -36,11 +46,60 @@ export function GoalCard({
   const [newPoint, setNewPoint] = useState("");
   const [saving, setSaving] = useState(false);
   const cancelled = useRef(false);
+  const newPointRef = useRef<HTMLInputElement>(null);
+
+  // The scrollable points list (display mode only — see the height-cap
+  // comment on the card wrapper below) and its bottom fade hint. Managed by
+  // direct DOM reads/writes (no React state), same convention as
+  // activity-calendar.tsx's updateArrowState — this file avoids
+  // setState-in-effect, see CLAUDE.md "Conventions".
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fadeRef = useRef<HTMLDivElement>(null);
 
   // How it's gone so far, per point, matched by the point's own text in
   // every session (not the whole goal text) — see pointStats().
   const stats = pointStats(goalPoints(goal), sessions);
-  const anyHistory = stats.some((st) => st.total > 0);
+
+  const updateFade = useCallback(() => {
+    const el = scrollRef.current;
+    const fade = fadeRef.current;
+    if (!el || !fade) return;
+    const overflowing = el.scrollHeight > el.clientHeight + 1;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+    fade.style.opacity = overflowing && !atBottom ? "1" : "0";
+    // tabIndex/aria-label toggle with overflow too, so the list is only a
+    // keyboard scroll stop (and only announces itself as scrollable) when
+    // there's actually something to scroll to.
+    if (overflowing) {
+      el.tabIndex = 0;
+      el.setAttribute("aria-label", t("goal.scrollHint"));
+    } else {
+      el.removeAttribute("tabindex");
+      el.removeAttribute("aria-label");
+    }
+  }, [t]);
+
+  // Re-check after every render that could change the list's content height
+  // (new/removed points, counts filling in, language switch re-wrapping
+  // text) — a plain effect with no deps array, like activity-preview's own
+  // per-render DOM sync, so nothing has to be exhaustively listed and nothing
+  // sets React state here.
+  useLayoutEffect(() => {
+    updateFade();
+  });
+
+  // Also re-check on the element's own size changes — covers the `sm`
+  // breakpoint turning the height cap on/off, and the window resizing,
+  // neither of which re-renders this component by itself. Re-subscribes
+  // whenever `editing` flips, since the scrollable node only exists in
+  // display mode (unmounted while editing).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => updateFade());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [updateFade, editing]);
 
   function startEdit() {
     cancelled.current = false;
@@ -58,6 +117,7 @@ export function GoalCard({
 
   function removePoint(i: number) {
     setPoints((prev) => prev.filter((_, idx) => idx !== i));
+    newPointRef.current?.focus();
   }
 
   function updatePoint(i: number, value: string) {
@@ -85,11 +145,30 @@ export function GoalCard({
   return (
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
+    //
+    // Height match with the activity calendar (2026-10-01, on request —
+    // the calendar is now a fixed 4-week window, so it has a constant
+    // height Avery wanted this card to line up with): on `sm+`, in display
+    // mode only, the card's height is pinned to the calendar's own
+    // (CALENDAR_CARD_HEIGHT_PX, exported from activity-calendar.tsx so
+    // this doesn't hand-duplicate its geometry — see that file's own
+    // comment for the arithmetic) via a CSS custom property, and the
+    // points list becomes the part that scrolls past that height, with a
+    // bottom fade hint when it does. Below `sm`, and whenever editing,
+    // there's no cap — editing always shows every input row in full, and
+    // below `sm` the two cards stack full-width anyway. The calendar
+    // itself never stretches to match this card either way (see its own
+    // sm:self-start) — only this card adapts to the pairing.
     <section>
-      <div className="flex items-start gap-3 rounded-[var(--r-card)] border border-border bg-card px-5 py-4 shadow-[var(--shadow-card)]">
-        <Target className="mt-0.5 size-5 shrink-0 text-[#0E7C86]" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <h2 className="px-2 pb-1 font-sans text-[13px] font-bold text-muted-foreground">
+      <div
+        className={cn(
+          "flex items-stretch gap-3 rounded-[var(--r-card)] border border-border bg-card px-5 py-3.5 shadow-[var(--shadow-card)]",
+          !editing && "sm:h-[var(--goal-card-h)]"
+        )}
+        style={{ "--goal-card-h": `${CALENDAR_CARD_HEIGHT_PX}px` } as React.CSSProperties}
+      >
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h2 className="shrink-0 px-2 pb-0.5 font-sans text-[13px] font-bold text-muted-foreground">
             {t("goal.title")}
           </h2>
           {editing ? (
@@ -119,11 +198,17 @@ export function GoalCard({
                         setEditing(false);
                       }
                     }}
-                    className="min-w-0 flex-1 rounded-[10px] border border-ring bg-background px-2 py-1 text-[16px] outline-none ring-4 ring-ring/15 disabled:opacity-60"
+                    className={cn(
+                      "min-w-0 flex-1 rounded-[10px] border border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
+                      POINT_TEXT_CLASS
+                    )}
                   />
                   <button
                     type="button"
                     disabled={saving}
+                    // Safari doesn't focus buttons on click, so without this the
+                    // input blurs to <body> and the blur-to-save never fires.
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => removePoint(i)}
                     aria-label={t("goal.removePoint", { point: p })}
                     className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-60"
@@ -134,6 +219,7 @@ export function GoalCard({
               ))}
               <div className="flex items-center gap-1.5">
                 <input
+                  ref={newPointRef}
                   autoFocus={points.length === 0}
                   value={newPoint}
                   disabled={saving}
@@ -147,11 +233,15 @@ export function GoalCard({
                       setEditing(false);
                     }
                   }}
-                  className="min-w-0 flex-1 rounded-[10px] border border-dashed border-ring bg-background px-2 py-1 text-[16px] outline-none ring-4 ring-ring/15 disabled:opacity-60"
+                  className={cn(
+                    "min-w-0 flex-1 rounded-[10px] border border-dashed border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
+                    POINT_TEXT_CLASS
+                  )}
                 />
                 <button
                   type="button"
                   disabled={saving || !newPoint.trim()}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={addPoint}
                   aria-label={t("goal.addPoint")}
                   className="shrink-0 rounded-full p-1.5 text-[#0E7C86] hover:bg-secondary disabled:opacity-40"
@@ -164,47 +254,60 @@ export function GoalCard({
               </p>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={startEdit}
-              aria-label={t("goal.edit")}
-              className={
-                shownPoints.length
-                  ? "w-full rounded-[10px] px-2 py-1 text-left hover:bg-secondary"
-                  : "rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:bg-secondary hover:text-muted-foreground"
-              }
-            >
-              {shownPoints.length ? (
-                <ul className="list-disc space-y-0.5 pl-4 text-[14.5px] font-bold leading-snug tracking-[-0.01em] break-words">
-                  {shownPoints.map((p, i) => (
-                    <li key={i}>
-                      {p}
-                      {stats[i]?.total ? (
-                        <span className="ml-2 whitespace-nowrap text-[12px] font-semibold tabular-nums text-[#0E7C86]">
-                          {t("goal.pointCount", { met: stats[i].met, n: stats[i].total })}
-                        </span>
-                      ) : null}
-                      {/* A point with no history yet, next to ones that have
-                          some — quiet, so it doesn't read as 0/0. */}
-                      {anyHistory && !stats[i]?.total && (
-                        <span className="ml-2 whitespace-nowrap text-[11px] font-medium text-[var(--faint)]">
-                          {t("goal.pointNew")}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                t("goal.add")
-              )}
-            </button>
-          )}
-          {/* Only when no point has any history — once one does, the
-              per-point counts say it all. */}
-          {goal && !editing && !anyHistory && (
-            <p className="px-2 pt-1 text-[12.5px] font-medium text-muted-foreground">
-              {t("goal.notTriedYet")}
-            </p>
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <div
+                ref={scrollRef}
+                onScroll={updateFade}
+                // Native scrollbar hidden, same as the activity calendar's
+                // own week list — there's nothing else here standing in for
+                // it (no rail), just the bottom fade below and, once it
+                // overflows, keyboard scrolling via the tabIndex updateFade
+                // sets above.
+                className={cn(
+                  "min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                  // No points yet: centre the "add a goal" prompt in
+                  // whatever height this got matched to, instead of letting
+                  // it sit pinned to the top of a mostly-empty card.
+                  !shownPoints.length && "flex flex-col justify-center"
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  aria-label={t("goal.edit")}
+                  className={
+                    shownPoints.length
+                      ? "w-full rounded-[10px] px-2 py-1 text-left hover:bg-secondary"
+                      : "w-full rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:bg-secondary hover:text-muted-foreground"
+                  }
+                >
+                  {shownPoints.length ? (
+                    <ul className={cn("list-disc space-y-0.5 pl-4 break-words", POINT_TEXT_CLASS)}>
+                      {shownPoints.map((p, i) => (
+                        <li key={i}>
+                          {p}
+                          {stats[i]?.total ? (
+                            <span className="ml-2 whitespace-nowrap text-[12px] font-semibold tabular-nums text-[#0E7C86]">
+                              {t("goal.pointCount", { met: stats[i].met, n: stats[i].total })}
+                            </span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    t("goal.add")
+                  )}
+                </button>
+              </div>
+              {/* Bottom fade — visibility toggled by updateFade() above,
+                  not Tailwind state classes, since it depends on a DOM
+                  measurement rather than anything React already tracks. */}
+              <div
+                ref={fadeRef}
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-6 rounded-b-[10px] bg-gradient-to-t from-card to-transparent opacity-0 transition-opacity"
+              />
+            </div>
           )}
         </div>
       </div>
@@ -269,16 +372,19 @@ export function GoalCheck({
  *  no room for a list). */
 export function GoalChip({ goal, pointsMet }: { goal: string; pointsMet: boolean[] | null }) {
   const { t } = useLang();
-  const compact = goalPoints(goal).join(" · ");
+  const points = goalPoints(goal);
+  const compact = (pointsMet ? points.filter((_, i) => pointsMet[i]) : points).join(" · ");
   const met = pointsMet?.filter(Boolean).length ?? 0;
   const n = pointsMet?.length ?? 0;
   return (
     <div className="flex min-w-0 px-6 pt-2.5 pb-0.5">
       <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary py-1 pr-1 pl-3">
         <Target className="size-3.5 shrink-0 text-[#0E7C86]" aria-hidden />
-        <span className="min-w-0 truncate text-[13.5px] font-bold tracking-[-0.01em]" title={goal}>
-          {compact}
-        </span>
+        {compact && (
+          <span className="min-w-0 truncate text-[13.5px] font-bold tracking-[-0.01em]" title={goal}>
+            {compact}
+          </span>
+        )}
         <span
           className={cn(
             "shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums",

@@ -256,7 +256,8 @@ export function EntryCard({
       </Dialog>
 
       {om ? (
-        // Phones (<sm): a 3-col grid, swell/period/wind then temp+tide.
+        // Phones (<sm): a 3-col grid, swell/period/wind then temp+tide
+        // (tide moved back after temp 2026-10-01, on request).
         // sm and up (tablet and desktop, 2026-10-01): one flex row that
         // fills the card's full width, not just desktop — a tablet-width
         // card used to sit at half-width in two grid rows, with no reason
@@ -329,27 +330,29 @@ export function EntryCard({
                   sub={om.airTempC != null ? t("tile.airTemp", { t: fmt1(om.airTempC) ?? "—" }) : undefined}
                 />
               )}
+              {/* CWA wins whenever it covers the session (see the comment
+                  above `tideSource`); Open-Meteo's tideEvents is the
+                  fallback for past/overseas sessions CWA can't reach. The
+                  manual Swelleye tide stays stored but never shown here.
+                  The mini curve needs at least two events to draw a shape;
+                  a lone legacy CWA event falls back to the plain
+                  next-low/next-high text. Ordered after the temp tile
+                  (moved back 2026-10-01, on request), last in the row. */}
+              {tideSource && (
+                <ConditionTile
+                  label={t("tile.tideOpenMeteo")}
+                  className={`${hasTemp ? "col-span-2" : "col-span-3"} sm:flex-[1.6] sm:basis-0 sm:shrink sm:min-w-[110px]`}
+                  value={trendHeadline(tideTrendValue)}
+                  sub={
+                    tideEvents.length >= 2 ? (
+                      <TideChart events={tideEvents} sessionWhen={session.when} />
+                    ) : (
+                      <TideEventsSub events={tideEvents} sessionWhen={session.when} />
+                    )
+                  }
+                />
+              )}
             </>
-          )}
-          {/* CWA wins whenever it covers the session (see the comment above
-              `tideSource`); Open-Meteo's tideEvents is the fallback for
-              past/overseas sessions CWA can't reach. The manual Swelleye
-              tide stays stored but never shown here. The mini curve needs
-              at least two events to draw a shape; a lone legacy CWA event
-              falls back to the plain next-low/next-high text. */}
-          {tideSource && (
-            <ConditionTile
-              label={t("tile.tideOpenMeteo")}
-              className={`${hasTemp ? "col-span-2" : "col-span-3"} sm:flex-[1.6] sm:basis-0 sm:shrink sm:min-w-[110px]`}
-              value={trendHeadline(tideTrendValue)}
-              sub={
-                tideEvents.length >= 2 ? (
-                  <TideChart events={tideEvents} sessionWhen={session.when} />
-                ) : (
-                  <TideEventsSub events={tideEvents} sessionWhen={session.when} />
-                )
-              }
-            />
           )}
         </div>
       ) : null}

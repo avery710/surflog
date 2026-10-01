@@ -70,11 +70,14 @@ function DashboardPanel({
     // (--primary-soft) while each section keeps a white bg-card surface.
     <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] border border-border bg-primary-soft p-3 sm:p-5">
       {/* Row 1, sm: up — goal (flexible) beside the calendar (content-sized,
-          fit-content), items-start not items-stretch. See journal.tsx for why:
-          the calendar's own content is only ~200px wide, so pairing it with
-          the short goal card uses the space a full-width calendar card used
-          to waste between sm and lg. */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          fit-content), sm:items-stretch (2026-10-01). See journal.tsx for
+          why: the calendar's own content is only ~200px wide, so pairing it
+          with the goal card uses the space a full-width calendar card used
+          to waste between sm and lg; items-stretch (was items-start) lets
+          the goal card match the calendar's now-fixed height in display
+          mode, scrolling its points list past it — the calendar itself
+          opts back out via its own sm:self-start. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
         <div className="min-w-0 flex-1">
           <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
         </div>
@@ -264,9 +267,33 @@ const goalLongZhSessions: Session[] = [0, 4].map((daysAgo, i) =>
   })
 );
 
+// 7 points (6+), the last a long wrapping 繁體中文 sentence — tall enough
+// on `sm+` to exceed the goal card's height cap (CALENDAR_CARD_HEIGHT_PX,
+// see goal.tsx) so the points list actually scrolls and the bottom fade
+// shows, added 2026-10-01 alongside that height-match change.
+const goalManyPointsRaw = [
+  "提早划水",
+  "起乘時重心放低",
+  "看浪優先，不要只顧划手",
+  "後腳確實施力做轉彎",
+  "Look down the line before the top turn",
+  "划水路徑貼近板身，不要划太寬",
+  "看浪的時候要提早轉頭找下一個方向，不要等浪快靠近才轉頭，等到真的靠近才轉頭常常會來不及調整站位，導致起乘的時間點抓不準",
+];
+const goalManyPoints = joinGoalPoints(goalManyPointsRaw).slice(0, MAX_GOAL);
+const goalManyPointsSessions: Session[] = [0, 3, 10].map((daysAgo, i) =>
+  dashSession({
+    spot: "jialeshui",
+    when: `${minusDays(todayYmd, daysAgo)}T07:00`,
+    goalText: goalManyPoints,
+    goalMet: i === 0 ? true : i === 1 ? false : null,
+  })
+);
+
 const goalNotTried = "改用短一點的板子試試看起乘速度會不會比較快";
 // Sessions exist, but none logged against *this* goal text — tried.length
-// is 0, so GoalCard shows t("goal.notTriedYet"), not a "met 0 of 0" count.
+// is 0, so GoalCard shows the point with no count after it at all (no
+// "not tried yet" wording either — removed 2026-10-01, on request).
 const goalNotTriedSessions: Session[] = [0, 9, 20].map((daysAgo) =>
   dashSession({
     spot: "waiao",
@@ -451,11 +478,22 @@ const CASES: DashboardCase[] = [
     spotNotes: {},
   },
   {
+    id: "goal-many-points",
+    group: "Goal card",
+    title: "7 points — scrolls past the calendar's height",
+    caption:
+      "6 short points plus one long wrapping 繁體中文 sentence — on sm+ this exceeds the goal card's height cap (matched to the activity calendar's fixed 4-week height), so the points list scrolls internally and the bottom fade hint appears; below sm there's no cap, so it's just a long list.",
+    goal: goalManyPoints,
+    sessions: goalManyPointsSessions,
+    boards: goalCaseBoards,
+    spotNotes: {},
+  },
+  {
     id: "goal-not-tried",
     group: "Goal card",
     title: "Goal set, no sessions against it yet",
     caption:
-      "Sessions exist (at other spots, some with an older/different goal, some with none), but none carry *this* exact goal text — tried.length is 0, so the card shows the “not tried yet” message, not a “met 0 of 0” count.",
+      "Sessions exist (at other spots, some with an older/different goal, some with none), but none carry *this* exact goal text — tried.length is 0, so the point shows with no count after it at all, not a “met 0 of 0”.",
     goal: goalNotTried,
     sessions: goalNotTriedSessions,
     boards: goalCaseBoards,

@@ -26,7 +26,8 @@ const ms = (local: string) => new Date(`${local.slice(0, 16)}:00Z`).getTime();
 /**
  * A small schematic tide wave through the stored highs and lows around a
  * session. The low and high either side of the session are labelled with
- * just their time (dot + dashed marker for the session itself); only
+ * just their time, and the session's own position is a plain dot on the
+ * curve (no vertical marker line — removed 2026-10-01 on request); only
  * turning points are known, so each leg between two of them is a
  * half-cosine — it shows where in the cycle the session sat, not a measured
  * height at each moment. Sized in real pixels (measured), so text and dots
@@ -120,7 +121,6 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
     svg = (
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block" role="img" aria-label={t("tide.chartLabel")}>
         <path d={line} fill="none" className="stroke-primary" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-        <line x1={sx} x2={sx} y1={2} y2={H - 2} className="stroke-primary" strokeWidth={1} strokeDasharray="2 2" opacity={0.6} />
         {evs.map((e, i) => {
           const px = x(times[i]);
           const py = y(levels[i]);

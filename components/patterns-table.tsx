@@ -86,13 +86,13 @@ export function PatternsTable({
                 const note = spotNotes[r.slug];
                 return (
                   <tr key={r.slug}>
-                    <td className="rounded-l-[var(--r-tile)] bg-secondary px-4 py-2.5 align-top font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
+                    <td className="rounded-l-[var(--r-tile)] bg-secondary px-4 py-2.5 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
                       {label}
                     </td>
-                    <td className="whitespace-nowrap bg-secondary px-4 py-2.5 align-top font-mono text-[13.5px] tabular-nums">
+                    <td className="whitespace-nowrap bg-secondary px-4 py-2.5 align-middle font-mono text-[13.5px] tabular-nums">
                       {r.n}
                     </td>
-                    <td className="w-full rounded-r-[var(--r-tile)] bg-secondary px-2 py-1.5 align-top">
+                    <td className="w-full rounded-r-[var(--r-tile)] bg-secondary px-2 py-1.5 align-middle">
                       {editing === r.slug ? (
                         <input
                           autoFocus

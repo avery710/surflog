@@ -94,8 +94,8 @@ const DICT = {
   "form.saveSession": { en: "Save session", "zh-TW": "儲存紀錄" },
   "form.saving": { en: "Saving…", "zh-TW": "儲存中…" },
   "form.autoFillHint": {
-    en: "Conditions fill in automatically from Open-Meteo once saved",
-    "zh-TW": "儲存後會自動帶入 Open-Meteo 的浪況",
+    en: "Swell, wind and tide fill in automatically from Open-Meteo and CWA once saved",
+    "zh-TW": "儲存後會自動帶入 Open-Meteo 與氣象署的浪況、風和潮汐",
   },
 
   "edit.conditionsHeader": { en: "Conditions (Swelleye, entered by hand)", "zh-TW": "浪況（Swelleye，手動輸入）" },
@@ -165,10 +165,9 @@ const DICT = {
   "goal.editPoint": { en: "Point {n}", "zh-TW": "第 {n} 項" },
   "goal.removePoint": { en: "Remove “{point}”", "zh-TW": "移除「{point}」" },
   "goal.charsLeft": { en: "{n} characters left", "zh-TW": "剩下 {n} 字" },
-  "goal.notTriedYet": { en: "Not tried yet — it'll show up when you log your next session.", "zh-TW": "還沒試過——下次新增紀錄時會出現。" },
   "goal.whichDidYouAchieve": { en: "Which did you achieve?", "zh-TW": "這次達成了哪些？" },
   "goal.pointCount": { en: "{met}/{n}", "zh-TW": "{met}/{n}" },
-  "goal.pointNew": { en: "not tried yet", "zh-TW": "尚未嘗試" },
+  "goal.scrollHint": { en: "More goal points — scroll to see them", "zh-TW": "還有更多目標項目，可捲動查看" },
   "goal.chipCount": { en: "{met}/{n} achieved", "zh-TW": "達成 {met}/{n}" },
   "goal.notAssessed": { en: "Not checked", "zh-TW": "未確認" },
   "toast.couldntSaveGoal": { en: "Couldn't save the goal", "zh-TW": "無法儲存目標" },

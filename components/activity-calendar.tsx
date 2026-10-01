@@ -66,6 +66,24 @@ const ROW_GAP_PX = 8; // matches the `space-y-2` gap between week rows
 // 4 rows * 10px dots + 3 gaps * 8px = 64px — the list's fixed scroll height.
 const WEEK_LIST_HEIGHT_PX = VISIBLE_WEEKS * DOT_PX + (VISIBLE_WEEKS - 1) * ROW_GAP_PX;
 
+// The weekday header row above the list: one DOT_PX-tall leading-none label
+// line (the font-size is pinned to DOT_PX for the same clipping reason as
+// the week rows — see the WEEK_LIST_HEIGHT_PX comment above) plus the mb-2
+// (8px) gap before the list starts.
+const HEADER_ROW_HEIGHT_PX = DOT_PX + 8;
+// The card's own py-5 (20px top + 20px bottom) padding and 1px top + bottom
+// border-border.
+const CARD_PADDING_Y_PX = 20 + 20;
+const CARD_BORDER_Y_PX = 2;
+
+/** Total rendered height of the calendar's card, border to border — fixed
+ *  now that the list is always exactly VISIBLE_WEEKS rows (see above).
+ *  Exported so other dashboard-panel cards can match it exactly (the goal
+ *  card, 2026-10-01, on request — see its own comment) instead of a
+ *  hand-typed duplicate number that would drift the next time this
+ *  geometry changes. */
+export const CALENDAR_CARD_HEIGHT_PX = CARD_PADDING_Y_PX + CARD_BORDER_Y_PX + HEADER_ROW_HEIGHT_PX + WEEK_LIST_HEIGHT_PX;
+
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -279,8 +297,13 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     // room around the ↑/↓ buttons so they don't sit flush against the card's
     // rounded corner; the plain p-5 used everywhere else read as too tight
     // once the card stopped carrying any other slack (see the width-fix
-    // immediately before this one).
-    <section className="w-full sm:w-fit sm:shrink-0">
+    // immediately before this one). sm:self-start (2026-10-01, alongside the
+    // goal card's height match above): journal.tsx's row became
+    // sm:items-stretch so the goal card can be stretched to this card's
+    // height, and self-start opts this card back out of that stretch — its
+    // own height stays the fixed CALENDAR_CARD_HEIGHT_PX, never the taller
+    // goal card's (e.g. while it's in edit mode).
+    <section className="w-full sm:w-fit sm:shrink-0 sm:self-start">
       <div className="rounded-[var(--r-card)] border border-border bg-card py-5 pr-6 pl-5 shadow-[var(--shadow-card)]">
         {/* The weekday header and the scrollable week list share one flex-1
             column, with the ↑/↓ rail as a sibling of that whole column (not
