@@ -37,10 +37,10 @@ function fakeSession(when: string): Session {
 
 /** Sessions on a scattered subset of days (every 3rd) across `monthsBack`
  *  months ending at the current month — enough to see both filled and empty
- *  dots in every row, without every day being "surfed". The current month
- *  only gets days up to today, since a real journal can't have future
- *  sessions; earlier months fill in full so their dot-row count (2 vs 3
- *  rows) is visible too. */
+ *  dots in every row, without every day being "surfed", and (at 2+ months)
+ *  enough weeks of history to exercise ActivityCalendar's fixed 4-week
+ *  window and its ↑/↓ scroll rail. The current month only gets days up to
+ *  today, since a real journal can't have future sessions. */
 function sessionsSpanning(monthsBack: number): Session[] {
   const todayStr = taipeiToday();
   const [ty, tm, td] = todayStr.split("-").map(Number);

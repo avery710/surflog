@@ -70,7 +70,7 @@ function DashboardPanel({
     // (--primary-soft) while each section keeps a white bg-card surface.
     <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] border border-border bg-primary-soft p-3 sm:p-5">
       {/* Row 1, sm: up — goal (flexible) beside the calendar (content-sized,
-          ~260px), items-start not items-stretch. See journal.tsx for why:
+          fit-content), items-start not items-stretch. See journal.tsx for why:
           the calendar's own content is only ~200px wide, so pairing it with
           the short goal card uses the space a full-width calendar card used
           to waste between sm and lg. */}
@@ -137,10 +137,11 @@ function dashSession(overrides: Partial<Session> & Pick<Session, "spot" | "when"
 }
 
 /** Sparse sessions (every 6th day) across `monthsBack` months ending at the
- *  current month — enough to make ActivityCalendar's older-months scroll
- *  rail appear (canScroll = months.length > VISIBLE_MONTHS(3)) without
- *  every day being "surfed". Mirrors activity-preview/page.tsx's own
- *  sessionsSpanning(), extended with a spot/id so it can share dashSession. */
+ *  current month — enough history to make ActivityCalendar's older-weeks
+ *  scroll rail appear (canScroll = weeks.length > VISIBLE_WEEKS(4), easily
+ *  true past the current 4-week window) without every day being "surfed".
+ *  Mirrors activity-preview/page.tsx's own sessionsSpanning(), extended
+ *  with a spot/id so it can share dashSession. */
 function sessionsSpanningMonths(monthsBack: number, spot: string, idPrefix: string): Session[] {
   const sessions: Session[] = [];
   for (let back = monthsBack - 1; back >= 0; back--) {
@@ -463,9 +464,9 @@ const CASES: DashboardCase[] = [
   {
     id: "cal-single-month",
     group: "Activity calendar",
-    title: "Calendar — current month only",
+    title: "Calendar — within the current 4-week window",
     caption:
-      "Every session falls in the current calendar month (computed relative to today, not hardcoded) → one month row, no scroll rail. Dates thin out gracefully if this is opened very early in a month.",
+      "Every session falls within the last 4 weeks (computed relative to today, not hardcoded) → weeks.length ≤ VISIBLE_WEEKS(4), so the whole history fits with no scroll rail. Dates thin out gracefully if this is opened very early in a week/month.",
     goal: null,
     sessions: calSingleMonthSessions,
     boards: calCaseBoards,
@@ -476,7 +477,7 @@ const CASES: DashboardCase[] = [
     group: "Activity calendar",
     title: "Calendar — 4+ months of history",
     caption:
-      "Sparse sessions spanning 5 months → months.length (5) > VISIBLE_MONTHS (3), so the ↑/↓ scroll rail appears; the list lands on the current (bottom) month by default.",
+      "Sparse sessions spanning 5 months → weeks.length (~22) > VISIBLE_WEEKS(4), so the ↑/↓ scroll rail appears; the fixed-height list lands on the current (bottom) week by default — always visible without scrolling, see the week grid's own comment.",
     goal: null,
     sessions: calFourMonthsSessions,
     boards: calCaseBoards,

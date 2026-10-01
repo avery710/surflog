@@ -164,7 +164,7 @@ export function Journal({
           gap-4, not each section's old mt-6.5. */}
       <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] border border-border bg-primary-soft p-3 sm:p-5">
         {/* Row 1, sm: up: goal (flexible width) beside the calendar
-            (content-sized, ~260px — see ActivityCalendar's own comment for
+            (content-sized — see ActivityCalendar's own comment for
             the arithmetic). The calendar used to get a fixed 344px column
             only from `lg`, with the table beside it — but the calendar's
             actual content (a 7-dot week grid + month label + scroll rail)

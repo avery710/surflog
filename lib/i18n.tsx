@@ -129,8 +129,8 @@ const DICT = {
   "toast.couldntSaveDescription": { en: "Couldn't save description", "zh-TW": "無法儲存描述" },
   "calendar.session": { en: "{n} session", "zh-TW": "{n} 次" },
   "calendar.sessions": { en: "{n} sessions", "zh-TW": "{n} 次" },
-  "calendar.showOlderMonths": { en: "Show older months", "zh-TW": "顯示較舊的月份" },
-  "calendar.showNewerMonths": { en: "Show more recent months", "zh-TW": "顯示較新的月份" },
+  "calendar.showOlderWeeks": { en: "Show older weeks", "zh-TW": "顯示較舊的週次" },
+  "calendar.showNewerWeeks": { en: "Show more recent weeks", "zh-TW": "顯示較新的週次" },
   // Monday-first weekday header above the dot grid, one letter/character each.
   "calendar.weekday.mon": { en: "M", "zh-TW": "一" },
   "calendar.weekday.tue": { en: "T", "zh-TW": "二" },

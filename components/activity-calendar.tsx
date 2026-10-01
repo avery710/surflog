@@ -8,15 +8,19 @@ import { taipeiToday } from "@/lib/format";
 import type { Session } from "@/lib/types";
 
 /** Dot grid geometry — small and fixed, never stretched to fill the card.
- *  A proper week grid now: 7 per row, Monday-first, day 1 sits under its
- *  real weekday (leading empty slots before it) — see `leadingEmptyDots()`.
- *  Fixed pixel column widths (not fractional), so the grid never depends on
- *  flex-wrap rounding, and the weekday header row below lines up with it
- *  exactly regardless of the two rows' different flex containers. Dot size
- *  kept at the original 10px (unchanged from the 14-per-row layout; tried
- *  larger at 14px first, sized back down on request). Gap widened to 10px
- *  (from the original 6px) on request, for more breathing room between
- *  dots now that there's only 7 per row instead of 14. */
+ *  A proper week grid: 7 per row, Monday-first. Every row is now always a
+ *  full Monday-Sunday week (2026-10-01: switched from month-rows, which
+ *  needed leading blanks before day 1 to line day 1 up under its real
+ *  weekday — a week-row never needs that, it always starts on Monday), so
+ *  every row is exactly the same height — see VISIBLE_WEEKS below for why
+ *  that matters. Fixed pixel column widths (not fractional), so the grid
+ *  never depends on flex-wrap rounding, and the weekday header row below
+ *  lines up with it exactly regardless of the two rows' different flex
+ *  containers. Dot size kept at the original 10px (unchanged from the
+ *  14-per-row layout; tried larger at 14px first, sized back down on
+ *  request). Gap widened to 10px (from the original 6px) on request, for
+ *  more breathing room between dots now that there's only 7 per row
+ *  instead of 14. */
 const DOT_PX = 10;
 const GAP_PX = 10;
 const DOTS_PER_ROW = 7;
@@ -39,35 +43,56 @@ const WEEKDAY_KEYS: TKey[] = [
   "calendar.weekday.sun",
 ];
 
-/** At most this many months are visible without scrolling; older ones
- *  scroll above. Month rows aren't a fixed height (a 28-day Feb with a
- *  Monday-first 1st is 4 dot rows, a 31-day month starting on a Sunday is
- *  6), so "2 months" is measured from the actual rendered rows (see the
- *  layout effect below) rather than a single guessed CSS max-height — this
- *  constant is also the initial/SSR fallback before that measurement runs.
- *  Lowered from 3 to 2 when the grid went from 14-per-row to 7-per-row: a
- *  week-aligned month is now 4-6 dot rows instead of 2-3, so 3 months would
- *  make this card noticeably taller than the table it usually sits beside. */
-const VISIBLE_MONTHS = 2;
-const ROW_GAP_PX = 8; // matches the `space-y-2` gap between month rows
-const MONTH_LIST_MAX_HEIGHT_FALLBACK = 190;
+/** Exactly this many week-rows are visible at once, always — a fixed
+ *  window with a fixed height (WEEK_LIST_HEIGHT_PX below), not a measured
+ *  one (2026-10-01, on request — "only display last 4 weeks so we have
+ *  fixed height and width"; replaces the earlier month-row design, where
+ *  2-3 months of variable-height rows — a 28-day Feb starting Monday is 4
+ *  dot rows, a 31-day month starting Sunday is 6 — were measured from the
+ *  rendered DOM after mount). Every row is now always a full Monday-Sunday
+ *  week (7 dots, no leading blanks) at a fixed DOT_PX height (the month
+ *  label's font-size is pinned to match DOT_PX exactly — see the label
+ *  span below; at a larger size it was the tallest child in its row and
+ *  silently stretched every row past DOT_PX, which the fixed-height scroll
+ *  area then clipped), so every row really is the same height and the
+ *  list's total height is a plain constant. A brand-new user with less
+ *  than VISIBLE_WEEKS of history still gets exactly this many rows, on
+ *  request — see the `minStartMonday` floor below — so the card is never
+ *  shorter than this. Older weeks beyond this window scroll into view one
+ *  at a time via the ↑ arrow in the rail on the right; ↓ returns toward
+ *  the current (bottom) week. */
+const VISIBLE_WEEKS = 4;
+const ROW_GAP_PX = 8; // matches the `space-y-2` gap between week rows
+// 4 rows * 10px dots + 3 gaps * 8px = 64px — the list's fixed scroll height.
+const WEEK_LIST_HEIGHT_PX = VISIBLE_WEEKS * DOT_PX + (VISIBLE_WEEKS - 1) * ROW_GAP_PX;
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-/** Days in a month; `month` is 0-based, matching `Date`'s own convention. */
-function daysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate();
+/** The Monday that starts the week containing local date y/m/d (`month` is
+ *  0-based, matching `Date`'s own convention). Built from y/m/d components
+ *  via `new Date(year, month, day)`, never parsed from an ISO string — no
+ *  UTC shift, matching how every other date in this file is handled.
+ *  `getDay()` is Sun=0..Sat=6; shifted so Monday is 0, Sunday is 6. */
+function mondayOf(year: number, month: number, day: number): Date {
+  const d = new Date(year, month, day);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
 }
 
-/** How many empty slots precede day 1 in a Monday-first week grid.
- *  `new Date(year, month, 1).getDay()` reads the weekday off the *local*
- *  calendar date (Sun=0..Sat=6) since it's built from y/m/d components, not
- *  parsed from an ISO string — no UTC shift, matching how every other date
- *  in this file is handled. Shifted so Monday is 0 and Sunday is 6. */
-function leadingEmptyDots(year: number, month: number): number {
-  return (new Date(year, month, 1).getDay() + 6) % 7;
+/** A new Date `days` after `d` — plain local calendar arithmetic, lets
+ *  `Date` itself handle month/year rollover. */
+function addDays(d: Date, days: number): Date {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+/** "YYYY-MM-DD" for a local Date, matching the session `when` string
+ *  format used everywhere else in this file. */
+function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 /** Short month label for a row, e.g. "Sep" / "9月" — no year, this is a
@@ -77,22 +102,17 @@ function monthLabel(year: number, month: number, lang: Lang): string {
   return new Date(year, month, 1).toLocaleString(locale, { month: "short" });
 }
 
-type MonthKey = { year: number; month: number }; // month is 0-based
-
-/** Every month from `from` through `to` inclusive, oldest first. */
-function monthsBetween(from: MonthKey, to: MonthKey): MonthKey[] {
-  const months: MonthKey[] = [];
-  let year = from.year;
-  let month = from.month;
-  while (year < to.year || (year === to.year && month <= to.month)) {
-    months.push({ year, month });
-    month += 1;
-    if (month > 11) {
-      month = 0;
-      year += 1;
-    }
+/** Every Monday-start week from `from` through `to` inclusive, oldest
+ *  first. Both must already be Mondays (see `mondayOf` above) — this just
+ *  steps by 7 days and lets `Date` normalize month/year rollover. */
+function weeksBetween(from: Date, to: Date): Date[] {
+  const weeks: Date[] = [];
+  let cur = from;
+  while (cur.getTime() <= to.getTime()) {
+    weeks.push(cur);
+    cur = addDays(cur, 7);
   }
-  return months;
+  return weeks;
 }
 
 /** Surfed = filled teal, past-no-surf = filled grey, future (strictly after
@@ -119,10 +139,11 @@ function dotClassName(isFuture: boolean, surfed: boolean): string {
   );
 }
 
-/** Duration of the custom month-to-month scroll animation, in ms — longer
- *  and eased, since the browser's native `scrollTo({ behavior: "smooth" })`
- *  runs a short, non-configurable animation that read as an abrupt jump
- *  between rows of very different heights (2 vs 3 dot-rows). */
+/** Duration of the custom week-to-week scroll animation, in ms — longer and
+ *  eased, since the browser's native `scrollTo({ behavior: "smooth" })` runs
+ *  a short, non-configurable animation. Kept even now that every row is the
+ *  same height (it used to also smooth over rows of different heights,
+ *  2 vs 3 dot-rows, back when rows were months). */
 const SCROLL_ANIMATION_MS = 380;
 
 function easeInOutCubic(t: number): number {
@@ -148,18 +169,32 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   // Every date here comes from either taipeiToday() or a session's own
   // "YYYY-MM-DDTHH:mm" string, sliced and compared/split as plain text —
   // never parsed as an ISO string through Date, which would read it as UTC
-  // and could shift the day.
+  // and could shift the day. mondayOf() below takes the already-split y/m/d
+  // numbers, same rule.
   const todayStr = taipeiToday();
-  const [ty, tm] = todayStr.split("-").map(Number);
-  const today: MonthKey = { year: ty, month: tm - 1 };
-  const earliest: MonthKey = earliestDay
-    ? (([ey, em]) => ({ year: ey, month: em - 1 }))(earliestDay.split("-").map(Number))
-    : today;
+  const [ty, tm, td] = todayStr.split("-").map(Number);
+  const todayMonday = mondayOf(ty, tm - 1, td);
+  const earliestMonday = earliestDay
+    ? (([ey, em, ed]) => mondayOf(ey, em - 1, ed))(earliestDay.split("-").map(Number))
+    : todayMonday;
 
-  // Only the months with history, oldest to current — no earlier sessions
-  // means just the current month, with nothing to scroll to.
-  const months = monthsBetween(earliest, today);
-  const canScroll = months.length > VISIBLE_MONTHS;
+  // Always at least VISIBLE_WEEKS rows, even for a brand-new user with no
+  // (or very little) history — on request, so the card is always exactly
+  // 4 rows tall, never shorter. Extra rows before the earliest session are
+  // just real calendar weeks with no sessions in them (counts.get() already
+  // defaults to 0), nothing special-cased. Older history beyond that floor
+  // still pushes the start further back and makes the list scrollable.
+  const minStartMonday = addDays(todayMonday, -7 * (VISIBLE_WEEKS - 1));
+  const startMonday = earliestMonday.getTime() < minStartMonday.getTime() ? earliestMonday : minStartMonday;
+
+  // Oldest to current. The last entry is always todayMonday (weeksBetween
+  // steps in exact 7-day hops from one Monday to another, so it lands on
+  // the upper bound exactly), i.e. the current week is always present and
+  // always the bottom row — and the view below defaults to scrolled-to-
+  // bottom, so the visible window always ends on the current week, never
+  // on 4 older ones.
+  const weeks = weeksBetween(startMonday, todayMonday);
+  const canScroll = weeks.length > VISIBLE_WEEKS;
 
   // Enables/disables the up/down arrow buttons to match how far the list
   // can still scroll in each direction. Reads and writes the DOM directly
@@ -200,13 +235,11 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   }
 
   // Replaces the native scrollbar (hidden below) as the way to reach older
-  // months — moves exactly one month row at a time, snapping to its top,
-  // rather than an arbitrary pixel nudge, since rows aren't a fixed height
-  // (see VISIBLE_MONTHS above).
-  function scrollByMonth(direction: -1 | 1) {
+  // weeks — moves exactly one week row at a time, snapping to its top.
+  function scrollByWeek(direction: -1 | 1) {
     const el = scrollRef.current;
     if (!el) return;
-    const rows = Array.from(el.querySelectorAll<HTMLElement>("[data-month-row]"));
+    const rows = Array.from(el.querySelectorAll<HTMLElement>("[data-week-row]"));
     const target =
       direction < 0
         ? [...rows].reverse().find((row) => row.offsetTop < el.scrollTop - 1)
@@ -222,168 +255,191 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     };
   }, []);
 
-  // Cap the visible list to the last VISIBLE_MONTHS rows' actual rendered
-  // height (measured, not guessed — month rows aren't a fixed height, see
-  // VISIBLE_MONTHS above), then land on the current (bottom) month and set
-  // the initial arrow disabled-state to match. Re-runs whenever the
-  // displayed month range actually changes (a new earliest session pulled
-  // in, or the calendar rolled into a new month) — not on every incidental
-  // re-render, which would fight a user mid-scroll. This only writes DOM
-  // style/scrollTop directly, no React state, so it doesn't trip
-  // react-hooks/set-state-in-effect.
+  // Lands on the current (bottom) week on mount and whenever the displayed
+  // week range actually grows (an older session pulling earliestMonday back
+  // further, or the calendar rolling into a new week) — not on every
+  // incidental re-render, which would fight a user mid-scroll. The list's
+  // own height is a fixed constant now (WEEK_LIST_HEIGHT_PX, set directly
+  // as inline style below) rather than measured, since every week row is
+  // the same height — so this effect only sets scrollTop, no React state,
+  // and doesn't trip react-hooks/set-state-in-effect.
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const rows = Array.from(el.querySelectorAll<HTMLElement>("[data-month-row]"));
-    const visible = rows.slice(-VISIBLE_MONTHS);
-    if (visible.length > 0) {
-      const height =
-        visible.reduce((sum, row) => sum + row.offsetHeight, 0) + ROW_GAP_PX * (visible.length - 1);
-      el.style.maxHeight = `${height}px`;
-    }
     el.scrollTop = el.scrollHeight;
     updateArrowState();
-  }, [months.length]);
+  }, [weeks.length]);
 
   return (
-    // Full width below `sm` (stacked above/below the goal card, one column,
-    // no horizontal scroll risk); fixed content-width from `sm` up, once
-    // journal.tsx's row puts it beside the goal card — sm:shrink-0 so the
-    // goal's flex-1 never eats into it. 260px comfortably fits the actual
-    // content: the w-8 (32px) month-label column + gap-2 (8px) + the 7×10px
-    // dot grid with 10px gaps (130px) + gap-2 (8px) + the w-5 (20px)
-    // up/down rail, all inside the card's own p-5 (20px) padding —
-    // 32+8+130+8+20 = 198px content + 40px padding ≈ 238px minimum, +22px
-    // slack. Deliberately much narrower than the old 344px (a leftover
-    // from when this card had to share a row with the wider table instead)
-    // — that left ~100px of blank white space on every screen size, which
-    // is what prompted this pass. No h-full: it no longer needs to stretch
-    // to match a sibling's height (journal.tsx pairs it with the goal card
-    // using items-start, not items-stretch), so it just sizes to its own
-    // content.
-    <section className="w-full sm:w-[260px] sm:shrink-0">
-      <div className="rounded-[var(--r-card)] border border-border bg-card p-5 shadow-[var(--shadow-card)]">
-        {/* Weekday header, once for the whole card (not per month) — sits
-            outside the scrollable month list so it never scrolls away, and
-            lines up with the dot columns below purely because both use the
-            same fixed DOT_PX/GAP_PX grid, regardless of their separate flex
-            containers' widths. */}
-        <div className="mb-2 flex items-center gap-2">
-          <span className="w-8 shrink-0" />
-          <div className="grid" style={DOTS_GRID_STYLE}>
-            {WEEKDAY_KEYS.map((key) => (
-              <span
-                key={key}
-                className="text-center font-sans text-[10px] leading-none font-medium text-[var(--faint)]"
-                style={{ width: DOT_PX }}
-              >
-                {t(key)}
-              </span>
-            ))}
-          </div>
-        </div>
+    // Full width below `sm`; from `sm` up, fit-content so the card hugs its
+    // content whether or not the up/down rail renders (it only exists when
+    // canScroll) — a fixed width left a blank rail-sized gap on the right.
+    // The card's own right padding is a touch wider than its left/top/bottom
+    // (pr-6/24px vs p-5/20px) on request, 2026-10-01 — deliberate breathing
+    // room around the ↑/↓ buttons so they don't sit flush against the card's
+    // rounded corner; the plain p-5 used everywhere else read as too tight
+    // once the card stopped carrying any other slack (see the width-fix
+    // immediately before this one).
+    <section className="w-full sm:w-fit sm:shrink-0">
+      <div className="rounded-[var(--r-card)] border border-border bg-card py-5 pr-6 pl-5 shadow-[var(--shadow-card)]">
+        {/* The weekday header and the scrollable week list share one flex-1
+            column, with the ↑/↓ rail as a sibling of that whole column (not
+            just of the list) — on request, so the rail spans the header's
+            height too: the ↑ button lines up with the "M T W T F S S" row,
+            the ↓ button with the last (current) week row, rather than only
+            spanning the shorter scrollable list below the header. */}
         <div className="flex items-stretch gap-2">
-          <div
-            ref={scrollRef}
-            onScroll={updateArrowState}
-            // Native scrollbar hidden — the up/down arrow rail to the right
-            // (roughly the scrollbar's own former position) is the scroll
-            // affordance instead, on request.
-            className="min-w-0 flex-1 space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            style={{ maxHeight: MONTH_LIST_MAX_HEIGHT_FALLBACK }}
-          >
-            {months.map(({ year, month }) => {
-              const total = daysInMonth(year, month);
-              const leading = leadingEmptyDots(year, month);
-              const isCurrentMonth = year === ty && month === tm - 1;
-              return (
-                <div
-                  key={`${year}-${pad2(month + 1)}`}
-                  data-month-row
-                  className="flex items-start gap-2"
-                >
+          <div className="min-w-0 flex-1">
+            {/* Weekday header, once for the whole card (not per week row) —
+                sits outside the scrollable week list so it never scrolls
+                away, and lines up with the dot columns below purely because
+                both use the same fixed DOT_PX/GAP_PX grid, regardless of
+                their separate flex containers' widths. */}
+            <div className="mb-2 flex items-center gap-2">
+              <span className="w-8 shrink-0" />
+              <div className="grid" style={DOTS_GRID_STYLE}>
+                {WEEKDAY_KEYS.map((key) => (
                   <span
-                    className={cn(
-                      "w-8 shrink-0 font-sans text-[11px] leading-none font-bold tracking-wide whitespace-nowrap uppercase",
-                      // Matches the dot grey used in dotClassName() below
-                      // (a light mix of --faint into white) rather than the
-                      // theme's --muted-foreground, on request — note this
-                      // is quite low contrast against the white card, since
-                      // it's a tone meant for an unfilled dot, not for text.
-                      isCurrentMonth
-                        ? "text-foreground"
-                        : "text-[color-mix(in_srgb,white,var(--faint)_25%)]"
-                    )}
+                    key={key}
+                    className="text-center font-sans text-[10px] leading-none font-medium text-[var(--faint)]"
+                    style={{ width: DOT_PX }}
                   >
-                    {monthLabel(year, month, lang)}
+                    {t(key)}
                   </span>
-                  <div className="grid" style={DOTS_GRID_STYLE}>
-                    {/* Empty slots before day 1, so it sits under its real
-                        weekday instead of always starting at column 1 —
-                        invisible, not styled as a dot (no fill/border), and
-                        out of the tab order/title tour since there's no date
-                        behind them. */}
-                    {Array.from({ length: leading }, (_, i) => (
-                      <span
-                        key={`empty-${i}`}
-                        aria-hidden="true"
-                        style={{ width: DOT_PX, height: DOT_PX }}
-                      />
-                    ))}
-                    {Array.from({ length: total }, (_, i) => {
-                      const dayNum = i + 1;
-                      const key = `${year}-${pad2(month + 1)}-${pad2(dayNum)}`;
-                      const count = counts.get(key) ?? 0;
-                      const isToday = key === todayStr;
-                      // Today is never the outlined "future" style, even
-                      // though it's the boundary case of `key > todayStr` —
-                      // spelled out explicitly rather than relying on the
-                      // strict `>` to exclude it.
-                      const isFuture = !isToday && key > todayStr;
-                      return (
-                        <span
-                          key={key}
-                          title={
-                            isFuture
-                              ? undefined
-                              : `${key} · ${t(count === 1 ? "calendar.session" : "calendar.sessions", { n: count })}`
-                          }
-                          className={dotClassName(isFuture, count > 0)}
-                          style={{ width: DOT_PX, height: DOT_PX }}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {canScroll && (
-            // A narrow rail standing in for the hidden scrollbar's own
-            // position — up arrow at the top of the track, down arrow at
-            // the bottom, same as a classic scrollbar's end buttons, just
-            // one month-row per click instead of a pixel nudge.
-            <div className="flex w-5 shrink-0 flex-col items-center justify-between py-px">
-              <button
-                ref={upBtnRef}
-                type="button"
-                onClick={() => scrollByMonth(-1)}
-                aria-label={t("calendar.showOlderMonths")}
-                className="flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
-              >
-                <ChevronUp className="size-3.5" />
-              </button>
-              <button
-                ref={downBtnRef}
-                type="button"
-                onClick={() => scrollByMonth(1)}
-                aria-label={t("calendar.showNewerMonths")}
-                className="flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
-              >
-                <ChevronDown className="size-3.5" />
-              </button>
+                ))}
+              </div>
             </div>
-          )}
+            <div
+              ref={scrollRef}
+              onScroll={updateArrowState}
+              // Native scrollbar hidden — the up/down arrow rail to the
+              // right (roughly the scrollbar's own former position) is the
+              // scroll affordance instead, on request. maxHeight is the
+              // fixed WEEK_LIST_HEIGHT_PX constant (VISIBLE_WEEKS rows,
+              // always the same height now that every row's own height is
+              // pinned to DOT_PX below), not measured from the DOM.
+              className="space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{ maxHeight: WEEK_LIST_HEIGHT_PX }}
+            >
+              {weeks.map((monday, i) => {
+                // Labelled by the row's *last* day (Sunday), not its first
+                // (Monday) — on request, 2026-10-01: a week straddling a
+                // month boundary (e.g. Mon 28 Sep - Sun 4 Oct) was always
+                // labelled "SEP" (the Monday's month), so a new month never
+                // got a label of its own until its first full Monday-start
+                // week, which could be most of a week away. Sunday's month
+                // is always the later/incoming one for any week containing
+                // a 1st-of-month (whichever weekday the 1st falls on, the
+                // Sunday of that week is on or after it), so the boundary
+                // row now reads as the new month, same as a wall calendar
+                // page-turn. Label only when it actually changes from the
+                // row above (or it's the very first row) — a week-per-row
+                // grid would otherwise repeat the same month name 4+ times
+                // in a row, unlike the old one-row-per-month layout where
+                // every row needed its own label.
+                const sunday = addDays(monday, 6);
+                const prevSunday = i > 0 ? addDays(weeks[i - 1], 6) : null;
+                const showLabel =
+                  i === 0 ||
+                  prevSunday === null ||
+                  prevSunday.getMonth() !== sunday.getMonth() ||
+                  prevSunday.getFullYear() !== sunday.getFullYear();
+                const isCurrentWeek = monday.getTime() === todayMonday.getTime();
+                return (
+                  <div key={dateKey(monday)} data-week-row className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        // 10px, matching DOT_PX exactly (not the 11px tried
+                        // first) — with leading-none that makes this span
+                        // exactly as tall as a dot, so every row is a fixed
+                        // DOT_PX tall and WEEK_LIST_HEIGHT_PX's row-count
+                        // arithmetic holds exactly; at 11px the label (the
+                        // tallest child) stretched every row 1px past the
+                        // dots, which the fixed-height scroll area clipped.
+                        "w-8 shrink-0 font-sans text-[10px] leading-none font-bold tracking-wide whitespace-nowrap uppercase",
+                        // Matches the dot grey used in dotClassName() below
+                        // (a light mix of --faint into white) rather than the
+                        // theme's --muted-foreground, on request — note this
+                        // is quite low contrast against the white card, since
+                        // it's a tone meant for an unfilled dot, not for text.
+                        isCurrentWeek
+                          ? "text-foreground"
+                          : "text-[color-mix(in_srgb,white,var(--faint)_25%)]"
+                      )}
+                    >
+                      {showLabel ? monthLabel(sunday.getFullYear(), sunday.getMonth(), lang) : ""}
+                    </span>
+                    <div className="grid" style={DOTS_GRID_STYLE}>
+                      {Array.from({ length: 7 }, (_, d) => {
+                        const day = addDays(monday, d);
+                        const key = dateKey(day);
+                        const count = counts.get(key) ?? 0;
+                        const isToday = key === todayStr;
+                        // Today is never the outlined "future" style, even
+                        // though it's the boundary case of `key > todayStr` —
+                        // spelled out explicitly rather than relying on the
+                        // strict `>` to exclude it.
+                        const isFuture = !isToday && key > todayStr;
+                        return (
+                          <span
+                            key={key}
+                            title={
+                              isFuture
+                                ? undefined
+                                : `${key} · ${t(count === 1 ? "calendar.session" : "calendar.sessions", { n: count })}`
+                            }
+                            className={dotClassName(isFuture, count > 0)}
+                            style={{ width: DOT_PX, height: DOT_PX }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          {/* A narrow rail standing in for the hidden scrollbar's own
+              position, spanning the header + list column's full height
+              (see the comment above). The two buttons are absolutely
+              positioned, not flex-`justify-between` (edge-aligned) — a
+              20px button (size-5, the standard hit target) is twice the
+              height of the 10px (DOT_PX) header/week row it sits beside,
+              so edge-aligning their tops/bottoms left the button, and the
+              chevron centred inside it, visibly offset from the row it was
+              meant to line up with. `top-[-5px]`/`bottom-[-5px]` instead
+              centre each button (and so its chevron) exactly on the
+              header's or the last row's own centre: half of the 10px
+              mismatch (5px) overhangs above/below the rail's own box,
+              comfortably inside the card's 20px padding, nothing clipped.
+              Always rendered, even when !canScroll (nothing to scroll to
+              yet) — on request, so the card's own width stays fixed as
+              history accumulates, rather than widening by the rail's own
+              width the first time a user crosses 4 weeks of sessions. */}
+          <div className="relative w-5 shrink-0">
+            {canScroll && (
+              <>
+                <button
+                  ref={upBtnRef}
+                  type="button"
+                  onClick={() => scrollByWeek(-1)}
+                  aria-label={t("calendar.showOlderWeeks")}
+                  className="absolute top-[-5px] left-0 flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
+                >
+                  <ChevronUp className="size-3.5" />
+                </button>
+                <button
+                  ref={downBtnRef}
+                  type="button"
+                  onClick={() => scrollByWeek(1)}
+                  aria-label={t("calendar.showNewerWeeks")}
+                  className="absolute bottom-[-5px] left-0 flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
+                >
+                  <ChevronDown className="size-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </section>
