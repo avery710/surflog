@@ -859,8 +859,14 @@ panel), a board chip on each session card.
 same day; replaces the single default board of 2026-09-28/29).
 `boards.is_favorite`, any number per owner. Toggled from the board card's
 ⋯ menu (設為常用 / 取消常用, `PUT`/`DELETE /api/boards/:id/favorite`); a
-teal "✓ 常用 / Go-to" badge shows on favourites only (status, not a
-button). Favourites are listed first in the rack and the log form's board
+teal "✓ 常用 / Go-to" badge shows on favourites only — adding to 常用 stays
+⋯-menu-only, but the badge itself is also a button (2026-10-01) that
+removes: clicking it calls the same `toggleFavorite()` the menu item uses
+(✓ swaps to × on hover/focus as the "clickable, removes" affordance; a new
+`t("board.removeFavoriteLabel")` aria-label). Disabled back to a plain
+`<span>` while **排序 / Reorder** mode is on, since then the whole card is
+the drag surface and a drag starting on the badge must never be read as a
+click. Favourites are listed first in the rack and the log form's board
 picker (`sortBoards()` in `lib/boards.ts`). The log form pre-selects the
 **last-used board** (most recent session whose board still exists), else
 the only favourite, else the only board (`preselectBoardId()`). Why: Avery
@@ -1145,10 +1151,14 @@ type-checking (Avery's standing instruction, 2026-09-30):
   Supabase's gateway turns the `sb_secret_` key into a fresh JWT per
   request, and PostgREST/Storage occasionally sees its `iat` a moment in
   its own future. Fix: `lib/supabase.ts` passes a custom `global.fetch`
-  that retries only that error (up to 2 retries, 250/500 ms); everything
-  else passes straight through. Tested with a mocked fetch (one blip →
+  that retries only that error; everything else passes straight through.
+  **Widened 2026-10-01**: 2 retries (250/500 ms) wasn't enough. `/` still
+  500'd after ~1.5-1.9 s with every attempt rejected (from `getGoal`/
+  `listSpotNotes`), so it's now 4 retries (250/500/1000/2000 ms, ~4 s
+  max), and each retry logs `[supabase] "JWT issued at future"` to the
+  dev log, so the dev log shows how long a skew window really lasts. Tested with a mocked fetch (one blip →
   recovers; persistent → still errors after 3 tries; other 401s → not
-  retried). If it ever shows up after 3 tries, it's a real Supabase
+  retried). If it ever shows up after all 5 tries, it's a real Supabase
   incident, not this.
 
 ## Localization

@@ -187,8 +187,14 @@ export function GoalCard({
           <h2 className="shrink-0 pb-0.5 font-sans text-[13px] font-bold text-muted-foreground">
             {t("goal.title")}
           </h2>
+          {/* Distinct keys on the two branches so React remounts instead of
+              reusing nodes across them: unkeyed, the display branch's fade
+              <div> (whose inline opacity:0 updateFade() sets directly, out of
+              React's sight) got reused as the "add a point" row, leaving that
+              row invisible in edit mode. */}
           {editing ? (
             <div
+              key="edit"
               className="flex flex-col gap-1.5 px-2 py-1"
               // Commit when focus leaves the whole editing block, not on
               // every blur between its own rows (tabbing/clicking between
@@ -250,7 +256,7 @@ export function GoalCard({
                     }
                   }}
                   className={cn(
-                    "min-w-0 flex-1 rounded-[10px] border border-dashed border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
+                    "min-w-0 flex-1 rounded-[10px] border border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
                     POINT_TEXT_CLASS
                   )}
                 />
@@ -270,7 +276,7 @@ export function GoalCard({
               </p>
             </div>
           ) : (
-            <div className="relative flex min-h-0 flex-1 flex-col">
+            <div key="display" className="relative flex min-h-0 flex-1 flex-col">
               <div
                 ref={scrollRef}
                 onScroll={updateFade}

@@ -209,7 +209,7 @@ export function EntryCard({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => setDeleteDialogOpen(true)}
-              className="text-destructive focus:bg-destructive/10"
+              variant="destructive"
             >
               <Trash2 />
               {t("entry.delete")}

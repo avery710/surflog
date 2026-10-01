@@ -12,7 +12,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null;
 
-const SKEW_RETRIES = 2;
+// Backoff before each retry, ms. 250+500 (2 retries) wasn't enough: on
+// 2026-10-01 the page still 500'd after ~1.5-1.9 s with all three attempts
+// rejected, so a skew window can outlast ~1 s. This waits up to ~4 s total.
+const SKEW_BACKOFF_MS = [250, 500, 1000, 2000];
 
 /**
  * Supabase's API gateway turns the `sb_secret_` key into a short-lived JWT
@@ -30,10 +33,11 @@ async function fetchWithSkewRetry(input: RequestInfo | URL, init?: RequestInit):
   const canRetry = !(init?.body instanceof ReadableStream);
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(input, init);
-    if (res.ok || !canRetry || attempt >= SKEW_RETRIES || ![400, 401, 403].includes(res.status)) return res;
+    if (res.ok || !canRetry || attempt >= SKEW_BACKOFF_MS.length || ![400, 401, 403].includes(res.status)) return res;
     const text = await res.clone().text();
     if (!text.includes("issued at future")) return res;
-    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    console.warn(`[supabase] "JWT issued at future" (${res.status}), retry ${attempt + 1}/${SKEW_BACKOFF_MS.length}`);
+    await new Promise((resolve) => setTimeout(resolve, SKEW_BACKOFF_MS[attempt]));
   }
 }
 
