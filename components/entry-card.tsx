@@ -434,7 +434,7 @@ export function EntryCard({
                 <video
                   src={`/api/blob/${p.id}`}
                   controls
-                  preload="metadata"
+                  preload="none"
                   playsInline
                   className="h-full w-full rounded-[var(--r-tile)] bg-black object-cover"
                 />
