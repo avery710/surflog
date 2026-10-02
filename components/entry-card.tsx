@@ -133,7 +133,7 @@ export function EntryCard({
     trend ? <Figure value={<span className="capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>} /> : null;
 
   const cardClass =
-    "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-border bg-card shadow-[var(--shadow-card)]";
+    "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-card-border bg-card";
 
   if (editing) {
     return (
@@ -159,11 +159,11 @@ export function EntryCard({
           was what wrapped, onto its own line). Vertical padding tightened
           2026-10-01 (smaller cards, notes as the focus — see below). */}
       <div className="flex items-start gap-2 px-6 pt-4 pb-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1.5 pt-1">
           <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
             {spotLabel(session.spot, lang)}
           </span>
-          <span className="rounded-full bg-secondary px-3 py-1 text-[13px] font-medium tabular-nums text-muted-foreground">
+          <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
             {fmtWhen(session.when, lang)}
           </span>
         </div>

@@ -30,6 +30,7 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-card-border: var(--card-border);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -107,8 +108,18 @@
   --warm-soft: #fbeadf;
   --faint: #8a9699;
   --line-soft: #eff3f3;
-  --r-card: 24px;
-  --r-tile: 16px;
+  /* Cards: 24px -> 16px and shadow -> flat light-grey outline, 2026-10-01 on
+     request (see CLAUDE.md "Style references"). Tiles scaled down with them
+     (16px -> 12px) so a tile nested near a card's edge (e.g. board-rack's
+     p-2 padding) doesn't read as having a bigger corner radius than the
+     card it sits in. --shadow-card is kept for floating layers (dialogs,
+     the log-session button) that still want elevation — just no longer
+     used by card surfaces themselves. */
+  /* Card outline, heavier than --border (which stays light for inputs,
+     dividers and table rows), 2026-10-01 on request. */
+  --card-border: rgba(0, 0, 0, 0.16);
+  --r-card: 16px;
+  --r-tile: 12px;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px -20px rgba(0, 0, 0, 0.28);
 }
 

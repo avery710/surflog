@@ -172,7 +172,7 @@ export function GoalCard({
     <section>
       <div
         className={cn(
-          "flex items-stretch gap-3 rounded-[var(--r-card)] border border-border bg-card px-5 py-3.5 shadow-[var(--shadow-card)]",
+          "flex items-stretch gap-3 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-3.5",
           !editing && "sm:h-[var(--goal-card-h)]"
         )}
         style={{ "--goal-card-h": `${CALENDAR_CARD_HEIGHT_PX}px` } as React.CSSProperties}

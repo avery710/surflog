@@ -304,7 +304,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     // own height stays the fixed CALENDAR_CARD_HEIGHT_PX, never the taller
     // goal card's (e.g. while it's in edit mode).
     <section className="w-full sm:w-fit sm:shrink-0 sm:self-start">
-      <div className="rounded-[var(--r-card)] border border-border bg-card py-5 pr-6 pl-5 shadow-[var(--shadow-card)]">
+      <div className="rounded-[var(--r-card)] border border-card-border bg-card py-5 pr-6 pl-5">
         {/* The weekday header and the scrollable week list share one flex-1
             column, with the ↑/↓ rail as a sibling of that whole column (not
             just of the list) — on request, so the rail spans the header's

@@ -26,12 +26,6 @@ const PAGES = [
       "components/board-rack.tsx — the board list: default-badge toggle, ⋯ menu, specs/note/rocker fields, the three-breakpoint photo layout. Empty/one/two/many boards, missing-field branches, en/zh-TW, fixed widths.",
   },
   {
-    href: "/dev/logo",
-    title: "Logo",
-    description:
-      "components/logo.tsx — the hand-built SURFLOG wordmark (bold/regular/tagline), large and at header size, black on white and white on teal, next to the current plain-text header for comparison.",
-  },
-  {
     href: "/dev/activity-preview",
     title: "Activity calendar",
     description:
@@ -61,7 +55,7 @@ export default function DevIndexPage() {
       </p>
       <ul className="mt-6 flex flex-col gap-3">
         {PAGES.map((p) => (
-          <li key={p.href} className="rounded-[var(--r-card)] border border-border bg-card p-4">
+          <li key={p.href} className="rounded-[var(--r-card)] border border-card-border bg-card p-4">
             <Link href={p.href} className="text-[15px] font-bold text-primary underline underline-offset-2">
               {p.title}
             </Link>

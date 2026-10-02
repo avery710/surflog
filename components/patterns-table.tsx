@@ -62,7 +62,7 @@ export function PatternsTable({
     // (min-w-[420px] on the <table>, overflow-auto below) handle anything
     // narrower than that, rather than forcing this section wider.
     <section className="w-full min-w-0">
-      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] border border-card-border bg-card p-2">
         <h2 className="shrink-0 px-3 pt-2 font-sans text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>

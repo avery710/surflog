@@ -119,9 +119,10 @@ export function BoardRack({
   // group — 常用 boards always stay first (CLAUDE.md "Board rack"), so a
   // drop onto the other group is ignored rather than toggling 常用: the
   // dragged card just animates back to its last in-group slot, since
-  // nothing in state changes. Two <SortableContext>s below (favourites,
-  // the rest) enforce this for pointer/touch drags; this check is the
-  // backstop for keyboard drags, whose preview can cross the boundary.
+  // nothing in state changes. This is the only thing enforcing that —
+  // there's one <SortableContext> covering every card (see render below,
+  // and "one flat list" below for why two was the wrong shape), so this
+  // check is load-bearing for every drag, not just a keyboard backstop.
   const sensors = useSensors(
     // Pointer covers mouse and touch; a drag handle with touch-action:none
     // (see SortableBoardCard) is what keeps touch drags from also
@@ -189,19 +190,17 @@ export function BoardRack({
     }
   }
 
-  // Split once for both the two <SortableContext>s below and their id
-  // lists — 常用 first, each group in its own drag order (sort_order).
+  // One flat, favourites-first order (sort_order within each group) — see
+  // "one flat list" in the render below for why this feeds a single
+  // <SortableContext> rather than one per group.
   const ordered = sortBoards(boards);
-  const favoriteBoards = ordered.filter((b) => b.isFavorite);
-  const otherBoards = ordered.filter((b) => !b.isFavorite);
-  const favoriteIds = favoriteBoards.map((b) => b.id);
-  const otherIds = otherBoards.map((b) => b.id);
+  const orderedIds = ordered.map((b) => b.id);
 
   return (
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
     <section>
-      <div className="rounded-[var(--r-card)] border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+      <div className="rounded-[var(--r-card)] border border-card-border bg-card p-2">
         <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-3">
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.boards")}
@@ -243,28 +242,24 @@ export function BoardRack({
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {/* Two independent sortable groups sharing one grid — 常用
-                  boards drag among themselves, the rest among themselves.
-                  A drop from one group onto the other is a no-op in
-                  handleDragEnd (above), so the card animates back to its
-                  own group instead of toggling 常用. rectSortingStrategy,
-                  not the vertical-list one, because this grid is 2-up from
-                  sm — a plain vertical strategy assumes one column. */}
-              <SortableContext items={favoriteIds} strategy={rectSortingStrategy}>
-                {favoriteBoards.map((b) => (
-                  <SortableBoardCard
-                    key={b.id}
-                    board={b}
-                    t={t}
-                    onEdit={setEditing}
-                    onToggleFavorite={toggleFavorite}
-                    onDeleteRequest={setConfirmBoard}
-                    sorting={sortingOn}
-                  />
-                ))}
-              </SortableContext>
-              <SortableContext items={otherIds} strategy={rectSortingStrategy}>
-                {otherBoards.map((b) => (
+              {/* ONE flat list/SortableContext for every card, favourites
+                  first (used to be two SortableContexts, one per group).
+                  That split caused a visible flash whenever a card's
+                  favourite status flipped: React reconciles each .map()'s
+                  children against its OWN parent, so a card moving from
+                  the favourites array to the others array (or back) was a
+                  different parent subtree either way — unmount + remount
+                  despite the unchanged key, reloading the photo <img> and
+                  re-mounting useSortable. One array + one context means
+                  the card just changes position within the SAME keyed
+                  list, which React reorders in place. The favourites-only
+                  / others-only *drag* grouping still holds — enforced in
+                  handleDragEnd's cross-group no-op guard below — just not
+                  by separate contexts any more. rectSortingStrategy, not
+                  the vertical-list one, because this grid is 2-up from
+                  sm. */}
+              <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
+                {ordered.map((b) => (
                   <SortableBoardCard
                     key={b.id}
                     board={b}
@@ -512,7 +507,12 @@ function SortableBoardCard({
               <li>), with no handle icon. ⋯ has no fill at rest; the
               round background only shows on hover / while open. */}
           <div className="flex min-w-0 items-center gap-2">
-            <span className="min-w-0 truncate text-[15px] font-bold tracking-[-0.015em]">
+            {/* leading-6 (24px) matches the 常用 badge's h-6 exactly, so the
+                row's height — and the specs/note lines below it — don't
+                shift by the ~2px gap between the text's own line box and
+                the badge when the badge appears/disappears (Avery's
+                report, 2026-10-01). Truncate still keeps it one line. */}
+            <span className="min-w-0 truncate text-[15px] leading-6 font-bold tracking-[-0.015em]">
               {b.brand || name}
             </span>
             {favoriteBadge}

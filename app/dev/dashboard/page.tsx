@@ -67,8 +67,9 @@ function DashboardPanel({
     // BoardRack, not its own exported component (journal.tsx owns the
     // fetched state and passes it straight through) — className copied
     // verbatim, including journal.tsx's own comment on why it's tinted
-    // (--primary-soft) while each section keeps a white bg-card surface.
-    <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] border border-border bg-primary-soft p-3 sm:p-5">
+    // (--primary-soft, no border since 2026-10-02) while each section keeps
+    // a white bg-card surface.
+    <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] bg-primary-soft p-3 sm:p-5">
       {/* Row 1, sm: up — goal (flexible) beside the calendar (content-sized,
           fit-content), sm:items-stretch (2026-10-01). See journal.tsx for
           why: the calendar's own content is only ~200px wide, so pairing it

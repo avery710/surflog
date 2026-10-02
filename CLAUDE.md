@@ -905,13 +905,20 @@ stays at the far right, untouched). The handle, not the whole card, is the
 drag surface (`setActivatorNodeRef` + dnd-kit's listeners on just the
 button) with `touch-action: none` scoped to it alone, so dragging works on
 touch without also scrolling the page — dnd-kit's own documented pattern
-for this. Two `<SortableContext>`s share one grid (常用 boards, then the
-rest — `rectSortingStrategy`, not the vertical-list one, since the grid is
-2-up from `sm`); a drop from one group onto the other is a no-op in
-`handleDragEnd` (nothing in state changes), so the card **snaps back to
-its own group** rather than toggling 常用 — chosen over "disallow" because
-dnd-kit doesn't make mid-drag group-crossing easy to block outright, and a
-snap-back reads the same to the user. Keyboard: Tab to a handle (it's a
+for this. **One** `<SortableContext>` covers every card, in one flat
+favourites-first array (`rectSortingStrategy`, not the vertical-list one,
+since the grid is 2-up from `sm`) — not one context per group, which was
+tried first and caused a flash on every 常用 toggle: React reconciles each
+group's `.map()` against its own parent, so a card moving from the
+favourites array to the others array (or back) was a different parent
+subtree either way, an unmount+remount despite the unchanged key (photo
+`<img>` reloading, `useSortable` re-registering) — fixed 2026-10-01. The
+favourites-only / others-only *drag* grouping is now enforced purely in
+`handleDragEnd`: a drop from one group onto the other is a no-op (nothing
+in state changes), so the card **snaps back to its own group** rather than
+toggling 常用 — chosen over "disallow" because dnd-kit doesn't make
+mid-drag group-crossing easy to block outright, and a snap-back reads the
+same to the user. Keyboard: Tab to a handle (it's a
 real `<button>`), Space to pick up, Arrow Up/Down to move within the
 group, Space to drop, Escape to cancel — dnd-kit's default `KeyboardSensor`
 + `sortableKeyboardCoordinates`, unmodified; **not verified in a browser**

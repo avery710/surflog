@@ -17,8 +17,11 @@ export function SignInCard({
   const { t } = useLang();
 
   return (
-    <div className="w-full max-w-[360px] rounded-[var(--r-card)] border border-border bg-card p-8 text-center shadow-[var(--shadow-card)]">
-      <h1 className="font-sans text-[26px] font-extrabold tracking-[-0.025em]">Surflog</h1>
+    <div className="w-full max-w-[360px] rounded-[var(--r-card)] border border-card-border bg-card p-8 text-center">
+      <h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/surflog-logo.png" alt="Surflog" width={1199} height={229} className="mx-auto block h-7 w-auto" />
+      </h1>
       <p className="mt-1.5 text-[14px] font-medium text-muted-foreground">{t("signin.subtitle")}</p>
 
       {error && (
