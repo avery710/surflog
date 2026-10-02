@@ -153,6 +153,83 @@ const DICT = {
   "signin.err.AccessDenied": { en: "Access denied.", "zh-TW": "拒絕存取。" },
   "signin.err.Default": { en: "Couldn't sign in — try again.", "zh-TW": "無法登入，請再試一次。" },
 
+  // Signed-out landing page (components/landing/landing.tsx)
+  "landing.signIn": { en: "Sign in", "zh-TW": "登入" },
+  "landing.hero.title": {
+    en: "The surf journal that fills in the ocean for you.",
+    "zh-TW": "幫你自動記下海況的衝浪日誌。",
+  },
+  "landing.hero.body": {
+    en: "Log the spot and the time. Swell, wind, tide and water temperature for that moment attach themselves — so after a season, you can see which conditions actually work at your breaks.",
+    "zh-TW": "只要填浪點和時間，當下的湧浪、風、潮汐和水溫就會自動附上。累積一季後，你就看得出哪些條件在你常去的浪點真的好衝。",
+  },
+  "landing.hero.private": {
+    en: "Free · your journal is private to you",
+    "zh-TW": "免費・日誌只有你自己看得到",
+  },
+  "landing.cond.title": { en: "Conditions fill themselves", "zh-TW": "浪況自動帶入" },
+  "landing.cond.body": {
+    en: "No more copying numbers from a forecast app. Save a session and the readings for that spot and hour are fetched for you — past dates too.",
+    "zh-TW": "不用再從預報 App 抄數字。儲存紀錄時，系統會自動抓那個浪點、那個時段的資料，過去的日期也可以。",
+  },
+  "landing.cond.youType": { en: "You type", "zh-TW": "你填" },
+  "landing.cond.weAdd": { en: "Surflog adds", "zh-TW": "Surflog 補上" },
+  "landing.cond.spot": { en: "Spot", "zh-TW": "浪點" },
+  "landing.cond.when": { en: "Time", "zh-TW": "時間" },
+  "landing.cond.notes": { en: "Notes", "zh-TW": "筆記" },
+  "landing.cond.swell": { en: "Swell height, period and direction", "zh-TW": "湧浪高度、週期與方向" },
+  "landing.cond.wind": {
+    en: "Wind speed, strength, and offshore / onshore for that break",
+    "zh-TW": "風速、風力，以及對這個浪點是離岸還是向岸風",
+  },
+  "landing.cond.tide": {
+    en: "Rising or falling, the next high or low, and the day's tide curve",
+    "zh-TW": "漲潮或退潮、下一次滿潮或乾潮，以及當天的潮汐曲線",
+  },
+  "landing.cond.temp": { en: "Water and air temperature", "zh-TW": "水溫與氣溫" },
+  "landing.cond.sources": {
+    en: "Waves and wind from Open-Meteo, tide times from Taiwan's Central Weather Administration. 41 Taiwan spots built in.",
+    "zh-TW": "浪與風來自 Open-Meteo，潮汐時間來自中央氣象署。內建台灣 41 個浪點。",
+  },
+  "landing.rhythm.title": { en: "See your rhythm", "zh-TW": "看見你的衝浪節奏" },
+  "landing.rhythm.body": {
+    en: "Every day you surfed, month by month, and where you go most — with your own notes on each spot.",
+    "zh-TW": "逐月看你哪幾天下水、最常去哪裡，每個浪點還能留下自己的筆記。",
+  },
+  "landing.goal.title": { en: "Surf with a goal", "zh-TW": "帶著目標下水" },
+  "landing.goal.body": {
+    en: "Set a few things to work on. Each session, tick off what you managed — and watch the count grow.",
+    "zh-TW": "設定幾個想練的重點，每次衝完勾選做到的項目，看著次數慢慢累積。",
+  },
+  "landing.goal.tryIt": {
+    en: "Try editing it — nothing here is saved.",
+    "zh-TW": "可以試著編輯看看，這裡的內容不會被儲存。",
+  },
+  "landing.quiver.title": { en: "Your quiver", "zh-TW": "你的衝浪板" },
+  "landing.quiver.body": {
+    en: "Keep your boards with their length, volume and rocker, and see which one you rode each session.",
+    "zh-TW": "記下每塊板的長度、體積和 rocker，每次紀錄都看得到當天用哪一塊。",
+  },
+  "landing.extra.bilingual": { en: "In English and 繁體中文", "zh-TW": "支援繁體中文與英文" },
+  "landing.extra.media": { en: "Add photos and video to any session", "zh-TW": "每筆紀錄都能加上照片和影片" },
+  "landing.extra.csv": { en: "Export everything to CSV, any time", "zh-TW": "隨時把所有紀錄匯出成 CSV" },
+  "landing.extra.private": {
+    en: "Private by default — no feed, no followers",
+    "zh-TW": "預設私人，沒有動態牆也沒有追蹤者",
+  },
+  "landing.cta.title": { en: "Ready for your next session?", "zh-TW": "準備好下一次下水了嗎？" },
+  "landing.cta.body": {
+    en: "Sign in with Google and your journal is ready.",
+    "zh-TW": "用 Google 登入，你的日誌就準備好了。",
+  },
+  "landing.demo.notes": {
+    en: "Clean and glassy early, sets every few minutes. Caught my best right of the month on the falling tide.",
+    "zh-TW": "早上很乾淨、海面平滑，每幾分鐘就有一組浪。退潮時抓到這個月最好的一道右邊浪。",
+  },
+  "landing.demo.notesShort": { en: "Clean and glassy early…", "zh-TW": "早上很乾淨、海面平滑…" },
+  "landing.demo.goal1": { en: "Pop up without rushing", "zh-TW": "起乘不要心急，感受腳站穩再下" },
+  "landing.demo.goal2": { en: "Eyes on the wave face", "zh-TW": "視線盯著浪壁" },
+
   "action.logSession": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "action.exportCsv": { en: "Export CSV", "zh-TW": "匯出 CSV" },
   "action.signOut": { en: "Sign out", "zh-TW": "登出" },

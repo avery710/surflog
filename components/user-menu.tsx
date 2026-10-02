@@ -43,7 +43,13 @@ export function UserMenu({
             className="size-full rounded-full object-cover"
           />
         ) : (
-          <span className="flex size-full items-center justify-center rounded-full bg-primary text-[13px] font-bold text-primary-foreground">
+          // bg-badge (dark grey), not bg-primary — this trigger sits on
+          // the header's own solid blue bar (2026-10-02), where a
+          // same-blue fallback circle would be invisible against its
+          // background. Badge grey is high-contrast on blue and matches
+          // the grey/white pairing already used for the board rack's
+          // 常用 badge, rather than introducing a third colour.
+          <span className="flex size-full items-center justify-center rounded-full bg-badge text-[13px] font-bold text-badge-foreground">
             {initial}
           </span>
         )}

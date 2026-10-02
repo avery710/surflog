@@ -285,6 +285,29 @@ Two implementations exist:
    card taller than the calendar — should not stretch it), and the
    `sessions.length < 2` / no-goal empty states together.
 
+   **As of 2026-10-02** (landing page, uncommitted at time of writing):
+   signed-out `/` shows a feature showcase (`components/landing/landing.tsx`)
+   instead of redirecting; signed-in `/` is still the journal. `/signin`
+   is unchanged and stays (Avery's call — not the landing page).
+   `proxy.ts` lets exactly `/` through without sign-in; `app/page.tsx`
+   picks landing vs journal. The page renders the real components
+   (`EntryCard` with a new `readOnly` prop that drops the ⋯ menu,
+   `ActivityCalendar`, `PatternsTable`, `GoalCard`) on synthetic data
+   from `components/landing/demo-data.ts` (built on `app/dev/fixtures.ts`,
+   dated relative to today) — never `lib/db.ts`, never the API; goal and
+   spot-note edits live in local state only. `BoardRack` fetches by
+   itself, so the quiver section is a plain list. Copy only claims what
+   exists: custom/overseas spots get **no** conditions (no coordinates),
+   so nothing says "works worldwide". All copy is `landing.*` in
+   `lib/i18n.tsx`. Preview while signed in at `/dev/landing`. Checked in
+   cmux at 1280 and 375 px (no horizontal overflow). **cmux's `/dev` tabs
+   don't hydrate** (`main-app.js` is never requested, `window.next`
+   undefined — seen on every `/dev` page 2026-10-02, cause unknown), so
+   anything interactive there (language toggle, calendar landing on the
+   current month) looks broken in cmux only; the same page in Chrome
+   hydrates fine. Not checked: signed-out `/` in a real browser (both
+   browsers are signed in), the Google button end to end.
+
 `BACKLOG.md` (added 2026-09-29) is Avery's list of future features and
 chores — **local only, gitignored** (not in the public repo, so it won't
 exist on a fresh clone or in cloud sessions). The project skill `add-ticket` (`.claude/skills/add-ticket/`, renamed from `backlog` 2026-09-30) handles "add X to
@@ -1248,11 +1271,211 @@ New agent files only load when a Claude Code session starts.
   total inches (`boards.length_in`), entered/shown as ft'in via
   `lib/boards.ts`. Board volume stays metric (litres).
 - Times are Asia/Taipei local, no timezone suffix stored.
-- UI: white background, black text, single light theme (no dark mode — removed
-  on request). Rounded components, Coinbase-ish: 24px cards, 16px tiles, pill
-  buttons. Funnel Sans for UI and notes (since 2026-09-29, on request, to
-  match og.com's body/heading font; was Plus Jakarta Sans; notes were
-  Newsreader serif until 2026-09-22), IBM Plex Mono for readings. og.com's
-  display face (Lateral) is a paid trial font, deliberately not copied. Teal accent `#0E7C86`.
+- UI: white background, black text, single light theme (no dark mode —
+  removed on request). Rounded components, Coinbase-ish: 24px cards, 16px
+  tiles, pill buttons. Funnel Sans for UI and notes (since 2026-09-29, on
+  request, to match og.com's body/heading font; was Plus Jakarta Sans; notes
+  were Newsreader serif until 2026-09-22), IBM Plex Mono for readings. og.com's
+  display face (Lateral) is a paid trial font, deliberately not copied.
+  **Blue accent** (since 2026-10-02, replacing the earlier teal `#0E7C86`;
+  see "Style references" for the posters involved): `--primary` is
+  `#0018FF`, a fully saturated royal blue named by its own reference poster
+  ("Daily Poster" design, Choky/gstudio) — buttons, the + button, badges,
+  checkboxes, ring/focus, the dashboard panel tint (now a *solid* block of
+  this blue, not a pale wash — changed on request the same session so the
+  panel reads as one of the reference's own bold solid-colour fields).
+  Unusually, this hex needs no darkening for contrast: blue contributes very
+  little to WCAG's luminance weighting, so a maxed-out blue channel still
+  reads as near-black in contrast terms — 8.16:1 on white, both as text-on-
+  white and white-text-on-fill. `--primary` went through two earlier values
+  the same session (a detergent-bottle poster's `#3B85EB`, which *did* need
+  darkening to `#176ADE` for contrast; and a plain grey `#E4E4E4` page
+  background, tried and reverted to white) before landing here — see
+  `app/globals.css`'s own comment for the full history and contrast math.
+  `--data` (a separate green reading accent for the tide curve and
+  swell/wind direction arrow+compass) was tried and then retired the same
+  session to resolve to this same blue, on request — one consistent accent
+  rather than a blue/green split — **then moved again, later the same
+  session**, off blue to the neutral badge grey (`--data: var(--badge)`,
+  `#374151`), on request: readings shouldn't share the buttons/panel's
+  blue. `direction-arrow.tsx`, `entry-card.tsx`'s `DirSub` and
+  `tide-chart.tsx` still read the `--data` token/classes throughout all of
+  this, so each move is a one-line change in `globals.css`, not a
+  component edit. `--primary-vivid` (used once, for the activity calendar's
+  "surfed" dot) is the same value as `--primary`. **Badges were a
+  temporary exception, same session**: the board rack's 常用/Go-to badge
+  (`--badge`/`--badge-foreground`, `#374151` on white, ~10.3:1) moved to
+  a neutral dark grey + white, on request, once the solid-blue panel
+  made a same-hue badge read as low-contrast next to it. **Reverted in a
+  later session, still 2026-10-02** — see the "Badges moved back to
+  blue" paragraph further down — once the panel itself moved to grey
+  (so blue no longer competed with it): the go-to badge and the session
+  card's goal chip both went back to `bg-primary`/`text-primary-
+  foreground`. `--badge` itself is unchanged throughout; only which
+  components read it moved.
+  **The sticky header** went through a whole liquid-glass-pill design (a
+  club poster's blue-blob-dissolving-into-grain reference, several
+  revisions) the same day, and then — **later the same session, on
+  request** — that was all replaced outright with something much
+  plainer: a flat white bar, `position: sticky; top: 0`, no rounding, no
+  floating gap, no blur/translucency. Its *background* is full-bleed
+  (spans the entire viewport), but the logo and `+`/avatar (or, on the
+  signed-out landing page, the language toggle + Sign in) sit in an
+  inner `max-w-[...]`/`mx-auto`/`px-4.5` column — the same one the page
+  content below uses — so they line up with the dashboard panel/cards
+  under them rather than tracking the viewport edges (tried full-bleed
+  content too, for one revision, before this). Its old 1px `border-b` is
+  gone, replaced by `components/header-underline.tsx`: a **flat 3px
+  black line**, `inset-x-4.5` within that inner content column so it
+  matches the *dashboard panel's* own width below (the panel is itself
+  inset from the column by the same `px-4.5` — tried flush to the
+  column's outer edge first, which ran wider than the panel/buttons
+  under it), that dips into a smooth, shallow wave under the `+` button
+  and the avatar specifically — as if underlining those two controls
+  rather than the header as a whole — with a little clearance between
+  the buttons and the line itself (tuned down from a first pass, both
+  the gap and the dip depth — a deeper dip over the buttons' fixed 40px
+  width read as sharper/V-shaped rather than round, so shallower is what
+  actually reads as a gentle wave), then turns upward at its own right
+  end into a true circular-arc "card corner" (`--r-tile`, on request —
+  the left end stays flat, flush under the logo). The avatar's dip sits
+  flush to that same right edge by design, so without clamping it would
+  fight the end curve for the same few pixels and the path jumped
+  backward on itself (a real bug, caught from the live SVG `d` string,
+  not by eye) — `header-underline.tsx` now auto-nudges any dip left just
+  enough to clear the end curve (and clear each other), rather than
+  journal.tsx hand-tuning pixel offsets to dodge it. Landing's header
+  has no matching pair of same-size circular controls (a variable-width
+  language toggle beside a Sign in pill, not two 40px circles), so it
+  renders the same component with no dips, just the plain line (still
+  gets the right-end curve). The dip x-positions are computed from fixed
+  layout constants (button size, gap — already fixed by Tailwind classes
+  next to the call site), not measured off the actual button DOM nodes.
+  This line went through two earlier concepts
+  the same session before landing here — a bold (`7px`) line with
+  upturned ends (first bezier curves, then true circular-arc "rounded
+  card corner" curves, `--r-tile`), and before that a full
+  surfboard-rocker-with-a-swept-fin silhouette — see that component's
+  own comment and `.claude/agents/ui-designer.md`'s "Style references"
+  for the full back-and-forth, including why the glass pill itself was
+  dropped. Same bold-geometric reasoning sized the `+`
+  button: it moved off blue to the neutral `--badge` grey
+  (`bg-badge`/`text-badge-foreground`, a **darken**-on-hover
+  `color-mix` rather than the default Button variant's lighten) and its
+  `Plus` icon's `strokeWidth` went from lucide's default 2 to 3.5, both
+  on request. **Hides on scroll down, reappears on scroll up** (a
+  Medium-style pattern, also on request) — `lib/use-auto-hide-header.ts`,
+  a ref-based hook with no React state per scroll event (a plain
+  passive-scroll + `requestAnimationFrame` listener toggling a
+  `data-autohide` attribute directly), always shown within one header-
+  height of the top, while focus is inside it, or while a Radix
+  popover/dialog whose trigger lives in it is open (the journal's log-
+  session dialog opens from a plain button, not a `DialogTrigger`, so
+  its `formOpen` state is threaded in as `forceVisible` instead — nothing
+  else needs a prop, the hook finds any other open trigger generically
+  via `[data-state="open"]`). Under `prefers-reduced-motion` it never
+  hides at all, rather than hiding without a slide — see the hook's own
+  comment for why. Two real bugs worth remembering, both caught live
+  while verifying this, not by eye — see "Bugs already hit": `el.offsetTop`
+  for a **currently-stuck** `position: sticky` element isn't reliably its
+  static pre-scroll position in Chromium (it returned the live `scrollY`
+  instead once stuck, breaking the "near top" check); and giving the
+  header's content column a `max-width` while it's a flex child of
+  `<body>` needs `min-w-0` on it too, or a wide enough descendant (the
+  patterns table's own `min-w-[420px]`, itself correctly scrollable
+  within its own card) can still push the *whole column* wider than the
+  viewport via flexbox's `min-width: auto` default.
+  **2026-10-02, later the same day: the flat white bar above went solid
+  blue, its black underline removed** — "make the whole header bg color
+  blue (same as the dashboard bg color); remove the black underline
+  border." `bg-primary-soft` (the dashboard panel's own token, already a
+  solid fill of `--primary`) applied straight to the header's background
+  in `journal.tsx`/`landing.tsx`, so header and panel can't drift apart;
+  the panel's existing `mt-8` gap (plain white page background) keeps
+  the two blue blocks from reading as one fused shape rather than two.
+  `<HeaderUnderline>`/`components/header-underline.tsx` — everything
+  described in the paragraph above — is deleted outright, same treatment
+  as the glass pill before it, not left as dead code. Black-on-`#0018FF`
+  is only ~2.6:1, so most things inside the bar were re-picked for
+  legibility on it: the log-session `+` button and landing's "Sign in"
+  pill flipped from filled-blue/dark-grey to a white fill with a blue
+  glyph/label (mirroring the landing page's own existing `inverted`
+  `CtaButton` pattern on its closing CTA, rather than inventing a second
+  one); the avatar's no-photo fallback (`user-menu.tsx`) moved off
+  `bg-primary` — which would vanish on this background — to the neutral
+  `--badge` grey; and every one of those buttons' `focus-visible` rings
+  was pinned to white, since the default ring colour (`--ring`) is this
+  same blue and would otherwise disappear against it. The language toggle
+  pill (`bg-secondary`, light grey) needed no change — light on blue
+  already reads clearly. **The wordmark is the one exception, by
+  request**: a white version (`brightness-0 invert`) was tried and
+  reverted the same session ("surflog logo text should remain black") —
+  it stays black-on-transparent at ~2.6:1 on this blue, under the small-
+  text floor, kept anyway for the logotype specifically. Not taken:
+  recolouring anything *inside* the dashboard panel, or the panel's own
+  tint — only the header moved.
+  **Also the same session: the `+` button's icon became Avery's own
+  mark**, not lucide's `Plus`. `surflog+button.png` (300×257,
+  black-on-transparent, a chunky square-ended plus, not a symmetric
+  cross) was rebuilt as an inline `<svg viewBox="0 0 300 257">` with two
+  `<rect>`s (`LogIcon` in `journal.tsx`) rather than used as an `<img>`,
+  so it stays crisp at any size and takes `currentColor` (the button's
+  `text-primary`) instead of needing its own colour treatment; sized
+  `h-[17px] w-5` to keep the 300:257 aspect at roughly the old icon's
+  20px width. A real bug caught on this same button, live, not by eye
+  (cmux's synthetic `hover` doesn't trigger real `:hover` — see "Testing
+  in the browser (cmux)" — so a first pass missed it): the default
+  shadcn `Button` variant's own `hover:bg-primary/80` isn't removed by
+  a custom `className` unless that className supplies a *matching*
+  `hover:bg-*` utility of its own (`cva`'s plain string concatenation
+  here has no general class-conflict merging — see `cva`'s source, or
+  `components/ui/button.tsx`) — so on real hover the white circle picked
+  up a blue tint, which against the header's own blue read as the whole
+  button vanishing rather than just dimming. Fixed with an explicit
+  `hover:bg-card` alongside the existing `hover:brightness-95`.
+  **Same session, one more follow-up: the dashboard panel moved off blue
+  to light grey; the header above it stayed blue.** "Change the dashboard
+  panel's background to light grey" — not the header, which stays
+  `#0018ff`. Up to this point the panel's token (`--primary-soft`) *was*
+  a solid fill of `--primary`, so header and panel were briefly the exact
+  same colour, stacked directly on top of each other. Split apart: the
+  header now reads `bg-primary` directly; the panel's token became
+  `--panel: #f2f5f5` — the literal value of `--secondary`/`--muted`, not
+  a new, slightly-different grey (a candidate near `#EEF0F2` was
+  considered and dropped as too close to `#f2f5f5` to read as deliberate
+  rather than an accidental near-miss of an existing token). Renamed
+  `--primary-soft` → `--panel` everywhere (`app/globals.css`,
+  `components/journal.tsx`, `components/landing/landing.tsx`'s two panel
+  wrappers, `app/dev/dashboard/page.tsx`), since "primary-soft" stopped
+  describing a tint of `--primary` at all. Each section inside still
+  keeps its own opaque white `bg-card` surface, so the grey — like the
+  blue before it — only shows in the panel's own padding and the gaps
+  between cards, never behind text. The header/panel gap
+  (`journal.tsx`'s `mt-8`) is unchanged — it mattered most while both
+  blocks were the same blue, but stays as the cleaner break between two
+  now-differently-coloured blocks rather than being removed.
+  **Badges moved back to blue, 2026-10-02, a later session:** "change
+  the go-to badge to blue bg white text; same for the badge in log
+  card." The board rack's 常用/Go-to badge (`components/board-rack.tsx`)
+  and the session card's goal-achievement chip (`GoalChip` in
+  `components/goal.tsx`) both went from `bg-badge`/`text-badge-
+  foreground` (the neutral dark grey described in the two paragraphs
+  above) to `bg-primary`/`text-primary-foreground` — the same solid
+  `#0018ff`, white text, 8.16:1. The landing page's demo quiver badge
+  (`components/landing/landing.tsx`) was updated to match, so the
+  signed-out page doesn't show a badge style the real app no longer has.
+  **`--badge`/`--badge-foreground` themselves are untouched** — still
+  read by `--data` (`var(--badge)`, the swell/wind direction arrow+
+  compass and tide curve) and the avatar's no-photo fallback
+  (`user-menu.tsx`), both of which stay dark grey; only the two/three
+  components above stopped reading the token. The go-to badge's hover/
+  focus classes moved from `hover:bg-badge/90` to `hover:bg-primary/80`
+  (matching `components/ui/button.tsx`'s own default-variant hover) so
+  no stale grey hover class was left behind — it's a plain `<button>`
+  with a static `className` string, not a `cva` variant, so there was
+  no second, conflicting hover utility to worry about this time (unlike
+  the `+` button bug just above). Checked in cmux on the real journal
+  at 375 and 1280 px: both the go-to badge and a goal chip compute to
+  `rgb(0, 24, 255)` background / white text at both widths.
 - Notes are rich text with a markdown-ish `- ` shortcut for bullets. Capy writes
   notes in Chinese; don't break CJK handling.

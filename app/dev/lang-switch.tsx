@@ -23,7 +23,7 @@ export function LangSwitch() {
           onClick={() => setLang(o.value)}
           className={
             "rounded-full px-3 py-1 " +
-            (lang === o.value ? "bg-[#0E7C86] text-white" : "bg-secondary text-muted-foreground")
+            (lang === o.value ? "bg-primary text-white" : "bg-secondary text-muted-foreground")
           }
         >
           {o.label}

@@ -14,6 +14,9 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuthRoute = pathname.startsWith("/api/auth") || pathname === "/signin";
   if (isAuthRoute) return;
+  // "/" is the landing page when signed out (app/page.tsx picks landing vs
+  // journal itself) — only the exact root, nothing under it.
+  if (pathname === "/") return;
 
   // /dev is the local-only component showcase (synthetic data, no
   // Supabase/API calls) — see CLAUDE.md "Project agents" (storybook) and
@@ -34,6 +37,6 @@ export default auth((req) => {
 });
 
 export const config = {
-  // surflog-logo.png is public/ — the sign-in page shows it before sign-in.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|surflog-logo.png).*)"],
+  // surflog-logo.svg is public/ — the sign-in and landing pages show it before sign-in.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|surflog-logo.svg).*)"],
 };

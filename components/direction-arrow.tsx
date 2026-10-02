@@ -19,7 +19,7 @@ export function DirectionArrow({
   return (
     <ArrowUp
       aria-hidden
-      className={`${className} shrink-0 text-primary`}
+      className={`${className} shrink-0 text-data`}
       strokeWidth={strokeWidth}
       style={{ transform: `rotate(${deg + 180}deg)` }}
     />

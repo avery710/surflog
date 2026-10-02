@@ -120,7 +120,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
 
     svg = (
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block" role="img" aria-label={t("tide.chartLabel")}>
-        <path d={line} fill="none" className="stroke-primary" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={line} fill="none" className="stroke-data" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
         {evs.map((e, i) => {
           const px = x(times[i]);
           const py = y(levels[i]);
@@ -129,7 +129,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
           return (
             <g key={`${e.type}-${e.time}`}>
               {labelled.has(i) && (
-                <circle cx={px} cy={py} r={2} className="fill-card stroke-primary" strokeWidth={1} />
+                <circle cx={px} cy={py} r={2} className="fill-card stroke-data" strokeWidth={1} />
               )}
               {labelled.has(i) && (
                 <text
@@ -150,7 +150,7 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
             </g>
           );
         })}
-        <circle cx={sx} cy={sy} r={3} className="fill-primary stroke-card" strokeWidth={1.5} />
+        <circle cx={sx} cy={sy} r={3} className="fill-data stroke-card" strokeWidth={1.5} />
       </svg>
     );
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Check, MoreHorizontal, Pencil, Star, Trash2, X } from "lucide-react";
 import {
@@ -56,6 +56,7 @@ import {
   splitLength,
 } from "@/lib/boards";
 import { useLang } from "@/lib/i18n";
+import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 import type { Board, Rocker } from "@/lib/types";
 
 /**
@@ -335,25 +336,6 @@ export function BoardRack({
   );
 }
 
-function subscribeReducedMotion(callback: () => void) {
-  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-  mq.addEventListener("change", callback);
-  return () => mq.removeEventListener("change", callback);
-}
-
-/** useSyncExternalStore, not useEffect+setState (see CLAUDE.md
- *  "Conventions") — same shape as useLang()'s own storage read. Server
- *  snapshot is `false` so hydration always starts from "animate", matching
- *  the vast majority of visitors; a reduced-motion client corrects itself
- *  on the first render after mount. */
-function usePrefersReducedMotion(): boolean {
-  return useSyncExternalStore(
-    subscribeReducedMotion,
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    () => false
-  );
-}
-
 /** One draggable board card. Split out of BoardRack's render because
  *  useSortable() is a hook — it has to run once per card component
  *  instance, not once per loop iteration inside .map(). */
@@ -397,7 +379,7 @@ function SortableBoardCard({
   // read as a click, and must never fire the toggle mid-drag.
   const favoriteBadge = b.isFavorite && (
     sorting ? (
-      <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-[#0E7C86]/10 px-2 text-xs font-semibold text-[#0E7C86]">
+      <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground">
         <Check className="size-3" aria-hidden />
         {t("board.favorite")}
       </span>
@@ -409,7 +391,7 @@ function SortableBoardCard({
           onToggleFavorite(b);
         }}
         aria-label={t("board.removeFavoriteLabel", { name })}
-        className="group inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-[#0E7C86]/10 px-2 text-xs font-semibold text-[#0E7C86] outline-none transition-colors hover:bg-[#0E7C86]/20 focus-visible:bg-[#0E7C86]/20 focus-visible:ring-2 focus-visible:ring-[#0E7C86]/40"
+        className="group inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary/80 focus-visible:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <Check className="size-3 group-hover:hidden group-focus-visible:hidden" aria-hidden />
         <X className="hidden size-3 group-hover:block group-focus-visible:block" aria-hidden />
@@ -440,7 +422,7 @@ function SortableBoardCard({
       className={
         "relative grid min-w-0 grid-cols-1 gap-2 rounded-[var(--r-tile)] bg-secondary p-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-3" +
         (sorting
-          ? " cursor-grab touch-none select-none outline-none ring-[#0E7C86]/40 focus-visible:ring-4 active:cursor-grabbing" +
+          ? " cursor-grab touch-none select-none outline-none ring-primary/40 focus-visible:ring-4 active:cursor-grabbing" +
             (isDragging ? " shadow-lg" : "")
           : "")
       }

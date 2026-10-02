@@ -8,6 +8,12 @@ import Link from "next/link";
  */
 const PAGES = [
   {
+    href: "/dev/landing",
+    title: "Landing page",
+    description:
+      "components/landing/landing.tsx — the signed-out “/” page, viewable while signed in. Sign-in buttons do nothing here.",
+  },
+  {
     href: "/dev/entry-card",
     title: "Entry card",
     description:

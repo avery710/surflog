@@ -40,7 +40,12 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
-  --color-primary-soft: var(--primary-soft);
+  --color-panel: var(--panel);
+  --color-primary-vivid: var(--primary-vivid);
+  --color-data: var(--data);
+  --color-data-vivid: var(--data-vivid);
+  --color-badge: var(--badge);
+  --color-badge-foreground: var(--badge-foreground);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -60,34 +65,131 @@
 :root {
   color-scheme: light;
 
-  /* --- shadcn tokens, values matched to the artifact's palette --- */
+  /*
+   * 2026-10-02 — repalette from Avery's style reference (a detergent-bottle
+   * poster: vivid green #2AC55A + blue #3B85EB on light grey paper, black
+   * type — see CLAUDE.md "Style references"). Replaces the single teal
+   * `#0e7c86` accent used since the artifact. The two hues are split by
+   * role, not randomly: BLUE is the brand/interaction colour (buttons, the
+   * + button, badges, checkboxes, ring/focus, the dashboard panel tint) —
+   * everything you can click or that chrome-labels a tile. GREEN is kept
+   * for "data/readings" only: the swell/wind direction arrow+compass
+   * (`--data`, `direction-arrow.tsx`/`entry-card.tsx`'s `DirSub`) and the
+   * tide curve (`tide-chart.tsx`). Wind-strength's own green→red dots
+   * (`wind-strength.tsx`) are a separate semantic scale, left alone.
+   *
+   * Neither extracted hex is readable as text or a thin line on white:
+   * green #2AC55A is 2.3:1 against white (fails even the 3:1 icon/large-
+   * text floor), blue #3B85EB is 3.66:1 (clears 3:1 for icons/non-text but
+   * not 4.5:1 for small text). Almost everything the old teal touched is
+   * exactly that — small text, badge labels, white text on a filled
+   * button — so `--primary`/`--data` are darkened, same-hue variants
+   * (HSL lightness brought down, hue/saturation kept) tuned to land
+   * around 5:1 against white, matching the old teal's own 4.94:1 rather
+   * than just clearing 4.5. The *pure* extracted hexes are kept as
+   * `--primary-vivid`/`--data-vivid` for exactly the fills/dots/large-
+   * surface case the brief calls out: `--primary-vivid` is used once, for
+   * the activity calendar's "surfed" dot (a repeated decorative fill, not
+   * text — 3.66:1 clears the non-text bar on its own, no darkening
+   * needed). `--data-vivid` isn't applied anywhere yet — every current
+   * green use is either text (the arrow+compass) or a thin curve that
+   * both want to stay legible — so it's here as an available token for a
+   * future large coloured surface, not a current one.
+   *
+   * The poster's grey paper (#E4E4E4) was tried for `--background` the
+   * same session and reverted on request a few minutes later — back to
+   * white. Only the accent split above is from the reference; the page
+   * background is unchanged.
+   *
+   * --primary swapped again the same session to a second reference: a
+   * "Daily Poster" design (Choky/gstudio) whose own caption names its
+   * palette as #0018FF — a fully saturated royal blue. Unlike the
+   * detergent-bottle blue above, this one needs no darkening: its blue
+   * channel is maxed out but blue contributes very little to perceived
+   * luminance (the WCAG weighting is only 0.0722), so #0018FF reads as
+   * near-black in luminance terms — 8.16:1 against white, both as text-
+   * on-white and as white-text-on-fill, comfortably past the 4.5:1 small-
+   * text floor with no adjustment. So `--primary` and `--primary-vivid`
+   * are now the same raw value — there's no separate "fill-only" shade to
+   * keep this time.
+   *
+   * `--data` (the green reading accent — tide curve, swell/wind
+   * direction arrow+compass) was retired the same session, on request,
+   * to the same `--primary` blue instead of its own hue — one consistent
+   * blue identity rather than a blue/green split. `direction-arrow.tsx`,
+   * `entry-card.tsx`'s `DirSub` and `tide-chart.tsx` still read the
+   * `--data`/`text-data`/`stroke-data`/`fill-data` token/classes (not
+   * reverted to `--primary` directly), so this is a one-line change here
+   * if a reading-specific colour ever comes back; right now it just
+   * resolves to blue. `--data-vivid` follows it for the same reason.
+   *
+   * `--badge`/`--badge-foreground`: a neutral dark grey + white, for the
+   * board rack's 常用/Go-to badge (the one thing this codebase actually
+   * calls "badge" — see CLAUDE.md) — changed the same session from a
+   * pale blue tint + blue text, on request, once the panel above went
+   * solid blue and a same-hue badge read as low-contrast/redundant next
+   * to it.
+   */
   --background: #ffffff;
   --foreground: #000000;
   --card: #ffffff;
   --card-foreground: #000000;
   --popover: #ffffff;
   --popover-foreground: #000000;
-  --primary: #0e7c86; /* teal accent */
+  --primary: #0018ff; /* Daily Poster blue — 8.16:1 on white, no darkening needed */
+  --primary-vivid: #0018ff; /* same value — see note above */
   --primary-foreground: #ffffff;
-  /* Pale tint of --primary, for the dashboard panel (goal/calendar/patterns/
-     boards) that groups the "about your surfing" sections above the session
-     list — see journal.tsx. Distinct from --accent (a shadcn interactive-
-     highlight token, e.g. select focus) even though the two are close in
-     hue; this one is a static background, not a hover/focus state. Pale
-     enough that black text and the calendar's grey/teal dots read the same
-     as they do on white. */
-  --primary-soft: #eaf4f4;
+  /* 2026-10-02, later the same session: moved off blue again, this time to
+     the badge grey (`--badge`, #374151) on request — the swell/wind
+     direction arrow+compass and the tide curve read as readings, not
+     actions, so they shouldn't share the same colour as the buttons/panel.
+     Still a token indirection, not a component edit: direction-arrow.tsx,
+     entry-card.tsx's `DirSub` and tide-chart.tsx read `--data`/`text-data`/
+     `stroke-data`/`fill-data` unchanged, so swapping the value here is a
+     one-line change either way if a third colour is ever wanted. Grey on
+     the tile's `bg-secondary` surface is high-contrast (darker than the
+     blue it replaces), so the tide chart's labels (white-stroked text) and
+     session-time dot (white `stroke-card` ring) stay just as legible. */
+  --data: var(--badge);
+  --data-vivid: var(--badge);
+  --badge: #374151; /* dark grey badge fill, ~10.3:1 with white text */
+  --badge-foreground: #ffffff;
+  /* Dashboard panel background (goal/calendar/patterns/boards — the
+     "about your surfing" group above the session list, journal.tsx). Went
+     through two different blue phases the same day — a pale wash of
+     --primary, then (2026-10-02) a *solid* fill of --primary once the
+     header also went solid blue and the panel started reading as a near-
+     duplicate of it. **Moved to light grey the same day, later**, once
+     that duplication was the actual complaint — the header keeps the
+     solid blue (reads `bg-primary` directly now, not this token; see
+     journal.tsx/landing.tsx), and this panel became a neutral backdrop for
+     its nested white bg-card sections instead of a second blue block.
+     **Value is literally --secondary's own hex** (#f2f5f5 — matches
+     --muted too, the app's one light grey), not a new slightly-different
+     grey (a candidate around #EEF0F2 was considered and rejected — close
+     enough to #f2f5f5 that it would've read as an accidental near-miss of
+     an existing token rather than a deliberate third grey). Still white
+     bg-card sections nest on top with their own border/shadow, so the
+     grey only shows in the panel's own padding and the gaps between
+     cards — same "never behind text" safety the solid blue had.
+     **Renamed --primary-soft -> --panel** (every bg-primary-soft call site
+     updated: journal.tsx, landing.tsx's two panel wrappers,
+     app/dev/dashboard/page.tsx) since "primary-soft" stopped describing
+     what this is — it's no longer a tint of --primary at all. Kept as its
+     own token, not literally `var(--secondary)`, so the panel can diverge
+     from the secondary-surface grey later without a rename again. */
+  --panel: #f2f5f5;
   --secondary: #f2f5f5; /* surface-2 */
   --secondary-foreground: #000000;
   --muted: #f2f5f5;
   --muted-foreground: #59696c;
-  --accent: #e0eff0; /* accent-soft */
-  --accent-foreground: #0e7c86;
+  --accent: #d6d9f5; /* accent-soft, blue-tinted to match the new primary */
+  --accent-foreground: #0018ff;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #e4eaea;
   --input: #e4eaea;
-  --ring: #0e7c86;
-  --chart-1: #0e7c86;
+  --ring: #0018ff;
+  --chart-1: #0018ff;
   --chart-2: #59696c;
   --chart-3: #8a9699;
   --chart-4: #b35a28;
@@ -95,12 +197,12 @@
   --radius: 0.875rem; /* 14px — matches --r-input; cards/tiles use explicit radii, see below */
   --sidebar: #f2f5f5;
   --sidebar-foreground: #000000;
-  --sidebar-primary: #0e7c86;
+  --sidebar-primary: #0018ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e0eff0;
-  --sidebar-accent-foreground: #0e7c86;
+  --sidebar-accent: #d6d9f5;
+  --sidebar-accent-foreground: #0018ff;
   --sidebar-border: #e4eaea;
-  --sidebar-ring: #0e7c86;
+  --sidebar-ring: #0018ff;
 
   /* --- extra tokens, not part of the shadcn contract, used directly --- */
   --warm: #b35a28;
@@ -178,27 +280,54 @@
   }
 }
 
-/* Liquid-glass sticky header (components/journal.tsx): translucent white,
-   blurred + saturated backdrop, a bright top edge and a soft hairline/shadow
-   at the bottom so it lifts off the cards scrolling underneath. Falls back to
-   solid white where backdrop-filter isn't supported. */
-.glass-header {
-  background: var(--background);
-  border: 1px solid var(--border);
+/* Sticky header (components/journal.tsx + landing.tsx): a flat, full-bleed
+   bar, solid blue (`bg-primary` directly — briefly `bg-primary-soft`/
+   `bg-panel` for a few minutes the same session, while that token was
+   still a solid blue itself, until it moved to grey for the dashboard
+   panel below and the header switched to reading `--primary` on its own
+   so the two can still move independently) — 2026-10-02, on request,
+   replacing a flat white bar with a
+   black bottom border (`<HeaderUnderline>`, `components/header-underline.tsx`
+   — deleted, nothing else used it), which itself had replaced a floating
+   liquid-glass pill before that (translucent wash, backdrop blur, a blue
+   grainy gradient on its left edge). Both earlier designs' CSS/components
+   are gone, not just unused — the glass header was a full `@supports`
+   block plus a ~2KB inline SVG data URI (`.glass-header`, `--header-grain`),
+   deleted outright when it was replaced. See CLAUDE.md "Style references"
+   and this file's own git history for what either looked like, if a white
+   or glass header ever comes back. On solid blue, black icons/fills drop
+   below 3:1 contrast, so most things inside the bar were re-picked: the
+   log-session `+` button and landing's "Sign in" button went from
+   blue/dark-grey fills to white fills with a blue glyph/label (mirroring
+   the existing `inverted` `CtaButton` pattern already used lower on the
+   landing page), the avatar's no-photo fallback moved off `bg-primary` to
+   the neutral `--badge` grey (`user-menu.tsx`), and each button's
+   `focus-visible` ring was pinned to white instead of the default blue
+   `--ring`, which would otherwise vanish on this same background. **The
+   wordmark is the one deliberate exception**: a white version
+   (`brightness-0 invert`) was tried and reverted the same session, on
+   request ("surflog logo text should remain black") — it stays plain
+   black-on-transparent at ~2.6:1 against this blue, under the 4.5:1
+   small-text floor, accepted anyway for the logotype specifically. */
+
+/* Medium-style hide-on-scroll-down/show-on-scroll-up for the sticky header
+   (lib/use-auto-hide-header.ts toggles the [data-autohide] attribute on the
+   same <header> this class sits on). -100% is enough on its own this time:
+   the flat bar has no floating top margin/gap any more (it's flush to
+   `top: 0`, safe-area inset is internal padding, not a margin — see
+   journal.tsx/landing.tsx's own comments), so translating by its own full
+   height clears it completely, border included. The hook never sets the
+   attribute at all under prefers-reduced-motion (see its own comment for
+   why "always show" rather than "hide instantly"), so the reduced-motion
+   rule below is belt-and-braces, not load-bearing. */
+.auto-hide-header {
+  transition: transform 220ms ease;
 }
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-header {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.55) 0%,
-      rgba(255, 255, 255, 0.38) 100%
-    );
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.7),
-      0 1px 2px rgba(0, 0, 0, 0.03),
-      0 10px 28px -14px rgba(15, 40, 45, 0.18);
+.auto-hide-header[data-autohide="hidden"] {
+  transform: translateY(-100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .auto-hide-header {
+    transition: none;
   }
 }

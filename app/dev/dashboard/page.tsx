@@ -12,14 +12,14 @@ import { joinGoalPoints, MAX_GOAL } from "@/lib/goal";
 import type { Board, Session } from "@/lib/types";
 
 /**
- * The teal-tinted dashboard panel above the session list — see
+ * The grey-tinted dashboard panel above the session list — see
  * CLAUDE.md "Status" (2026-09-28 goal + calendar entries) and
  * components/journal.tsx's own comment on the wrapper below. Not linked
  * from the real app; 404s in production builds (app/dev/layout.tsx).
  *
  * journal.tsx fetches real data (sessions/boards/goal/spot notes) and
  * needs a signed-in owner, so it isn't rendered directly here. The panel
- * markup (the bg-primary-soft wrapper + its grid) is replicated below —
+ * markup (the bg-panel wrapper + its grid) is replicated below —
  * see the "mirrors components/journal.tsx" comment on DashboardPanel — and
  * the four real child components (GoalCard, ActivityCalendar,
  * PatternsTable, BoardRack) are dropped in with synthetic props from
@@ -67,9 +67,11 @@ function DashboardPanel({
     // BoardRack, not its own exported component (journal.tsx owns the
     // fetched state and passes it straight through) — className copied
     // verbatim, including journal.tsx's own comment on why it's tinted
-    // (--primary-soft, no border since 2026-10-02) while each section keeps
-    // a white bg-card surface.
-    <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] bg-primary-soft p-3 sm:p-5">
+    // (--panel, a light grey — renamed from --primary-soft and moved off
+    // blue 2026-10-02, once the header above took the solid blue instead;
+    // no border since 2026-10-01) while each section keeps a white
+    // bg-card surface.
+    <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
       {/* Row 1, sm: up — goal (flexible) beside the calendar (content-sized,
           fit-content), sm:items-stretch (2026-10-01). See journal.tsx for
           why: the calendar's own content is only ~200px wide, so pairing it
@@ -628,7 +630,7 @@ export default function DashboardPreviewPage() {
         <div>
           <h1 className="font-sans text-2xl font-extrabold">Dashboard panel (dev only)</h1>
           <p className="mt-1 max-w-[65ch] text-sm text-muted-foreground">
-            The teal-tinted panel above the session list in <code>components/journal.tsx</code>: GoalCard, Activity
+            The grey-tinted panel above the session list in <code>components/journal.tsx</code>: GoalCard, Activity
             calendar, the “What you&apos;ve surfed” table, and the board rack — synthetic data from{" "}
             <code>app/dev/fixtures.ts</code>. See the top-of-file comment for which parts are no-op/logging and
             which hit the real API and will fail here.

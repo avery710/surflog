@@ -7,7 +7,12 @@ import type { CSSProperties } from "react";
  */
 
 const OPTIONS = [
-  { n: 0, name: "Current teal", main: "#0E7C86", soft: "#E0EFF0", contrast: "4.9:1" },
+  // 2026-10-02: "Current" updated twice the same session — first to a
+  // style-ref blue derived from a detergent-bottle poster (#3B85EB,
+  // darkened to #176ADE for contrast), then to a second reference's own
+  // named palette colour, #0018FF, which needs no darkening (see
+  // globals.css's comment on --primary).
+  { n: 0, name: "Current (Daily Poster blue)", main: "#0018FF", soft: "#E3E5F7", contrast: "8.2:1" },
   { n: 1, name: "Ocean", main: "#1D6FB8", soft: "#E3EEF9", contrast: "5.2:1" },
   { n: 2, name: "Deep sea", main: "#1E4E8C", soft: "#E4EBF5", contrast: "8.3:1" },
   { n: 3, name: "Surf blue", main: "#2563EB", soft: "#E6EEFD", contrast: "5.2:1" },

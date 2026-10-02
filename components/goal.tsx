@@ -266,7 +266,7 @@ export function GoalCard({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={addPoint}
                   aria-label={t("goal.addPoint")}
-                  className="shrink-0 rounded-full p-1.5 text-[#0E7C86] hover:bg-secondary disabled:opacity-40"
+                  className="shrink-0 rounded-full p-1.5 text-primary hover:bg-secondary disabled:opacity-40"
                 >
                   <Plus className="size-3.5" aria-hidden />
                 </button>
@@ -309,7 +309,7 @@ export function GoalCard({
                         <li key={i}>
                           {p}
                           {stats[i]?.total ? (
-                            <span className="ml-2 whitespace-nowrap text-[12px] font-semibold tabular-nums text-[#0E7C86]">
+                            <span className="ml-2 whitespace-nowrap text-[12px] font-semibold tabular-nums text-primary">
                               {t("goal.pointCount", { met: stats[i].met, n: stats[i].total })}
                             </span>
                           ) : null}
@@ -354,7 +354,7 @@ export function GoalCheck({
     <fieldset className="flex flex-col gap-2 rounded-[var(--r-tile)] bg-secondary px-4 py-3">
       <legend className="sr-only">{t("goal.whichDidYouAchieve")}</legend>
       <div className="flex items-center gap-2">
-        <Target className="size-4 shrink-0 text-[#0E7C86]" aria-hidden />
+        <Target className="size-4 shrink-0 text-primary" aria-hidden />
         <span className="text-xs font-semibold text-muted-foreground">{t("goal.whichDidYouAchieve")}</span>
       </div>
       <div className="flex flex-col gap-1">
@@ -375,7 +375,7 @@ export function GoalCheck({
                 aria-hidden
                 className={cn(
                   "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[6px] border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-ring/30",
-                  checked ? "border-[#0E7C86] bg-[#0E7C86] text-white" : "border-border bg-background"
+                  checked ? "border-primary bg-primary text-white" : "border-border bg-background"
                 )}
               >
                 {checked && <Check className="size-3" strokeWidth={3.5} />}
@@ -409,16 +409,17 @@ export function GoalChip({ goal, pointsMet }: { goal: string; pointsMet: boolean
             {compact}
           </span>
         )}
+        {/* Main blue + white (bg-primary/text-primary-foreground), same as
+            the board rack's 常用/Go-to badge — the two were briefly on
+            --badge (dark grey) the same session, then both moved to blue
+            2026-10-02 so every "badge" in the app reads as the one accent
+            colour, not a separate neutral. "Not assessed" stays plain
+            muted text, no fill — it's not really a badge, just a label
+            for the absence of one. */}
         <span
           className={cn(
             "shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums",
-            !pointsMet
-              ? "text-muted-foreground"
-              : met === n
-                ? "bg-[#0E7C86] text-white"
-                : met > 0
-                  ? "bg-[#0E7C86]/15 text-[#0E7C86]"
-                  : "bg-foreground text-background"
+            !pointsMet ? "text-muted-foreground" : "bg-primary text-primary-foreground"
           )}
         >
           {!pointsMet ? t("goal.notAssessed") : t("goal.chipCount", { met, n })}

@@ -35,12 +35,16 @@ export function EntryCard({
   boards = [],
   onUpdated,
   onDeleted,
+  readOnly = false,
 }: {
   session: Session;
   /** The owner's rack — to show the session's board and to pick one on edit. */
   boards?: Board[];
   onUpdated: (s: Session) => void;
   onDeleted: (id: string) => void;
+  /** No ⋯ menu (edit / upload / delete) — for the signed-out landing
+   *  page's demo cards, which must never call the API. */
+  readOnly?: boolean;
 }) {
   const { lang, t } = useLang();
   const [editing, setEditing] = useState(false);
@@ -172,6 +176,7 @@ export function EntryCard({
             <Loader2 className="size-4 animate-spin motion-reduce:animate-none text-muted-foreground" aria-hidden />
           </span>
         )}
+        {!readOnly && (<>
         {/* Kept outside the dropdown's content so it survives the menu
             closing/unmounting — the "Add photos/video" item just clicks
             this ref. */}
@@ -216,6 +221,7 @@ export function EntryCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </>)}
       </div>
 
       <Dialog
@@ -483,7 +489,7 @@ export function EntryCard({
 function DirSub({ deg, compass }: { deg: number | null | undefined; compass: string | null | undefined }) {
   if (deg == null) return null;
   return (
-    <span className="inline-flex items-baseline gap-1 font-sans text-[11px] font-bold text-primary">
+    <span className="inline-flex items-baseline gap-1 font-sans text-[11px] font-bold text-data">
       <DirectionArrow deg={deg} className="relative top-[2px] size-3" strokeWidth={3.5} />
       {compass}
     </span>

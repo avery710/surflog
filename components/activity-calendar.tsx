@@ -133,26 +133,32 @@ function weeksBetween(from: Date, to: Date): Date[] {
   return weeks;
 }
 
-/** Surfed = filled teal, past-no-surf = filled grey, future (strictly after
- *  today) = outlined ring only, no fill. Today gets whichever fill applies
- *  (teal if already surfed, grey otherwise) with no extra highlight — it is
- *  never the outlined future style, it just isn't called out further either.
- *  Binary — no session-count colour ramp. The no-surf fill and the future
- *  outline share the same grey: a light mix of `--faint` into white (25%
- *  faint) — progressively lightened on request from an initial 50/50 mix,
- *  which was itself lighter than plain `--faint` (too dark) but still
- *  darker than wanted; still visible unlike the original
- *  `--secondary`/`--border` (nearly invisible at dot size). Written as full
+/** Surfed = filled vivid blue, past-no-surf = filled grey, future (strictly
+ *  after today) = outlined ring only, no fill. Today gets whichever fill
+ *  applies (blue if already surfed, grey otherwise) with no extra
+ *  highlight — it is never the outlined future style, it just isn't called
+ *  out further either. Binary — no session-count colour ramp. The no-surf
+ *  fill and the future outline share the same grey: a light mix of
+ *  `--faint` into white (25% faint) — progressively lightened on request
+ *  from an initial 50/50 mix, which was itself lighter than plain `--faint`
+ *  (too dark) but still darker than wanted; still visible unlike the
+ *  original `--secondary`/`--border` (nearly invisible at dot size).
+ *  Surfed uses `--primary-vivid` (currently the same raw value as
+ *  `--primary` itself — see globals.css's 2026-10-02 note on why this
+ *  particular blue needs no separate darkened shade) rather than being
+ *  written as `--primary` directly, so a future accent whose raw hue
+ *  isn't already accessible (like the one this replaced) only has to
+ *  change `--primary-vivid` here, not this component. Written as full
  *  literal class strings (not built from a shared JS constant) because
- *  Tailwind's build-time scanner needs the complete arbitrary-value class to
- *  appear as-is in the source. */
+ *  Tailwind's build-time scanner needs the complete arbitrary-value class
+ *  to appear as-is in the source. */
 function dotClassName(isFuture: boolean, surfed: boolean): string {
   return cn(
     "block rounded-full",
     isFuture
       ? "border border-[color-mix(in_srgb,white,var(--faint)_25%)] bg-transparent"
       : surfed
-        ? "bg-[#0E7C86]"
+        ? "bg-primary-vivid"
         : "bg-[color-mix(in_srgb,white,var(--faint)_25%)]"
   );
 }
