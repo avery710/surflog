@@ -1,12 +1,17 @@
-import { SPOTS } from "./spots";
+import { TAIWAN_SPOTS_FIXTURE } from "./spot-fixtures";
+import type { Spot } from "./spots";
 import type { Lang } from "./i18n";
 
-export function spotLabel(slug: string, lang: Lang = "en"): string {
+/** Label for a spot slug in a place with no catalogue context (CSV export,
+ *  the landing page): looks in `spots`, which defaults to the demo fixture.
+ *  React code should use `useSpotCatalog().label` — it also knows spot
+ *  requests (`req:<id>`). Legacy "custom:" free text shows as typed. */
+export function spotLabel(slug: string, lang: Lang = "en", spots: readonly Spot[] = TAIWAN_SPOTS_FIXTURE): string {
   if (!slug) return "Unknown spot";
   if (slug.startsWith("custom:")) return slug.slice(7);
-  const spot = SPOTS.find((s) => s.slug === slug);
+  const spot = spots.find((s) => s.slug === slug);
   if (!spot) return slug;
-  return lang === "zh-TW" ? spot.nameZh : spot.name;
+  return lang === "zh-TW" ? (spot.nameZh ?? spot.name) : spot.name;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -17,7 +22,7 @@ const MONTHS = [
 
 const DAYS_ZH = ["日", "一", "二", "三", "四", "五", "六"];
 
-/** `when` is "YYYY-MM-DDTHH:mm", Asia/Taipei local, no timezone suffix. */
+/** `when` is "YYYY-MM-DDTHH:mm", local at the spot, no timezone suffix. */
 export function fmtWhen(when: string, lang: Lang = "en"): string {
   if (!when) return "";
   return `${fmtDate(when.slice(0, 10), lang)} · ${when.slice(11, 16)}`;
@@ -48,20 +53,20 @@ export function compassLabel(dir: string | null | undefined, lang: Lang = "en"):
   return COMPASS_ZH[dir.trim().toUpperCase()] ?? dir;
 }
 
-/** "YYYY-MM-DD" for today in Asia/Taipei, independent of the server/browser's own tz. */
-export function taipeiToday(): string {
+/** "YYYY-MM-DD" for today in an IANA zone, independent of the server/browser's own tz. */
+export function todayInZone(timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Taipei",
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
 }
 
-/** Nearest 2-hour forecast slot, "HH:00", for the current time in Asia/Taipei. */
-export function taipeiNearestSlot(): string {
+/** Nearest 2-hour forecast slot, "HH:00", for the current time in an IANA zone. */
+export function nearestSlotInZone(timeZone: string): string {
   const hourStr = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Taipei",
+    timeZone,
     hour: "2-digit",
     hour12: false,
   }).format(new Date());
@@ -69,6 +74,13 @@ export function taipeiNearestSlot(): string {
   const slot = Math.min(22, Math.round(hour / 2) * 2);
   return `${String(slot).padStart(2, "0")}:00`;
 }
+
+/** "YYYY-MM-DD" for today in Asia/Taipei — the Taiwan breaks' zone, and the
+ *  journal-wide "today" (activity calendar, dev fixtures). */
+export const taipeiToday = (): string => todayInZone("Asia/Taipei");
+
+/** Nearest 2-hour slot now in Asia/Taipei. */
+export const taipeiNearestSlot = (): string => nearestSlotInZone("Asia/Taipei");
 
 /** Format a reading to 1 decimal place for display, e.g. 0.52 -> "0.5". */
 export function fmt1(v: number | null | undefined): string | null {

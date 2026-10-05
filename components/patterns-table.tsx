@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { spotLabel } from "@/lib/format";
+import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
 
@@ -17,6 +17,7 @@ export function PatternsTable({
   onSaveSpotNote: (spot: string, description: string) => Promise<boolean>;
 }) {
   const { lang, t } = useLang();
+  const catalog = useSpotCatalog();
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -82,7 +83,7 @@ export function PatternsTable({
             </thead>
             <tbody>
               {rows.map((r) => {
-                const label = spotLabel(r.slug, lang);
+                const label = catalog.label(r.slug, lang);
                 const note = spotNotes[r.slug];
                 return (
                   <tr key={r.slug}>

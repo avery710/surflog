@@ -6,26 +6,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SpotPicker, type PendingRequest } from "@/components/spot-picker";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
 import { goalPoints, sessionPointsMet } from "@/lib/goal";
-import { SPOTS, type Region } from "@/lib/spots";
-import { spotLabel } from "@/lib/format";
 import { useLang, type TKey } from "@/lib/i18n";
 import { TIME_SLOTS } from "@/lib/time-slots";
 import type { Board, Cond, Session } from "@/lib/types";
-
-const REGIONS: Region[] = ["Northeast", "North", "East", "South", "West"];
 
 // Only fields entry-card.tsx can actually display (the manual Swelleye
 // swell/wind tiles, shown when the session has no condOpenMeteo — see
@@ -53,15 +42,20 @@ const COND_FIELDS: { key: CondFieldKey; placeholder: string | TKey }[] = [
 export function EditPanel({
   session,
   boards = [],
+  onRequestSpot,
+  pendingRequests,
   onSaved,
   onCancel,
 }: {
   session: Session;
   boards?: Board[];
+  /** Passed straight to SpotPicker — see its props. */
+  onRequestSpot?: (query: string) => void;
+  pendingRequests?: PendingRequest[];
   onSaved: (s: Session) => void;
   onCancel: () => void;
 }) {
-  const { lang, t } = useLang();
+  const { t } = useLang();
   const [spot, setSpot] = useState(session.spot);
   const [date, setDate] = useState(session.when.slice(0, 10));
   const [time, setTime] = useState(session.when.slice(11, 16));
@@ -129,28 +123,15 @@ export function EditPanel({
     <div className="flex flex-col gap-4.5 p-6">
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Field label={t("form.spot")}>
-          <Select value={spot} onValueChange={setSpot}>
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {REGIONS.map((region) => (
-                <SelectGroup key={region}>
-                  <SelectLabel>{t(`region.${region}`)}</SelectLabel>
-                  {SPOTS.filter((s) => s.region === region).map((s) => (
-                    <SelectItem key={s.slug} value={s.slug}>
-                      {spotLabel(s.slug, lang)}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))}
-              {session.spot.startsWith("custom:") && (
-                <SelectGroup>
-                  <SelectItem value={session.spot}>{spotLabel(session.spot, lang)}</SelectItem>
-                </SelectGroup>
-              )}
-            </SelectContent>
-          </Select>
+          {/* A legacy free-text spot ("custom:…") isn't in the catalogue; the
+              picker lists the current value under "Current" so it stays selectable. */}
+          <SpotPicker
+            value={spot}
+            onChange={setSpot}
+            onRequestSpot={onRequestSpot}
+            pendingRequests={pendingRequests}
+            className="bg-background"
+          />
         </Field>
         <Field label={t("form.date")}>
           <DateField className="bg-background" value={date} onChange={setDate} />

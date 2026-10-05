@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
@@ -18,6 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { downloadCsv } from "@/lib/csv";
 import type { GoalRename } from "@/lib/goal";
+import { RequestSpotDialog } from "@/components/request-spot-dialog";
+import { SpotCatalogProvider, type OwnRequest } from "@/lib/spot-catalog";
+import { isRequestSlug, requestSlug, type Spot } from "@/lib/spots";
+import { spotLabel } from "@/lib/format";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
 import type { Board, Session } from "@/lib/types";
@@ -34,12 +38,24 @@ export function Journal({
   initialSpotNotes,
   initialBoards,
   initialGoal,
+  initialSpots = [],
+  initialRequests = [],
+  canManageSpots = false,
+  pendingSpotRequests = 0,
   user,
 }: {
   initialSessions: Session[];
   initialSpotNotes: Record<string, string>;
   initialBoards: Board[];
   initialGoal: string | null;
+  /** The whole spot catalogue (the `spots` table). */
+  initialSpots?: Spot[];
+  /** The viewer's own spot requests. */
+  initialRequests?: OwnRequest[];
+  /** The viewer is a spot admin (SPOT_ADMIN_EMAILS) — may add/edit/delete spots. */
+  canManageSpots?: boolean;
+  /** Admin only: how many spot requests are waiting (badge on the menu link). */
+  pendingSpotRequests?: number;
   user: JournalUser;
 }) {
   const { t } = useLang();
@@ -47,11 +63,36 @@ export function Journal({
   const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
   const [boards, setBoards] = useState(initialBoards);
   const [goal, setGoal] = useState(initialGoal);
+  const [spots, setSpots] = useState(initialSpots);
+  const [requests, setRequests] = useState(initialRequests);
+  // "Request a spot" dialog (any user); `name` pre-fills it from the picker's search text.
+  const [requestDialog, setRequestDialog] = useState<{ name: string } | null>(null);
+  const openRequestDialog = useCallback((name: string) => setRequestDialog({ name }), []);
   const [formOpen, setFormOpen] = useState(false);
+  // True while the log form is saving/uploading — see the Dialog below.
+  const [formBusy, setFormBusy] = useState(false);
   // The log-session dialog opens from a plain button, not a Radix
   // DialogTrigger inside the header, so the hook can't see it on its own
   // (see use-auto-hide-header.ts's own comment) — forceVisible covers it.
   const headerRef = useAutoHideHeader<HTMLElement>({ forceVisible: formOpen });
+
+  const addSpot = useCallback(
+    (s: Spot) => setSpots((prev) => (prev.some((x) => x.slug === s.slug) ? prev : [...prev, s])),
+    []
+  );
+  const replaceSpot = useCallback(
+    (s: Spot) => setSpots((prev) => prev.map((x) => (x.slug === s.slug ? s : x))),
+    []
+  );
+  const upsertRequest = useCallback(
+    (r: OwnRequest) =>
+      setRequests((prev) => (prev.some((x) => x.id === r.id) ? prev.map((x) => (x.id === r.id ? r : x)) : [r, ...prev])),
+    []
+  );
+  const removeSpot = useCallback(
+    (slug: string) => setSpots((prev) => prev.filter((x) => x.slug !== slug)),
+    []
+  );
 
   function upsertBoard(b: Board) {
     setBoards((prev) =>
@@ -123,7 +164,9 @@ export function Journal({
       toast.info(t("toast.nothingToExport"));
       return;
     }
-    downloadCsv(sessions, boards);
+    downloadCsv(sessions, boards, (slug) =>
+      isRequestSlug(slug) ? (requests.find((r) => requestSlug(r.id) === slug)?.name ?? slug) : spotLabel(slug, "en", spots)
+    );
   }
 
   function upsert(s: Session) {
@@ -140,7 +183,21 @@ export function Journal({
   }
 
   return (
-    <>
+    <SpotCatalogProvider
+      spots={spots}
+      requests={requests}
+      canManage={canManageSpots}
+      onAdd={addSpot}
+      onReplace={replaceSpot}
+      onRemove={removeSpot}
+      onRequestChanged={upsertRequest}
+      onRequestSpot={openRequestDialog}
+    >
+      <RequestSpotDialog
+        open={requestDialog !== null}
+        onOpenChange={(open) => !open && setRequestDialog(null)}
+        initialName={requestDialog?.name}
+      />
       {/* Flat, full-bleed bar — solid blue (2026-10-02, on request:
           "make the whole header bg color blue (same as the dashboard bg
           color); remove the black underline border"), replacing the
@@ -220,7 +277,7 @@ export function Journal({
             >
               <LogIcon className="size-4" />
             </Button>
-            <UserMenu user={user} onExportCsv={handleExport} />
+            <UserMenu user={user} onExportCsv={handleExport} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
           </div>
         </div>
       </header>
@@ -300,15 +357,25 @@ export function Journal({
           <BoardRack boards={boards} onSaved={upsertBoard} onDeleted={removeBoard} onRackChanged={setBoards} />
         </div>
 
-        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        {/* Not closable (Escape, outside click, ×) while the form is saving:
+            closing unmounts it mid-upload, and its picked files with it.
+            handleCreated closes it when the save is done. */}
+        <Dialog
+          open={formOpen}
+          onOpenChange={(open) => {
+            if (!formBusy) setFormOpen(open);
+          }}
+        >
           <DialogContent className="max-w-xl" closeLabel={t("entry.close")}>
             <DialogHeader>
               <DialogTitle>{t("dialog.logSessionTitle")}</DialogTitle>
             </DialogHeader>
             <LogForm
               onCreated={handleCreated}
+              onBusyChange={setFormBusy}
               ownerId={user.id}
               recentSpot={sessions[0]?.spot}
+              onRequestSpot={openRequestDialog}
               boards={boards}
               sessions={sessions}
               goal={goal}
@@ -329,7 +396,7 @@ export function Journal({
           </div>
         </section>
       </div>
-    </>
+    </SpotCatalogProvider>
   );
 }
 

@@ -1,6 +1,6 @@
 ---
 name: data-source-engineer
-description: "Use this agent for anything touching Surflog's external conditions data: Open-Meteo (waves/wind, global) and CWA opendata 中央氣象署開放資料平臺 (tide, Taiwan-only). Covers adding or debugging fetches in lib/openmeteo.ts / lib/cwa-tide.ts, adding new CWA datasets (buoys, observations), harvesting spot coordinates + Swelleye Spot Infographic + CWA township into lib/spots.ts, and verifying numbers against the live APIs."
+description: "Use this agent for anything touching Surflog's external conditions data: Open-Meteo (waves/wind, global) and CWA opendata 中央氣象署開放資料平臺 (tide, Taiwan-only). Covers adding or debugging fetches in lib/openmeteo.ts / lib/cwa-tide.ts, adding new CWA datasets (buoys, observations), harvesting spot coordinates + Swelleye Spot Infographic + CWA township (now the `spots` table, see "Worldwide spots"), and verifying numbers against the live APIs."
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 model: sonnet
 ---
@@ -31,13 +31,21 @@ You own Surflog's conditions data pipeline. Read CLAUDE.md sections "The automat
 - New block means: new jsonb column via a timestamped migration in `supabase/migrations/`, mapping in `lib/db.ts` (`SessionRow`, `rowToSession`, `sessionToRow`), then `supabase db push --password "$SUPABASE_DB_PASSWORD"` (the project is already linked). That pushes to the one live database; there is no local/dev DB. Say so before pushing.
 - Display: `components/entry-card.tsx` → `ConditionTile`. Round readings with `fmt1()` from `lib/format.ts`.
 
-## Harvesting spots (`lib/spots.ts`)
+## Harvesting spots (Taiwan data now lives in the `spots` table; `lib/spot-fixtures.ts` is the demo copy)
 
 Per spot you need `lat/lng`, the Swelleye Spot Infographic (`facing`, `bestSwellDir`, `bestWindDir`, `bestTide`), and `tideTownship`.
-1. Infographic: `https://swelleye.com/en/surf-spots/<slug>/`. Slugs are not derivable from names; the table in `lib/spots.ts` is the source of truth.
+1. Infographic: `https://swelleye.com/en/surf-spots/<slug>/`. Slugs are not derivable from names; the `spots` table is the source of truth.
 2. Coordinates: sometimes embedded in the Swelleye page's map/URLs, sometimes absent (Shalun had none). **Never approximate a coordinate.** A few km changes which grid node Open-Meteo picks. If you can't find a real published coordinate, leave it `null` and report it. Don't guess.
 3. Township: reverse-geocode the coordinate (`https://nominatim.openstreetmap.org/reverse?lat=..&lon=..&format=json&accept-language=zh-TW&zoom=10`, send a User-Agent, max 1 req/s), then confirm the exact `LocationName` exists in a live `F-A0021-001` response.
 4. Report every spot you couldn't fully verify rather than filling gaps.
+
+## Worldwide spots (added 2026-10-05)
+
+- The live catalogue is the Supabase `spots` table (migrations `20261005000000..200`), read via `lib/spot-store.ts`; `lib/spot-fixtures.ts` is only demo/fallback data. Only the admin (`SPOT_ADMIN_EMAILS`) creates spots, in the app (`AddSpotDialog`, `POST /api/spots`). Each spot has its own IANA `timezone`; `getConditions(lat, lng, when, timezone)` / `findTideEvents(..., timezone)` pass it to Open-Meteo, and `daysAgoIn()` (archive vs forecast) is timezone-safe.
+- Open-Meteo marine with `timezone=auto` returns the IANA zone (`timezone`) and null swell / `sea_level_height_msl` / `sea_surface_temperature` for deep-inland points (Paris, Frankfurt: all null). It does NOT null a pin a few km inland: Ubud (-8.5069, 115.2625) snapped to a sea node ~17 km away with full data. So "no sea data" only catches deep-inland pins; always show the grid node. Verified 2026-10-05: all 35 seeds returned a zone (Asia/Manila, Asia/Makassar) and 3/3 sea variables.
+- Nominatim reverse for country/area (`lib/spot-create.ts` `reverseGeocode`): `https://nominatim.openstreetmap.org/reverse?lat=..&lon=..&format=jsonv2&zoom=10&addressdetails=1&accept-language=en`, own User-Agent, 1 req/s. `address.country` is reliable ("Philippines", "Indonesia", "Taiwan"); `address.state` is the best area guess for Bali ("Bali") but for Siargao it returns the province "Surigao del Norte" (town "General Luna"), so the admin must be able to correct the area, and an existing spot within 30 km wins (`neighbourPlace`). Taiwan points have no `state`, use `city`/`suburb`.
+- Seeding from OpenStreetMap: Overpass (`https://overpass-api.de/api/interpreter`, needs User-Agent + `Accept: application/json`; it 429/504s under load, so batch `node(id:..)` queries, not one per object). Look objects up by id for exact coordinates, and check each against the coastline (`way[natural=coastline]` with `out geom`; land is on the left of the way direction) before trusting it. OSM named nodes for breaks exist for Siargao (Cloud 9, Jacking Horse, Quicksilver, Tuason Point, Stimpy's, Rock Island, Cemetery, Daku, Pacifico); Bali mostly only has beach polygons. Credit "(c) OpenStreetMap contributors" in the migration. Never copy WannaSurf, Surfline or the naotokui gist.
+- Dedupe radii: refuse within 100 m (or same normalised name nearby), ask for confirmation within 1 km. Cloud 9 / Quicksilver / Jacking Horse are 216-231 m apart, so a flat 1 km refusal would block real breaks.
 
 ## Rules
 

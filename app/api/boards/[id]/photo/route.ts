@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getBoard, updateBoard } from "@/lib/db";
-import { deleteBlob, saveBlob } from "@/lib/blob";
+import { deleteBlob, registerUpload } from "@/lib/blob";
 
 type Params = { params: Promise<{ id: string }> };
 
-const MAX_BYTES = 15 * 1024 * 1024;
-
-/** POST /api/boards/:id/photo — multipart, one image; replaces any existing
+/** POST /api/boards/:id/photo — { uploadId }: attach one image the browser
+ *  already PUT to storage via POST /api/uploads; replaces any existing
  *  photo. Same pipeline as session photos (Storage bucket "photos" +
  *  photo_blobs ownership row), served by /api/blob/:id's owner check. */
 export async function POST(req: NextRequest, { params }: Params) {
@@ -20,21 +19,20 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  const form = await req.formData().catch(() => null);
-  const file = form?.get("file");
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "missing file" }, { status: 400 });
-  }
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json({ error: "only images are accepted" }, { status: 415 });
-  }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "file too large (15MB max)" }, { status: 413 });
+  const body = await req.json().catch(() => null);
+  const uploadId = typeof body?.uploadId === "string" ? body.uploadId : "";
+  const upload = await registerUpload(uploadId, session.user.id, { boardId: id }, ["image/"]);
+  if (!upload.ok) {
+    if (upload.reason === "too_large") {
+      return NextResponse.json({ error: "file too large (15MB max)", code: upload.reason }, { status: 413 });
+    }
+    if (upload.reason === "bad_type") {
+      return NextResponse.json({ error: "only images are accepted", code: upload.reason }, { status: 415 });
+    }
+    return NextResponse.json({ error: "missing file", code: upload.reason }, { status: 400 });
   }
 
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const photoId = await saveBlob(bytes, file.type, session.user.id, { boardId: id });
-  const saved = await updateBoard(id, { photoId });
+  const saved = await updateBoard(id, { photoId: uploadId });
   if (existing.photoId) await deleteBlob(existing.photoId);
   return NextResponse.json({ board: saved }, { status: 201 });
 }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { listSessions, createSession, newSessionId } from "@/lib/db";
-import { spotBySlug } from "@/lib/spots";
+import { resolveSpot } from "@/lib/spot-store";
+import { checkRequestSpot } from "@/lib/spot-access";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
 import { resolveOwnedBoardId } from "@/lib/board-access";
@@ -44,6 +45,11 @@ export async function POST(req: NextRequest) {
   const notesHtml = sanitizeNotesHtml(typeof body.notesHtml === "string" ? body.notesHtml : "");
   const notes = htmlToPlainText(notesHtml);
 
+  // `req:<id>` spots are the caller's own pending requests only — else 404.
+  if (!(await checkRequestSpot(spot, session.user.id)).ok) {
+    return NextResponse.json({ error: "spot not found" }, { status: 404 });
+  }
+
   // Only ever the caller's own board — a foreign/unknown id is a 404.
   const board = await resolveOwnedBoardId(body.boardId, session.user.id);
   if (!board.ok) return NextResponse.json({ error: "board not found" }, { status: 404 });
@@ -51,10 +57,10 @@ export async function POST(req: NextRequest) {
   const goal = parseGoalFields(body);
 
   let condOpenMeteo: CondOpenMeteo | null = null;
-  const spotInfo = spotBySlug(spot);
+  const spotInfo = await resolveSpot(spot);
   if (spotInfo?.lat != null && spotInfo.lng != null) {
     try {
-      condOpenMeteo = await getConditions(spotInfo.lat, spotInfo.lng, when);
+      condOpenMeteo = await getConditions(spotInfo.lat, spotInfo.lng, when, spotInfo.timezone);
     } catch {
       // best-effort — a session should still save if Open-Meteo is down
       condOpenMeteo = null;

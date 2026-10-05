@@ -1,9 +1,8 @@
 /**
  * Photo/video storage — Supabase Storage (private bucket "photos") for the
  * bytes, Postgres table `photo_blobs` (supabase/migrations/) for ownership
- * and mime type. Replaces the old data/blobs/ local filesystem store
- * (removed 2026-09-18); app/api/blob/[id]/route.ts and the photo upload
- * routes are unchanged apart from one extra argument on saveBlob.
+ * and mime type. The browser uploads straight to Storage through a one-time
+ * signed URL (createUpload → registerUpload), never through a function.
  *
  * Same trust boundary as lib/db.ts: server-side only, via the service-role
  * client, which is what makes access to the private bucket possible at all.
@@ -13,41 +12,76 @@ import { getSupabase } from "./supabase";
 const BUCKET = "photos";
 const TABLE = "photo_blobs";
 
-function idOf(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+/** Images and video, 15 MB each — the limit on anything put in the bucket. */
+export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+/**
+ * Direct upload, step 1: a one-time URL the browser PUTs the file to, so the
+ * bytes go straight to Supabase Storage and never through a Vercel function
+ * (whose request body is capped at 4.5 MB — a phone photo or any video is
+ * larger). The id is unguessable, and nothing can read the object until
+ * `registerUpload` records who owns it.
+ */
+export async function createUpload(): Promise<{ id: string; url: string }> {
+  const id = crypto.randomUUID().replace(/-/g, "");
+  const { data, error } = await getSupabase().storage.from(BUCKET).createSignedUploadUrl(id);
+  if (error || !data) throw new Error(`Supabase Storage: ${error?.message ?? "no upload URL"}`);
+  return { id, url: data.signedUrl };
 }
 
-export async function saveBlob(
-  bytes: Buffer,
-  mimeType: string,
+/**
+ * Direct upload, step 2: after the browser has PUT the file, check what
+ * actually landed (the signed URL doesn't limit size or type) and record its
+ * owner. A missing, oversized or wrong-type object is removed and reported;
+ * an id that already has an owner row is refused, so an upload can only ever
+ * be claimed once.
+ */
+export async function registerUpload(
+  id: string,
   ownerId: string,
-  /** Exactly one parent: a session's photo, or a board's photo. */
-  parent: { sessionId: string } | { boardId: string }
-): Promise<string> {
-  const id = idOf();
+  parent: { sessionId: string } | { boardId: string },
+  allowedPrefixes: string[]
+): Promise<{ ok: true; mimeType: string } | { ok: false; reason: "missing" | "too_large" | "bad_type" }> {
+  if (!/^[0-9a-f]{32}$/.test(id)) return { ok: false, reason: "missing" };
   const sb = getSupabase();
 
-  const upload = await sb.storage.from(BUCKET).upload(id, bytes, {
-    contentType: mimeType,
-    upsert: false,
-  });
-  if (upload.error) throw new Error(`Supabase Storage: ${upload.error.message}`);
+  const info = await sb.storage.from(BUCKET).info(id);
+  if (info.error || !info.data) return { ok: false, reason: "missing" };
+  const size = info.data.size ?? info.data.metadata?.size ?? 0;
+  const mimeType = info.data.contentType ?? info.data.metadata?.mimetype ?? "";
 
-  const insert = await sb
-    .from(TABLE)
-    .insert({
-      id,
-      owner_id: ownerId,
-      mime_type: mimeType,
-      ...("sessionId" in parent ? { session_id: parent.sessionId } : { board_id: parent.boardId }),
-    });
-  if (insert.error) {
-    // best-effort cleanup — don't leave an orphaned object with no owner record
+  const claimed = await sb.from(TABLE).select("id").eq("id", id).maybeSingle();
+  if (claimed.error) throw new Error(`Supabase: ${claimed.error.message}`);
+  if (claimed.data) return { ok: false, reason: "missing" };
+
+  const badType = !allowedPrefixes.some((p) => mimeType.startsWith(p));
+  if (badType || size > MAX_UPLOAD_BYTES) {
     await sb.storage.from(BUCKET).remove([id]);
-    throw new Error(`Supabase: ${insert.error.message}`);
+    return { ok: false, reason: badType ? "bad_type" : "too_large" };
   }
 
-  return id;
+  const insert = await sb.from(TABLE).insert({
+    id,
+    owner_id: ownerId,
+    mime_type: mimeType,
+    ...("sessionId" in parent ? { session_id: parent.sessionId } : { board_id: parent.boardId }),
+  });
+  if (insert.error) throw new Error(`Supabase: ${insert.error.message}`);
+  return { ok: true, mimeType };
+}
+
+/** Owner and type only — no download. */
+export async function blobMeta(id: string): Promise<{ mimeType: string; ownerId: string } | null> {
+  const meta = await getSupabase().from(TABLE).select("owner_id, mime_type").eq("id", id).maybeSingle();
+  if (meta.error) throw new Error(`Supabase: ${meta.error.message}`);
+  return meta.data ? { mimeType: meta.data.mime_type, ownerId: meta.data.owner_id } : null;
+}
+
+/** A short-lived link straight to the object, for files too big to send
+ *  back through a function. Only hand it out after the owner check. */
+export async function signedBlobUrl(id: string, seconds: number): Promise<string | null> {
+  const { data, error } = await getSupabase().storage.from(BUCKET).createSignedUrl(id, seconds);
+  return error || !data ? null : data.signedUrl;
 }
 
 export async function readBlob(

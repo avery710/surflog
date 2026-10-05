@@ -18,7 +18,7 @@ const cell = (v: unknown): string => {
   return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 };
 
-export function sessionsToCsv(sessions: Session[], boards: Board[] = []): string {
+export function sessionsToCsv(sessions: Session[], boards: Board[] = [], label: (slug: string) => string = (slug) => spotLabel(slug)): string {
   const boardById = new Map(boards.map((b) => [b.id, b]));
   const lines = [HEAD.join(",")];
   // oldest first, like the reference export
@@ -29,7 +29,7 @@ export function sessionsToCsv(sessions: Session[], boards: Board[] = []): string
       [
         (s.when || "").slice(0, 10),
         (s.when || "").slice(11, 16),
-        spotLabel(s.spot),
+        label(s.spot),
         (() => {
           const b = s.boardId ? boardById.get(s.boardId) : undefined;
           return b ? boardLabel(b) : null;
@@ -50,8 +50,13 @@ export function sessionsToCsv(sessions: Session[], boards: Board[] = []): string
   return lines.join("\n");
 }
 
-export function downloadCsv(sessions: Session[], boards: Board[] = [], filename = "surflog.csv") {
-  const csv = sessionsToCsv(sessions, boards);
+export function downloadCsv(
+  sessions: Session[],
+  boards: Board[] = [],
+  label: (slug: string) => string = (slug) => spotLabel(slug),
+  filename = "surflog.csv"
+) {
+  const csv = sessionsToCsv(sessions, boards, label);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

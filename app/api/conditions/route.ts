@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getConditions } from "@/lib/openmeteo";
-import { spotBySlug } from "@/lib/spots";
+import { resolveSpot } from "@/lib/spot-store";
 
 /** GET /api/conditions?spot=waiao&when=2026-09-17T06:00 */
 export async function GET(req: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "spot and when are required" }, { status: 400 });
   }
 
-  const spot = spotBySlug(spotSlug);
+  const spot = await resolveSpot(spotSlug);
   if (!spot) {
     return NextResponse.json({ error: `unknown spot: ${spotSlug}` }, { status: 404 });
   }
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const cond = await getConditions(spot.lat, spot.lng, when);
+    const cond = await getConditions(spot.lat, spot.lng, when, spot.timezone);
     return NextResponse.json({ spot: spot.slug, when, cond });
   } catch (e) {
     const message = e instanceof Error ? e.message : "lookup failed";

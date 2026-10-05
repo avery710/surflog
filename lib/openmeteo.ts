@@ -73,23 +73,41 @@ export interface Conditions {
 const pick = (block: Record<string, unknown[]> | undefined, key: string, i: number) =>
   (block?.[key]?.[i] as number | undefined) ?? null;
 
+/** The spot's home timezone for the Taiwan breaks, which is what every
+ *  session before the shared catalogue (2026-10-05) used. */
+export const DEFAULT_TIMEZONE = "Asia/Taipei";
+
+/** Whole days between today (calendar date in `timeZone`) and `date`
+ *  ("YYYY-MM-DD"). Pure date arithmetic on both sides, so there's no UTC
+ *  offset to get wrong — the old `+08:00` literal was only right for Taiwan. */
+export function daysAgoIn(date: string, timeZone: string, now = new Date()): number {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  return (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`)) / 86400000;
+}
+
 /**
- * @param whenLocal "YYYY-MM-DDTHH:mm" in Asia/Taipei — the session's own format
+ * @param whenLocal "YYYY-MM-DDTHH:mm" — local time at the spot, in `timeZone`
+ * @param timeZone IANA name of the spot's own zone (`Spot.timezone`). Open-Meteo
+ *   returns the hourly arrays in this zone, so `hour` indexes them directly.
  */
 export async function getConditions(
   lat: number,
   lng: number,
-  whenLocal: string
+  whenLocal: string,
+  timeZone: string = DEFAULT_TIMEZONE
 ): Promise<Conditions> {
   const date = whenLocal.slice(0, 10);
   const hour = parseInt(whenLocal.slice(11, 13), 10);
 
   // the archive endpoint lags ~5 days; forecast covers recent + near future
-  const ageDays =
-    (Date.now() - new Date(date + "T00:00:00+08:00").getTime()) / 86400000;
-  const windBase = ageDays > 6 ? ARCHIVE : FORECAST;
+  const windBase = daysAgoIn(date, timeZone) > 6 ? ARCHIVE : FORECAST;
 
-  const common = `latitude=${lat}&longitude=${lng}&start_date=${date}&end_date=${date}&timezone=Asia%2FTaipei`;
+  const common = `latitude=${lat}&longitude=${lng}&start_date=${date}&end_date=${date}&timezone=${encodeURIComponent(timeZone)}`;
 
   const [marine, weather, tideEvents] = await Promise.all([
     fetch(`${MARINE}?${common}&hourly=${MARINE_VARS}`).then((r) => r.json()),
@@ -99,7 +117,7 @@ export async function getConditions(
     // separate call, spans date-1..date+1 so extrema near midnight are found
     // with neighbours on both sides — keeps the single-day indexing above
     // (`i = hour`, 0..23) untouched.
-    findTideEvents(lat, lng, whenLocal).catch(() => undefined),
+    findTideEvents(lat, lng, whenLocal, timeZone).catch(() => undefined),
   ]);
 
   const mh = marine.hourly;
@@ -148,7 +166,7 @@ export async function getConditions(
 
 // "YYYY-MM-DDTHH:mm" <-> a pure clock-arithmetic ms value (treated as if
 // UTC, purely so +/- minutes and re-formatting work without depending on
-// the server's real timezone — these times are already Asia/Taipei local,
+// the server's real timezone — these times are already local at the spot,
 // per the app's convention of storing no tz suffix).
 const toMs = (local: string) => new Date(`${local}:00Z`).getTime();
 const toLocal = (ms: number) => new Date(ms).toISOString().slice(0, 16);
@@ -178,14 +196,15 @@ const addDays = (date: string, delta: number) =>
 export async function findTideEvents(
   lat: number,
   lng: number,
-  whenLocal: string
+  whenLocal: string,
+  timeZone: string = DEFAULT_TIMEZONE
 ): Promise<TideEvent[] | undefined> {
   const day = whenLocal.slice(0, 10);
   const start = addDays(day, -1);
   const end = addDays(day, 1);
   const url =
     `${MARINE}?latitude=${lat}&longitude=${lng}&start_date=${start}&end_date=${end}` +
-    `&timezone=Asia%2FTaipei&hourly=sea_level_height_msl`;
+    `&timezone=${encodeURIComponent(timeZone)}&hourly=sea_level_height_msl`;
   const body = await fetch(url).then((r) => r.json());
 
   const times: string[] = body?.hourly?.time ?? [];

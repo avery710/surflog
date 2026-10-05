@@ -99,6 +99,14 @@ export async function listSessions(ownerId: string): Promise<Session[]> {
   return rows.map(rowToSession);
 }
 
+/** Every owner's sessions logged at one spot value. Only for spot-request
+ *  approval (app/api/spots, app/api/spot-requests), which re-points sessions
+ *  from `req:<id>` to the approved spot — never expose the result to users. */
+export async function listSessionsBySpot(spot: string): Promise<Session[]> {
+  const result = await getSupabase().from(TABLE).select("*").eq("spot", spot);
+  return (assertNoError(result) as SessionRow[]).map(rowToSession);
+}
+
 /** Unscoped lookup — callers (API routes) must check `.ownerId` themselves. */
 export async function getSession(id: string): Promise<Session | null> {
   const result = await getSupabase().from(TABLE).select("*").eq("id", id).maybeSingle();
@@ -148,6 +156,14 @@ export async function listSpotNotes(ownerId: string): Promise<Record<string, str
 }
 
 /** Upserts the owner's description for a spot; an empty string deletes it. */
+/** Moves every owner's spot description from one spot value to another
+ *  (request approval). A conflict with a note the owner already has at the
+ *  target is swallowed: the old note simply stays where it was. */
+export async function moveSpotNotes(from: string, to: string): Promise<void> {
+  const { error } = await getSupabase().from(SPOT_NOTES).update({ spot: to }).eq("spot", from);
+  if (error && error.code !== "23505") throw new Error(`Supabase: ${error.message}`);
+}
+
 export async function setSpotNote(ownerId: string, spot: string, description: string): Promise<void> {
   const table = getSupabase().from(SPOT_NOTES);
   const result = description

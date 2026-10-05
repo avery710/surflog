@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSession, updateSession, deleteSession } from "@/lib/db";
 import { deleteBlob } from "@/lib/blob";
-import { spotBySlug } from "@/lib/spots";
+import { resolveSpot } from "@/lib/spot-store";
+import { checkRequestSpot } from "@/lib/spot-access";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
 import { resolveOwnedBoardId } from "@/lib/board-access";
@@ -56,6 +57,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const notesHtml = sanitizeNotesHtml(body.notesHtml);
     patch.notesHtml = notesHtml;
     patch.notes = htmlToPlainText(notesHtml);
+  }
+
+  // Moving a session onto a `req:<id>` spot: only the caller's own pending request.
+  if (patch.spot && patch.spot !== existing.spot && !(await checkRequestSpot(patch.spot, session.user.id)).ok) {
+    return NextResponse.json({ error: "spot not found" }, { status: 404 });
   }
 
   // Only which points were achieved is editable; the goal text itself is a
@@ -112,10 +118,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const spotChanged = patch.spot != null && patch.spot !== existing.spot;
   const whenChanged = patch.when != null && patch.when !== existing.when;
   if (spotChanged || whenChanged || body.refreshConditions === true) {
-    const spot = spotBySlug(patch.spot ?? existing.spot);
+    const spot = await resolveSpot(patch.spot ?? existing.spot);
     if (spot?.lat != null && spot.lng != null) {
       try {
-        patch.condOpenMeteo = await getConditions(spot.lat, spot.lng, patch.when ?? existing.when);
+        patch.condOpenMeteo = await getConditions(spot.lat, spot.lng, patch.when ?? existing.when, spot.timezone);
       } catch {
         // leave condOpenMeteo as-is if the refetch fails
       }

@@ -17,7 +17,11 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import path from "node:path";
 import type { Session } from "../lib/types";
 import { getConditions } from "../lib/openmeteo";
-import { spotBySlug } from "../lib/spots";
+import { TAIWAN_SPOTS_FIXTURE } from "../lib/spot-fixtures";
+
+// Swelleye covers Taiwan only, so the static Taiwan copy is all this tool
+// needs (no database round trip, works offline of Supabase).
+const spotBySlug = (slug: string) => TAIWAN_SPOTS_FIXTURE.find((s) => s.slug === slug);
 import {
   METRIC_META,
   THRESHOLDS,
@@ -69,7 +73,7 @@ async function openMeteoDay(file: string, r: SwelleyeReading): Promise<OpenMeteo
   const hours: OpenMeteoDay["hours"] = {};
   let grid = { lat: 0, lng: 0 };
   for (const hh of Object.keys(r.hours).sort()) {
-    const c = await getConditions(spot.lat!, spot.lng!, `${r.date}T${hh}:00`);
+    const c = await getConditions(spot.lat!, spot.lng!, `${r.date}T${hh}:00`, spot.timezone);
     grid = { lat: c.gridLat, lng: c.gridLng };
     hours[hh] = {
       swellHeightM: c.swellHeightM, swellPeriodS: c.swellPeriodS, swellDirDeg: c.swellDirDeg,
@@ -78,7 +82,7 @@ async function openMeteoDay(file: string, r: SwelleyeReading): Promise<OpenMeteo
     };
   }
   // noon's ±14 h window covers the whole day's turning points
-  const noon = await getConditions(spot.lat!, spot.lng!, `${r.date}T12:00`);
+  const noon = await getConditions(spot.lat!, spot.lng!, `${r.date}T12:00`, spot.timezone);
   const day: OpenMeteoDay = {
     spot: r.spot,
     date: r.date,

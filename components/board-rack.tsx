@@ -57,6 +57,7 @@ import {
 } from "@/lib/boards";
 import { useLang } from "@/lib/i18n";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
+import { uploadFile } from "@/lib/upload-client";
 import type { Board, Rocker } from "@/lib/types";
 
 /**
@@ -613,9 +614,12 @@ function BoardForm({ board, onSaved }: { board: Board | null; onSaved: (b: Board
       // Photo is a second request, once the board exists (it needs an id).
       try {
         if (file) {
-          const form = new FormData();
-          form.append("file", file);
-          const r = await fetch(`/api/boards/${saved.id}/photo`, { method: "POST", body: form });
+          const uploadId = await uploadFile(file);
+          const r = await fetch(`/api/boards/${saved.id}/photo`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uploadId }),
+          });
           const b = await r.json();
           if (!r.ok) throw new Error(b?.error);
           saved = b.board as Board;

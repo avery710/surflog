@@ -15,10 +15,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ConditionTile, Figure } from "@/components/condition-tile";
 import { EditPanel } from "@/components/edit-panel";
 import { cn } from "cn";
-import { spotBySlug } from "@/lib/spots";
+import { useSpotCatalog } from "@/lib/spot-catalog";
 import { toCompass } from "@/lib/openmeteo";
 import { computeSessionFit } from "@/lib/session-fit";
-import { compassLabel, fmt1, fmtWhen, spotLabel } from "@/lib/format";
+import { compassLabel, fmt1, fmtWhen } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import { TideChart } from "@/components/tide-chart";
 import { TideEventsSub, tideTrend } from "@/components/tide-events";
@@ -28,6 +28,7 @@ import { WindShoreBadge } from "@/components/wind-shore-badge";
 import { GoalChip } from "@/components/goal";
 import { sessionPointsMet } from "@/lib/goal";
 import { boardLabel } from "@/lib/boards";
+import { uploadFile, UploadError } from "@/lib/upload-client";
 import type { Board, Session, TideEvent } from "@/lib/types";
 
 export function EntryCard({
@@ -53,7 +54,8 @@ export function EntryCard({
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const spot = spotBySlug(session.spot);
+  const catalog = useSpotCatalog();
+  const spot = catalog.bySlug(session.spot);
   const fit = computeSessionFit(spot, session);
 
   // Confirm dialog instead of window.confirm(): a native confirm() dialog
@@ -78,17 +80,18 @@ export function EntryCard({
     if (!file) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
+      const uploadId = await uploadFile(file);
       const res = await fetch(`/api/sessions/${session.id}/photos`, {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uploadId }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? t("toast.uploadFailed"));
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.session) throw new UploadError(body?.code === "too_large" ? "too_large" : "failed");
       onUpdated(body.session as Session);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("toast.uploadFailed"));
+      const tooLarge = err instanceof UploadError && err.code === "too_large";
+      toast.error(t(tooLarge ? "toast.fileTooLarge" : "toast.uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -165,7 +168,7 @@ export function EntryCard({
       <div className="flex items-start gap-2 px-6 pt-4 pb-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1.5 pt-1">
           <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
-            {spotLabel(session.spot, lang)}
+            {catalog.label(session.spot, lang)}
           </span>
           <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
             {fmtWhen(session.when, lang)}
@@ -235,7 +238,7 @@ export function EntryCard({
             <DialogTitle>{t("entry.deleteTitle")}</DialogTitle>
             <DialogDescription>
               {t("entry.deleteDescription", {
-                spot: spotLabel(session.spot, lang),
+                spot: catalog.label(session.spot, lang),
                 when: fmtWhen(session.when, lang),
               })}
             </DialogDescription>

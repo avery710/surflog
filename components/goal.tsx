@@ -14,7 +14,7 @@
  * doesn't reset the others.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Plus, Target, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { cn } from "cn";
 import { CALENDAR_CARD_HEIGHT_PX } from "@/components/activity-calendar";
 import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats, type GoalRename } from "@/lib/goal";
@@ -353,10 +353,7 @@ export function GoalCheck({
   return (
     <fieldset className="flex flex-col gap-2 rounded-[var(--r-tile)] bg-secondary px-4 py-3">
       <legend className="sr-only">{t("goal.whichDidYouAchieve")}</legend>
-      <div className="flex items-center gap-2">
-        <Target className="size-4 shrink-0 text-primary" aria-hidden />
-        <span className="text-xs font-semibold text-muted-foreground">{t("goal.whichDidYouAchieve")}</span>
-      </div>
+      <span className="text-xs font-semibold text-muted-foreground">{t("goal.whichDidYouAchieve")}</span>
       <div className="flex flex-col gap-1">
         {points.map((p, i) => {
           const checked = value[i] ?? false;
