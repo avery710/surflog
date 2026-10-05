@@ -23,6 +23,9 @@ import { useBrowserTimeZone } from "@/lib/use-browser-timezone";
  */
 
 const REGIONS: Region[] = ["Northeast", "North", "East", "South", "West"];
+/** Areas outside Taiwan that lead the Browse list, in this order (Avery's
+ *  call); every other area follows alphabetically by "country · area". */
+const AREA_PRIORITY = ["Siargao", "Bali"];
 const RECENT_MAX = 4;
 const NEARBY_MAX = 5;
 /** "Near <your last spot>" only lists real neighbours; "near me" has no cap,
@@ -455,7 +458,11 @@ function PickerBody({
         const title = [s.country, s.area].filter(Boolean).join(" · ") || t("picker.elsewhere");
         abroad.set(title, [...(abroad.get(title) ?? []), s]);
       }
-      for (const title of [...abroad.keys()].sort((a, b) => a.localeCompare(b))) {
+      const rank = (title: string) => {
+        const i = AREA_PRIORITY.indexOf(abroad.get(title)![0].area);
+        return i === -1 ? AREA_PRIORITY.length : i;
+      };
+      for (const title of [...abroad.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))) {
         groups.push({ key: `w-${title}`, title, list: abroad.get(title)! });
       }
       // No history yet: lead with wherever the browser's clock says they are.
