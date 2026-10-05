@@ -7,6 +7,8 @@
  * capped at 4.5 MB, and a phone photo or any video is larger.
  */
 
+import type { Session } from "./types";
+
 /** Longest edge kept for photos, and the JPEG quality they're re-encoded at.
  *  2560 px / 0.9 is visually lossless at any size the app shows a photo
  *  (full-screen on a phone or laptop) and lands around 1-2.5 MB. */
@@ -101,4 +103,38 @@ export async function uploadFile(original: File): Promise<string> {
   if (!put?.ok) throw new UploadError(put?.status === 413 ? "too_large" : "failed");
 
   return body.id as string;
+}
+
+/**
+ * Uploads files and attaches each to a session the caller owns, one at a
+ * time — the attach route reads the session's photo list and writes it
+ * back, so two attaches at once would overwrite each other. A file that
+ * fails is counted and skipped, never thrown: the session already exists.
+ * `session` is the latest version the server returned, or null if nothing
+ * attached.
+ */
+export async function attachFiles(
+  sessionId: string,
+  files: File[],
+  onProgress?: (n: number, total: number) => void
+): Promise<{ session: Session | null; failed: number }> {
+  let session: Session | null = null;
+  let failed = 0;
+  for (let i = 0; i < files.length; i++) {
+    onProgress?.(i + 1, files.length);
+    try {
+      const uploadId = await uploadFile(files[i]);
+      const res = await fetch(`/api/sessions/${sessionId}/photos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uploadId }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.session) throw new Error("attach failed");
+      session = body.session as Session;
+    } catch {
+      failed++;
+    }
+  }
+  return { session, failed };
 }

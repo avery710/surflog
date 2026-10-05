@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SpotPicker, type PendingRequest } from "@/components/spot-picker";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
+import { MediaPicker, type MediaPick } from "@/components/media-picker";
+import { attachFiles } from "@/lib/upload-client";
 import { GoalCheck } from "@/components/goal";
 import { goalPoints, sessionPointsMet } from "@/lib/goal";
 import { useLang, type TKey } from "@/lib/i18n";
@@ -66,6 +68,11 @@ export function EditPanel({
   const [pointsMet, setPointsMet] = useState<boolean[]>(initialPointsMet);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Media changes are staged like every other field: photos marked for
+  // removal and files picked here only take effect on Save.
+  const [removedPhotos, setRemovedPhotos] = useState<string[]>([]);
+  const [picks, setPicks] = useState<MediaPick[]>([]);
+  const [progress, setProgress] = useState<{ n: number; total: number } | null>(null);
 
   function setCondField(key: keyof Cond, value: string) {
     setCond((c) => ({ ...c, [key]: value }));
@@ -94,13 +101,39 @@ export function EditPanel({
   async function handleSave() {
     setSaving(true);
     try {
-      const saved = await save();
+      let saved = await save();
+      // The fields are saved from here on; a photo that fails to delete or
+      // upload is counted, never thrown. One request at a time — both
+      // routes rewrite the session's photo list.
+      let failed = 0;
+      for (const photoId of removedPhotos) {
+        try {
+          const res = await fetch(`/api/sessions/${session.id}/photos/${photoId}`, { method: "DELETE" });
+          const body = await res.json().catch(() => null);
+          if (!res.ok || !body?.session) throw new Error("remove failed");
+          saved = body.session as Session;
+        } catch {
+          failed++;
+        }
+      }
+      const attached = await attachFiles(
+        session.id,
+        picks.map((m) => m.file),
+        (n, total) => setProgress({ n, total })
+      );
+      if (attached.session) saved = attached.session;
+      failed += attached.failed;
       onSaved(saved);
-      toast.success(t("toast.changesSaved"));
+      if (failed) {
+        toast.warning(t("toast.editMediaFailed", { n: failed }), { duration: 10000 });
+      } else {
+        toast.success(t("toast.changesSaved"));
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("toast.couldntSave"));
     } finally {
       setSaving(false);
+      setProgress(null);
     }
   }
 
@@ -199,15 +232,27 @@ export function EditPanel({
         </div>
       )}
 
+      <MediaPicker
+        picks={picks}
+        onPicksChange={setPicks}
+        existing={session.photos.filter((p) => !removedPhotos.includes(p.id))}
+        onRemoveExisting={(id) => setRemovedPhotos((ids) => [...ids, id])}
+        disabled={saving}
+      />
+
       {session.goalText && (
         <GoalCheck goal={session.goalText} value={pointsMet} onChange={setPointsMet} />
       )}
 
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={saving} className="rounded-full px-6">
-          {saving ? t("form.saving") : t("edit.saveChanges")}
+          {progress
+            ? t("form.uploadingMedia", { n: progress.n, total: progress.total })
+            : saving
+              ? t("form.saving")
+              : t("edit.saveChanges")}
         </Button>
-        <Button variant="secondary" onClick={onCancel} className="rounded-full px-6">
+        <Button variant="secondary" onClick={onCancel} disabled={saving} className="rounded-full px-6">
           {t("edit.cancel")}
         </Button>
       </div>

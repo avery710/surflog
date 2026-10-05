@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { ImagePlus, Loader2, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
+import { MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ConditionTile, Figure } from "@/components/condition-tile";
 import { EditPanel } from "@/components/edit-panel";
+import { MediaViewer } from "@/components/media-viewer";
 import { cn } from "cn";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { toCompass } from "@/lib/openmeteo";
@@ -28,7 +29,6 @@ import { WindShoreBadge } from "@/components/wind-shore-badge";
 import { GoalChip } from "@/components/goal";
 import { sessionPointsMet } from "@/lib/goal";
 import { boardLabel } from "@/lib/boards";
-import { uploadFile, UploadError } from "@/lib/upload-client";
 import type { Board, Session, TideEvent } from "@/lib/types";
 
 export function EntryCard({
@@ -51,8 +51,8 @@ export function EntryCard({
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  // Which photo/video is open full-screen (index into session.photos), or null.
+  const [viewing, setViewing] = useState<number | null>(null);
 
   const catalog = useSpotCatalog();
   const spot = catalog.bySlug(session.spot);
@@ -71,42 +71,6 @@ export function EntryCard({
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("toast.couldntDelete"));
       setDeleting(false);
-    }
-  }
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setUploading(true);
-    try {
-      const uploadId = await uploadFile(file);
-      const res = await fetch(`/api/sessions/${session.id}/photos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uploadId }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok || !body?.session) throw new UploadError(body?.code === "too_large" ? "too_large" : "failed");
-      onUpdated(body.session as Session);
-    } catch (err) {
-      const tooLarge = err instanceof UploadError && err.code === "too_large";
-      toast.error(t(tooLarge ? "toast.fileTooLarge" : "toast.uploadFailed"));
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function handleRemovePhoto(photoId: string) {
-    try {
-      const res = await fetch(`/api/sessions/${session.id}/photos/${photoId}`, {
-        method: "DELETE",
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body?.error ?? t("toast.couldntRemovePhoto"));
-      onUpdated(body.session as Session);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("toast.couldntRemovePhoto"));
     }
   }
 
@@ -174,22 +138,7 @@ export function EntryCard({
             {fmtWhen(session.when, lang)}
           </span>
         </div>
-        {uploading && (
-          <span role="status" aria-label={t("entry.uploading")} className="flex h-10 shrink-0 items-center">
-            <Loader2 className="size-4 animate-spin motion-reduce:animate-none text-muted-foreground" aria-hidden />
-          </span>
-        )}
         {!readOnly && (<>
-        {/* Kept outside the dropdown's content so it survives the menu
-            closing/unmounting — the "Add photos/video" item just clicks
-            this ref. */}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*,video/*"
-          hidden
-          onChange={handleUpload}
-        />
         <DropdownMenu>
           <DropdownMenuTrigger
             className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-secondary hover:text-foreground aria-expanded:bg-secondary aria-expanded:text-foreground"
@@ -201,18 +150,6 @@ export function EntryCard({
             <DropdownMenuItem onSelect={() => setEditing(true)}>
               <Pencil />
               {t("entry.edit")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              // Fire the click synchronously, in the same event as the
-              // menu's own onSelect-close — WebKit only grants a file
-              // picker to a still-live user-activation event, and an
-              // async close (e.g. via preventDefault + a later click())
-              // can lose it. Don't preventDefault; let the menu close.
-              onSelect={() => fileRef.current?.click()}
-              disabled={uploading}
-            >
-              <ImagePlus />
-              {t("entry.addMedia")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -431,40 +368,59 @@ export function EntryCard({
 
       {session.photos.length > 0 && (
         <div className="flex flex-wrap gap-2.5 px-6 pt-1.5 pb-1.5">
-          {session.photos.map((p) => (
-            <div
-              key={p.id}
-              className={cn(
-                "group relative h-24",
-                p.type.startsWith("video/") ? "w-[150px]" : "w-24"
-              )}
-            >
-              {p.type.startsWith("video/") ? (
-                <video
-                  src={`/api/blob/${p.id}`}
-                  controls
-                  preload="none"
-                  playsInline
-                  className="h-full w-full rounded-[var(--r-tile)] bg-black object-cover"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`/api/blob/${p.id}`}
-                  alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
-                  loading="lazy"
-                  className="h-full w-full rounded-[var(--r-tile)] object-cover"
-                />
-              )}
+          {session.photos.map((p, i) => {
+            const isVideo = p.type.startsWith("video/");
+            return (
+              // The whole thumbnail opens the full-screen viewer; adding and
+              // removing media lives in the edit panel, so a tap here can
+              // never delete anything.
               <button
-                aria-label={t("entry.removePhoto")}
-                onClick={() => handleRemovePhoto(p.id)}
-                className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                key={p.id}
+                type="button"
+                onClick={() => setViewing(i)}
+                aria-label={t(isVideo ? "entry.viewVideo" : "entry.viewPhoto", {
+                  n: i + 1,
+                  total: session.photos.length,
+                })}
+                className={cn(
+                  "relative h-24 cursor-zoom-in overflow-hidden rounded-[var(--r-tile)] outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  isVideo ? "w-[150px]" : "w-24"
+                )}
               >
-                <X className="size-3.5" />
+                {isVideo ? (
+                  <>
+                    {/* #t=0.1 makes WebKit paint a first frame instead of a blank box */}
+                    <video
+                      src={`/api/blob/${p.id}#t=0.1`}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="pointer-events-none h-full w-full bg-black object-cover"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="flex size-9 items-center justify-center rounded-full bg-black/55 text-white">
+                        <Play className="size-4 translate-x-px fill-current" aria-hidden />
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/api/blob/${p.id}`}
+                    alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                )}
               </button>
-            </div>
-          ))}
+            );
+          })}
+          <MediaViewer
+            photos={session.photos}
+            index={viewing}
+            onIndexChange={setViewing}
+            alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
+          />
         </div>
       )}
 

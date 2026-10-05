@@ -57,7 +57,9 @@ Two implementations exist:
      activity calendar (`components/activity-calendar.tsx`) and a
      spot/session-count table sit below the header; sessions list newest
      first. The "Elsewhere" (overseas) group was removed from the spot
-     pickers for now — `lib/overseas-presets.ts` is kept, just unused.
+     pickers for now — `lib/overseas-presets.ts` is kept, just unused
+     (overseas spots are real catalogue rows since 2026-10-05, see
+     "Spots").
 
    **As of 2026-09-24** (session cards, `components/entry-card.tsx`):
    - **Tide tile = direction + next turning point, not a height.** The
@@ -298,7 +300,9 @@ Two implementations exist:
    spot-note edits live in local state only. `BoardRack` fetches by
    itself, so the quiver section is a plain list. Copy only claims what
    exists: custom/overseas spots get **no** conditions (no coordinates),
-   so nothing says "works worldwide". All copy is `landing.*` in
+   so nothing says "works worldwide" (stale since 2026-10-05: catalogue
+   spots outside Taiwan do get conditions now; the landing copy and its
+   Taiwan-only demo data were not revisited). All copy is `landing.*` in
    `lib/i18n.tsx`. Preview while signed in at `/dev/landing`. Checked in
    cmux at 1280 and 375 px (no horizontal overflow). **cmux's `/dev` tabs
    don't hydrate** (`main-app.js` is never requested, `window.next`
@@ -307,6 +311,34 @@ Two implementations exist:
    current month) looks broken in cmux only; the same page in Chrome
    hydrates fine. Not checked: signed-out `/` in a real browser (both
    browsers are signed in), the Google button end to end.
+
+   **As of 2026-10-05** (commit `53f28c1`, deployed to staging the same
+   day; nothing below has been tried on a real phone):
+   - **One worldwide spot catalogue in the database**, maintained only
+     by Avery, with a searchable picker, spot requests and an admin page
+     — see "Spots".
+   - **Uploads go straight to Supabase Storage** (photos shrunk in the
+     browser first) — see "Multi-user" → photos, and "Bugs already hit"
+     for the Vercel 4.5 MB limit that forced it.
+   - **Photos/video in the new-session form** (`components/log-form.tsx`):
+     a picker section between the board select and the goal checkboxes,
+     up to 10 files (the agent's number, not Avery's), previews with ×.
+     Save creates the session, then uploads and attaches files **one at
+     a time** (the attach route rewrites the session's photo list, so
+     parallel attaches would overwrite each other). A failed file never
+     loses the session: it is skipped and a toast says how many failed.
+     The dialog can't be closed while saving (`formBusy` in
+     `journal.tsx`); a page reload mid-upload is not guarded. Media is
+     its own section, not part of the notes editor (Avery's call).
+     Checked in cmux with injected files incl. one real save with a
+     forced failure, cleaned up. Not checked: a real video, HEIC, the
+     all-files-succeed toast, the English UI.
+   - **Edit panel copy**: header is "Conditions (entered by hand)" (no
+     "Swelleye"), the button is "Refresh conditions" / "更新浪況" (was
+     "Refresh Open-Meteo"; it also refetches CWA tide, so no source
+     name), and the target icon beside "Which did you achieve?" is gone
+     from both the edit panel and the log form. Other Swelleye mentions
+     (tile label, badge, no-coordinates hint, landing copy) were left.
 
 `BACKLOG.md` (added 2026-09-29) is Avery's list of future features and
 chores — **local only, gitignored** (not in the public repo, so it won't
@@ -342,6 +374,30 @@ journal. What this means concretely:
   as `sessions`). `app/api/blob/[id]/route.ts` checks `owner_id` there
   before serving, so one user can't view another's photo even by
   guessing/knowing its id.
+  **Upload path since 2026-10-05** (`lib/blob.ts`, `lib/upload-client.ts`):
+  `POST /api/uploads` returns a one-time signed URL, the browser PUTs the
+  file straight to Storage, then `POST /api/sessions/:id/photos` or
+  `/api/boards/:id/photo` with `{ uploadId }` attaches it.
+  `registerUpload()` checks what actually landed (the signed URL limits
+  neither size nor type): 15 MB cap, image/video only, and an id can be
+  claimed once; a bad object is deleted. Ids are random UUIDs, and an
+  object is unreadable until it has an owner row. The old multipart
+  routes are gone. Photos over 2560 px or 3 MB are redrawn to 2560 px,
+  JPEG 0.9 (PNG stays PNG for transparency; GIF and video untouched;
+  Avery asked not to lose much quality). **Serving**: images up to 4 MB
+  still go through `/api/blob/:id` with the year-long private cache;
+  videos and anything larger get a 302 to a 1-hour signed URL after the
+  same owner check, because a function's response is capped too.
+  Unverified: a real video end to end, and whether the bucket should
+  also get its own size/type limit (not set).
+- **The spot catalogue is the one thing everyone shares** (2026-10-05):
+  every signed-in user reads the same `spots` table. Only accounts in
+  the `SPOT_ADMIN_EMAILS` env var (comma-separated Google emails,
+  `lib/spot-admin.ts`; unset = nobody) can add, edit or delete spots or
+  see the request list; non-admins get 404 from those routes and from
+  `/admin`. Matched on the session email, not the Google `sub` — a
+  stricter check was offered, not decided. Set in `.env.local` and in
+  Vercel's Preview environment (not Production).
 - **Nothing aggregates across users.** Patterns table, CSV export, spot-fit
   — all computed from one person's own sessions only. If cross-user
   aggregate stats ever get asked for, that's new scope, not an extension of
@@ -583,7 +639,7 @@ Still open: `tideTrend()` treats a 7 cm dip in a mixed tide as a real
 Free key from opendata.cwa.gov.tw, in `.env.local` as `CWA_API_KEY`.
 
 - **Keyed by township, not lat/lng.** ~266 coastal townships. Each spot
-  carries its CWA `LocationName` as `tideTownship` in `lib/spots.ts`
+  carries its CWA `LocationName` as `tideTownship` in the `spots` table
   (county + township, exact match: `宜蘭縣頭城鎮`, not `頭城鎮`).
   `LocationName` works as a server-side filter param.
 - Response: `records.TideForecasts[].Location.TimePeriods.Daily[].Time[]`
@@ -815,8 +871,9 @@ Open-Meteo still fetch and compute their own events independently; only the
 ```
 {
   ownerId:    string     // Google account's OIDC sub — see "Multi-user"
-  spot:       string     // Swelleye slug, e.g. "waiao", or "custom:Siargao - Cloud 9"
-  when:       string     // "YYYY-MM-DDTHH:mm", local Taiwan time, 2-hour grid
+  spot:       string     // `spots.slug` ("waiao", "cloud-9"), "req:<id>" for a pending
+                         // spot request, or legacy "custom:Free text" (0 rows use it)
+  when:       string     // "YYYY-MM-DDTHH:mm", local time AT THE SPOT (its timezone), 2-hour grid
   notesHtml:  string     // sanitized rich text: p/br/div/u/ul/ol/li/b/i (contentEditable's
                           // real output — see lib/rich-text.ts for why it's broader
                           // than the ul/ol/li/b/i this comment used to say)
@@ -1059,10 +1116,87 @@ like everything else — same RLS-on/no-policies access model as `sessions`.
 
 ## Spots
 
-41 Taiwan spots, slugs harvested from swelleye.com — see `lib/spots.ts`
-(this file used to say 42; the table has always had 41). Slugs are NOT
-derivable from names (`wushi-north`, `eight-immortals-cave`, `greenbay`),
-so the table is the source of truth.
+**The `spots` table is the single source of truth since 2026-10-05**
+(Avery's decision: one list, maintained by Avery). 76 rows: the 41
+Taiwan spots (slugs unchanged, with their Swelleye fields and CWA
+township), 9 in Siargao, 26 in Bali. Migrations
+`20261005000000_create_spots_table.sql`, `…000100_seed_siargao_bali_spots.sql`,
+`…000200_create_spot_requests_table.sql`, applied to the live project
+2026-10-05. `lib/spots.ts` is now types and helpers only;
+`lib/spot-fixtures.ts` is a static copy of the 41 Taiwan spots used
+**only** where there is no database (landing page, `app/dev/`,
+`scripts/compare-sources.ts`, a provider-less `useSpotCatalog()`) — it
+is not kept in sync automatically. Server reads go through
+`lib/spot-store.ts` (`listSpots()`, `resolveSpot(slug)`); client
+components use `useSpotCatalog()` (`lib/spot-catalog.tsx`), never a
+static import.
+
+- **Why our own table**: no importable global list exists (checked
+  2026-10-05). OpenStreetMap `sport=surfing` has 1,280 features
+  worldwide (10 in the Philippines, 50 in Indonesia, some of them
+  shops); Wikidata 37; WannaSurf and Surfline forbid reuse; a 5,890-row
+  GitHub gist has no licence, matches WannaSurf's spellings, and puts
+  Wai'ao ~18 km out. Never copy from those three.
+- **Timezone per spot** (IANA, from Open-Meteo `timezone=auto` at
+  creation). `when` is local time at the spot; `getConditions(lat, lng,
+  when, timezone)` requests in that zone, and the log form's date/slot
+  default to "now" there. Siargao and Bali happen to be UTC+8 like
+  Taipei, so a timezone bug would only show at a spot elsewhere
+  (Mentawai is +7) — none exists yet, so this path is unproven on real
+  sessions. The activity calendar's "today" is still Asia/Taipei.
+- **Seeds are OpenStreetMap objects** (id on every row, credit in the
+  migration). Siargao rows are the break's own node; **Bali rows are the
+  beach in front of the break**, fine for a ~10 km model cell. Cemetery
+  (Siargao) is the least certain pin. Left out for lack of a real
+  location: Keramas, Kuta Reef, Airport Reef, Serangan, Lacerations,
+  Playgrounds, Tuesday Rock, G1 — add them in the app, never guess.
+- **Adding a spot** (admin, `AddSpotDialog`, `POST /api/spots`): pasted
+  coordinates or a Google Maps link (short links are followed
+  server-side) or current GPS on tap. Country and area are detected
+  (`/api/spots/locate`: a spot within 30 km wins, else Nominatim) and
+  stay editable — Nominatim says "Surigao del Norte" for Siargao.
+  Refused within 100 m or with the same name nearby; 100 m-1 km asks
+  "is it different?" (Cloud 9 / Quicksilver / Jacking Horse are
+  ~220 m apart, so a flat 1 km rule would block real breaks). The
+  "no sea data" check only catches deep-inland pins (Ubud snapped to a
+  node 17 km away), so the card's grid node still matters. A spot with
+  any session can't be deleted. The dialog edits name, Chinese name,
+  country, area, location and facing only — **not** the Swelleye
+  fields or CWA township (kept on save, changeable only by SQL).
+- **Requests** (`spot_requests`, `components/request-spot-dialog.tsx`):
+  anyone can ask for a spot (name; location and note optional) and log
+  against it at once — the session's `spot` is `req:<id>`, shown as the
+  typed name, no conditions. Approving (creating the spot from it, or
+  linking to an existing one) moves those sessions to the real slug and
+  fetches their conditions for their own date; declining leaves them as
+  typed. A user reads only their own requests (id, name, status); the
+  full list with requester name/email is admin-only. **Email to Avery
+  on a new request is wanted but not built**: `lib/spot-request-notify.ts`
+  only logs; no provider chosen.
+- **Admin page** `/admin` (`components/admin/spots-admin.tsx`), linked
+  from the avatar menu with a pending count: requests with Approve /
+  Decline, and the catalogue with search, add and edit.
+- **Picker** (`components/spot-picker.tsx`, log form + edit panel):
+  search over English/Chinese name, area, country; sections Requested,
+  Recent (4), Near <last spot> (5 within 80 km), then Taiwan regions and
+  `country · area`. Popover from `sm`, full-screen sheet on phones.
+  "Near me" asks for location **only on tap** and keeps it in the
+  browser (Avery's decision: no permission prompt on open); a new
+  user's first group comes from the browser timezone instead. Admins
+  get an "add" row, everyone else "request it".
+- **Checked 2026-10-05 in cmux**: picker with all 76 spots, search
+  ("bali", "外澳"), keyboard, 375 and 1280 px; picking Uluwatu shows the
+  local-time note; `/api/conditions` returns full data for Uluwatu and
+  Cloud 9; `/admin` lists and searches, edit dialog opens. **Never
+  exercised** (each writes to live data, or needs a second account):
+  creating/editing/deleting a spot, sending/approving/declining a
+  request and the session re-pointing, the non-admin view, "Near me",
+  real IME typing in the search box.
+
+The rest of this section is how the 41 Taiwan rows were harvested.
+Slugs are NOT derivable from names (`wushi-north`,
+`eight-immortals-cave`, `greenbay`). (This file once said 42 spots; it
+has always been 41.)
 
 **As of 2026-09-22 every spot has** `lat`/`lng`, the Spot Infographic
 (`facing`, `bestSwellDir`, `bestWindDir`, `bestTide`), `tideTownship`
@@ -1116,6 +1250,14 @@ type-checking (Avery's standing instruction, 2026-09-30):
   trigger them; synthetic `hover` doesn't apply `:hover`; the tab is
   Avery's **real** data — only reversible actions, and undo any test
   change (e.g. a 常用 toggle) before finishing.
+- A file `<input>` can be driven without the native picker: build a
+  `File` in page JS, put it in a `DataTransfer`, set `input.files`, and
+  dispatch a bubbling `change` (used 2026-10-05 for both upload paths).
+  When checking that a deleted photo is gone, fetch with
+  `{ cache: "no-store" }` — `/api/blob/:id` is cached for a year, so a
+  plain fetch still returns 200.
+- Commands here run under zsh: `set -- $var` doesn't word-split, and an
+  unquoted `--include=*.ts` glob errors.
 
 ## Bugs already hit — don't repeat these
 
@@ -1191,6 +1333,22 @@ type-checking (Avery's standing instruction, 2026-09-30):
   retried). If it ever shows up after all 5 tries, it's a real Supabase
   incident, not this.
 
+- **Vercel caps a function's request AND response body at 4.5 MB**
+  (hit on staging 2026-10-05, fixed the same day). A phone photo posted
+  as multipart to our own route got Vercel's plain-text `413
+  FUNCTION_PAYLOAD_TOO_LARGE` before our code ran; the client's
+  `res.json()` then threw, and Safari's wording for that is **"The
+  string did not match the expected pattern"** — that toast means "the
+  server answered with non-JSON", not a validation error. Local dev has
+  no such cap, so it only shows on Vercel. Fix: direct-to-Storage
+  uploads (see "Multi-user"). Never send file bytes through a route,
+  in either direction, and parse error responses with
+  `.json().catch(() => null)`.
+- **Dev server down mid-refactor** (2026-10-05): two agents editing the
+  tree while `npm run dev` served it left every route 500ing for a few
+  minutes (a deleted module still imported). When moving or renaming a
+  module, finish its importers in the same step.
+
 ## Localization
 
 Bilingual since 2026-09-22: English and Traditional Chinese as used in
@@ -1220,7 +1378,7 @@ Language; the choice lives in localStorage (`surflog:lang`), per browser.
 
 `.claude/agents/` — all run on Sonnet:
 - **`data-source-engineer`** — Open-Meteo and CWA fetches, new datasets,
-  spot harvesting into `lib/spots.ts`. Its file records the verified API
+  spot harvesting into the `spots` table. Its file records the verified API
   shapes and gotchas.
 - **`localizer`** — translations, finding hard-coded strings,
   language-aware formatting.
@@ -1270,7 +1428,8 @@ New agent files only load when a Claude Code session starts.
   because boards are sized that way everywhere, Taiwan included. Stored as
   total inches (`boards.length_in`), entered/shown as ft'in via
   `lib/boards.ts`. Board volume stays metric (litres).
-- Times are Asia/Taipei local, no timezone suffix stored.
+- Times are local to the session's spot (its `timezone`; Asia/Taipei for
+  every Taiwan spot), no timezone suffix stored.
 - UI: white background, black text, single light theme (no dark mode —
   removed on request). Rounded components, Coinbase-ish: 24px cards, 16px
   tiles, pill buttons. Funnel Sans for UI and notes (since 2026-09-29, on

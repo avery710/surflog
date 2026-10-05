@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
-import { Check, ImagePlus, Video, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpotPicker, recentSpotSlugs, usePendingRequests, type PendingRequest } from "@/components/spot-picker";
@@ -18,19 +18,9 @@ import { useDefaultSpot } from "@/lib/default-spot";
 import { useBrowserTimeZone } from "@/lib/use-browser-timezone";
 import { preselectBoardId } from "@/lib/boards";
 import { TIME_SLOTS } from "@/lib/time-slots";
-import { MAX_UPLOAD_BYTES, uploadFile } from "@/lib/upload-client";
+import { MediaPicker, type MediaPick } from "@/components/media-picker";
+import { attachFiles } from "@/lib/upload-client";
 import type { Board, Session } from "@/lib/types";
-
-/** Most photos/videos one log can carry. They upload one after another
- *  while the dialog waits, so this also bounds how long Save can take. */
-const MAX_MEDIA = 10;
-/** The photo types upload-client's shrinkImage() resizes — a file of one of
- *  these may be over the 15 MB limit when picked, since it's shrunk before it
- *  goes up. Everything else (video, GIF) is sent as it is. */
-const SHRINKABLE = /^image\/(jpeg|png|webp|heic|heif)$/;
-
-/** A file picked but not uploaded yet; `url` is an object URL for the preview. */
-type MediaPick = { key: number; file: File; url: string };
 
 export function LogForm({
   onCreated,
@@ -97,43 +87,6 @@ export function LogForm({
   const [media, setMedia] = useState<MediaPick[]>([]);
   // Which file is going up, while Save is past creating the session.
   const [progress, setProgress] = useState<{ n: number; total: number } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const nextKey = useRef(0);
-
-  // Object URLs outlive the component unless revoked; on unmount (the dialog
-  // closing) free whatever is still picked.
-  const mediaRef = useRef(media);
-  useEffect(() => {
-    mediaRef.current = media;
-  }, [media]);
-  useEffect(() => () => mediaRef.current.forEach((m) => URL.revokeObjectURL(m.url)), []);
-
-  function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    const room = MAX_MEDIA - media.length;
-    const picked: MediaPick[] = [];
-    let badType = false;
-    let tooLarge = false;
-    let tooMany = false;
-    for (const file of files) {
-      if (!/^(image|video)\//.test(file.type)) badType = true;
-      else if (file.size > MAX_UPLOAD_BYTES && !SHRINKABLE.test(file.type)) tooLarge = true;
-      else if (picked.length >= room) tooMany = true;
-      else picked.push({ key: nextKey.current++, file, url: URL.createObjectURL(file) });
-    }
-    if (picked.length) setMedia((prev) => [...prev, ...picked]);
-    // one toast per reason, however many files hit it
-    if (badType) toast.error(t("toast.notMedia"));
-    if (tooLarge) toast.error(t("toast.fileTooLarge"));
-    if (tooMany) toast.error(t("toast.tooManyMedia", { max: MAX_MEDIA }));
-  }
-
-  function removeMedia(key: number) {
-    const gone = media.find((m) => m.key === key);
-    if (gone) URL.revokeObjectURL(gone.url);
-    setMedia((prev) => prev.filter((m) => m.key !== key));
-  }
 
   async function handleSave() {
     setSaving(true);
@@ -154,27 +107,15 @@ export function LogForm({
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error ?? t("toast.couldntSave"));
       // The session exists from here on, so nothing below may throw it
-      // away: a file that fails is counted and skipped. One file at a time —
-      // the attach route reads the session's photo list and writes it back,
-      // so two attaches at once would overwrite each other.
-      let session = body.session as Session;
-      let failed = 0;
-      for (let i = 0; i < media.length; i++) {
-        setProgress({ n: i + 1, total: media.length });
-        try {
-          const uploadId = await uploadFile(media[i].file);
-          const attach = await fetch(`/api/sessions/${session.id}/photos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ uploadId }),
-          });
-          const attached = await attach.json().catch(() => null);
-          if (!attach.ok || !attached?.session) throw new Error("attach failed");
-          session = attached.session as Session;
-        } catch {
-          failed++;
-        }
-      }
+      // away: a file that fails is counted and skipped.
+      const created = body.session as Session;
+      const attached = await attachFiles(
+        created.id,
+        media.map((m) => m.file),
+        (n, total) => setProgress({ n, total })
+      );
+      const session = attached.session ?? created;
+      const failed = attached.failed;
       onCreated(session);
       setNotesHtml("");
       setPointsMet([]);
@@ -274,86 +215,8 @@ export function LogForm({
         <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full min-w-[180px]" />
       </div>
 
-      <div className="mt-4 flex flex-col gap-1.5">
-        <div className="flex items-center justify-between gap-2 pl-0.5 text-xs font-semibold text-muted-foreground">
-          <span>{t("form.media")}</span>
-          {media.length > 0 && (
-            <span className="font-mono font-medium">
-              {media.length}/{MAX_MEDIA}
-            </span>
-          )}
-        </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          className="hidden"
-          onChange={handlePick}
-        />
-        {media.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={saving}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-[var(--r-tile)] border border-dashed border-primary/40 text-sm font-semibold text-primary outline-none transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-          >
-            <ImagePlus className="size-4" aria-hidden />
-            {t("entry.addMedia")}
-          </button>
-        ) : (
-          <ul className="flex flex-wrap gap-2.5">
-            {media.map((m) => (
-              <li key={m.key} className="relative size-24">
-                {m.file.type.startsWith("video/") ? (
-                  <>
-                    <video
-                      src={m.url}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="h-full w-full rounded-[var(--r-tile)] bg-black object-cover"
-                    />
-                    {/* a first frame is often black, so always say it's a video */}
-                    <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-1 rounded-b-[var(--r-tile)] bg-black/55 px-1.5 py-1 text-[11px] font-medium text-white">
-                      <Video className="size-3.5 shrink-0" aria-hidden />
-                      <span className="truncate">{m.file.name}</span>
-                    </span>
-                  </>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.url}
-                    alt={m.file.name}
-                    className="h-full w-full rounded-[var(--r-tile)] object-cover"
-                  />
-                )}
-                <button
-                  type="button"
-                  aria-label={t("form.removeMedia", { name: m.file.name })}
-                  onClick={() => removeMedia(m.key)}
-                  disabled={saving}
-                  className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-black/55 text-white outline-none focus-visible:ring-2 focus-visible:ring-white disabled:hidden"
-                >
-                  <X className="size-3.5" />
-                </button>
-              </li>
-            ))}
-            {media.length < MAX_MEDIA && (
-              <li className="size-24">
-                <button
-                  type="button"
-                  aria-label={t("entry.addMedia")}
-                  onClick={() => fileRef.current?.click()}
-                  disabled={saving}
-                  className="flex h-full w-full items-center justify-center rounded-[var(--r-tile)] border border-dashed border-primary/40 text-primary outline-none transition-colors hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                >
-                  <ImagePlus className="size-5" aria-hidden />
-                </button>
-              </li>
-            )}
-          </ul>
-        )}
+      <div className="mt-4">
+        <MediaPicker picks={media} onPicksChange={setMedia} disabled={saving} />
       </div>
 
       {goal && (
