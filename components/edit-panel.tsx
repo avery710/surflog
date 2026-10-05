@@ -10,7 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SpotPicker, type PendingRequest } from "@/components/spot-picker";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
-import { MediaPicker, type MediaPick } from "@/components/media-picker";
+import {
+  MediaPicker,
+  UploadProgress,
+  type MediaPick,
+  type PickStatus,
+  type UploadProgressState,
+} from "@/components/media-picker";
 import { attachFiles } from "@/lib/upload-client";
 import { GoalCheck } from "@/components/goal";
 import { goalPoints, sessionPointsMet } from "@/lib/goal";
@@ -72,7 +78,9 @@ export function EditPanel({
   // removal and files picked here only take effect on Save.
   const [removedPhotos, setRemovedPhotos] = useState<string[]>([]);
   const [picks, setPicks] = useState<MediaPick[]>([]);
-  const [progress, setProgress] = useState<{ n: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<UploadProgressState | null>(null);
+  // Each picked file's state while they upload (same order as the picks); null when idle.
+  const [statuses, setStatuses] = useState<(PickStatus | undefined)[] | null>(null);
 
   function setCondField(key: keyof Cond, value: string) {
     setCond((c) => ({ ...c, [key]: value }));
@@ -119,7 +127,8 @@ export function EditPanel({
       const attached = await attachFiles(
         session.id,
         picks.map((m) => m.file),
-        (n, total) => setProgress({ n, total })
+        (n, total, fraction) => setProgress({ n, total, fraction }),
+        (i, status) => setStatuses((prev) => Object.assign([...(prev ?? [])], { [i]: status }))
       );
       if (attached.session) saved = attached.session;
       failed += attached.failed;
@@ -134,6 +143,7 @@ export function EditPanel({
     } finally {
       setSaving(false);
       setProgress(null);
+      setStatuses(null);
     }
   }
 
@@ -237,6 +247,7 @@ export function EditPanel({
         onPicksChange={setPicks}
         existing={session.photos.filter((p) => !removedPhotos.includes(p.id))}
         onRemoveExisting={(id) => setRemovedPhotos((ids) => [...ids, id])}
+        statuses={statuses ?? undefined}
         disabled={saving}
       />
 
@@ -244,13 +255,11 @@ export function EditPanel({
         <GoalCheck goal={session.goalText} value={pointsMet} onChange={setPointsMet} />
       )}
 
+      {progress && <UploadProgress progress={progress} />}
+
       <div className="flex flex-wrap gap-2">
         <Button onClick={handleSave} disabled={saving} className="rounded-full px-6">
-          {progress
-            ? t("form.uploadingMedia", { n: progress.n, total: progress.total })
-            : saving
-              ? t("form.saving")
-              : t("edit.saveChanges")}
+          {saving ? t("form.saving") : t("edit.saveChanges")}
         </Button>
         <Button variant="secondary" onClick={onCancel} disabled={saving} className="rounded-full px-6">
           {t("edit.cancel")}

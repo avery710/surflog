@@ -18,7 +18,13 @@ import { useDefaultSpot } from "@/lib/default-spot";
 import { useBrowserTimeZone } from "@/lib/use-browser-timezone";
 import { preselectBoardId } from "@/lib/boards";
 import { TIME_SLOTS } from "@/lib/time-slots";
-import { MediaPicker, type MediaPick } from "@/components/media-picker";
+import {
+  MediaPicker,
+  UploadProgress,
+  type MediaPick,
+  type PickStatus,
+  type UploadProgressState,
+} from "@/components/media-picker";
 import { attachFiles } from "@/lib/upload-client";
 import type { Board, Session } from "@/lib/types";
 
@@ -86,7 +92,9 @@ export function LogForm({
   // attach route needs the session's id, which doesn't exist before then.
   const [media, setMedia] = useState<MediaPick[]>([]);
   // Which file is going up, while Save is past creating the session.
-  const [progress, setProgress] = useState<{ n: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<UploadProgressState | null>(null);
+  // Each picked file's state while they upload (same order as the picks); null when idle.
+  const [statuses, setStatuses] = useState<(PickStatus | undefined)[] | null>(null);
 
   async function handleSave() {
     setSaving(true);
@@ -112,7 +120,8 @@ export function LogForm({
       const attached = await attachFiles(
         created.id,
         media.map((m) => m.file),
-        (n, total) => setProgress({ n, total })
+        (n, total, fraction) => setProgress({ n, total, fraction }),
+        (i, status) => setStatuses((prev) => Object.assign([...(prev ?? [])], { [i]: status }))
       );
       const session = attached.session ?? created;
       const failed = attached.failed;
@@ -133,6 +142,7 @@ export function LogForm({
     } finally {
       setSaving(false);
       setProgress(null);
+      setStatuses(null);
       onBusyChange?.(false);
     }
   }
@@ -216,7 +226,7 @@ export function LogForm({
       </div>
 
       <div className="mt-4">
-        <MediaPicker picks={media} onPicksChange={setMedia} disabled={saving} />
+        <MediaPicker picks={media} onPicksChange={setMedia} statuses={statuses ?? undefined} disabled={saving} />
       </div>
 
       {goal && (
@@ -225,13 +235,15 @@ export function LogForm({
         </div>
       )}
 
+      {progress && (
+        <div className="mt-5">
+          <UploadProgress progress={progress} />
+        </div>
+      )}
+
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Button onClick={handleSave} disabled={saving} className="rounded-full px-6">
-          {progress
-            ? t("form.uploadingMedia", { n: progress.n, total: progress.total })
-            : saving
-              ? t("form.saving")
-              : t("form.saveSession")}
+          {saving ? t("form.saving") : t("form.saveSession")}
         </Button>
         <span className="text-[13px] font-medium text-muted-foreground">
           {progress ? t("form.uploadingHint") : t("form.autoFillHint")}

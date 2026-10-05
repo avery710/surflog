@@ -110,6 +110,9 @@ const DICT = {
   "form.saving": { en: "Saving…", "zh-TW": "儲存中…" },
   "form.media": { en: "Photos / video (optional)", "zh-TW": "照片/影片（選填）" },
   "form.removeMedia": { en: "Remove {name}", "zh-TW": "移除 {name}" },
+  "form.mediaUploading": { en: "Uploading", "zh-TW": "上傳中" },
+  "form.mediaDone": { en: "Uploaded", "zh-TW": "已上傳" },
+  "form.mediaFailed": { en: "Upload failed", "zh-TW": "上傳失敗" },
   "form.uploadingMedia": { en: "Uploading {n} of {total}…", "zh-TW": "上傳中 {n}/{total}…" },
   "form.uploadingHint": {
     en: "Your session is saved. Keep this window open until the uploads finish.",

@@ -79,9 +79,30 @@ export async function shrinkImage(file: File): Promise<File> {
   }
 }
 
+/** PUT with upload progress — fetch() can't report how much of a request
+ *  body has been sent, XMLHttpRequest can. Resolves with the HTTP status
+ *  (0 when the request never completed). */
+function putWithProgress(url: string, file: File, onProgress?: (fraction: number) => void): Promise<number> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("content-type", file.type);
+    xhr.setRequestHeader("cache-control", "max-age=31536000");
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onload = () => resolve(xhr.status);
+    xhr.onerror = () => resolve(0);
+    xhr.onabort = () => resolve(0);
+    xhr.send(file);
+  });
+}
+
 /** Shrinks a photo if needed, uploads it, and returns the upload id to
- *  attach. Throws UploadError — callers pick the message. */
-export async function uploadFile(original: File): Promise<string> {
+ *  attach. `onProgress` gets 0..1 for this one file as its bytes go up.
+ *  Throws UploadError — callers pick the message. */
+export async function uploadFile(original: File, onProgress?: (fraction: number) => void): Promise<string> {
   const file = await shrinkImage(original);
   if (file.size > MAX_UPLOAD_BYTES) throw new UploadError("too_large");
 
@@ -95,12 +116,8 @@ export async function uploadFile(original: File): Promise<string> {
     throw new UploadError(body?.code === "too_large" || body?.code === "bad_type" ? body.code : "failed");
   }
 
-  const put = await fetch(body.url as string, {
-    method: "PUT",
-    headers: { "content-type": file.type, "cache-control": "max-age=31536000", "x-upsert": "false" },
-    body: file,
-  }).catch(() => null);
-  if (!put?.ok) throw new UploadError(put?.status === 413 ? "too_large" : "failed");
+  const status = await putWithProgress(body.url as string, file, onProgress);
+  if (status < 200 || status >= 300) throw new UploadError(status === 413 ? "too_large" : "failed");
 
   return body.id as string;
 }
@@ -111,19 +128,25 @@ export async function uploadFile(original: File): Promise<string> {
  * back, so two attaches at once would overwrite each other. A file that
  * fails is counted and skipped, never thrown: the session already exists.
  * `session` is the latest version the server returned, or null if nothing
- * attached.
+ * attached. `onProgress` gets which file is going up and `fraction`, 0..1
+ * across the whole batch (each file counts equally; within a file it follows
+ * the bytes sent, held just short of full until the attach has answered).
+ * `onFile` gets each file's own state as it starts and as it ends.
  */
 export async function attachFiles(
   sessionId: string,
   files: File[],
-  onProgress?: (n: number, total: number) => void
+  onProgress?: (n: number, total: number, fraction: number) => void,
+  onFile?: (index: number, status: "uploading" | "done" | "failed") => void
 ): Promise<{ session: Session | null; failed: number }> {
   let session: Session | null = null;
   let failed = 0;
   for (let i = 0; i < files.length; i++) {
-    onProgress?.(i + 1, files.length);
+    const report = (within: number) => onProgress?.(i + 1, files.length, (i + within) / files.length);
+    report(0);
+    onFile?.(i, "uploading");
     try {
-      const uploadId = await uploadFile(files[i]);
+      const uploadId = await uploadFile(files[i], (f) => report(f * 0.95));
       const res = await fetch(`/api/sessions/${sessionId}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,9 +155,12 @@ export async function attachFiles(
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.session) throw new Error("attach failed");
       session = body.session as Session;
+      onFile?.(i, "done");
     } catch {
       failed++;
+      onFile?.(i, "failed");
     }
+    report(1);
   }
   return { session, failed };
 }

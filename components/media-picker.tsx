@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { ImagePlus, Video, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, TriangleAlert, Video, X } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 import { MAX_UPLOAD_BYTES } from "@/lib/upload-client";
 import type { Photo } from "@/lib/types";
@@ -17,6 +17,40 @@ const SHRINKABLE = /^image\/(jpeg|png|webp|heic|heif)$/;
 
 /** A file picked but not uploaded yet; `url` is an object URL for the preview. */
 export type MediaPick = { key: number; file: File; url: string };
+
+/** One picked file's state while Save uploads the batch; absent = waiting. */
+export type PickStatus = "uploading" | "done" | "failed";
+
+/** Which file is going up and how far the whole batch is, 0..1. */
+export type UploadProgressState = { n: number; total: number; fraction: number };
+
+/** The bar shown while Save is uploading media. */
+export function UploadProgress({ progress }: { progress: UploadProgressState }) {
+  const { t } = useLang();
+  const percent = Math.round(Math.min(1, Math.max(0, progress.fraction)) * 100);
+  const label = t("form.uploadingMedia", { n: progress.n, total: progress.total });
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-3 text-xs font-semibold text-muted-foreground">
+        <span>{label}</span>
+        <span className="font-mono font-medium tabular-nums">{percent}%</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        className="h-2 overflow-hidden rounded-full bg-secondary"
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out motion-reduce:transition-none"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 const tile = "h-full w-full rounded-[var(--r-tile)] object-cover";
 const removeButton =
@@ -33,6 +67,7 @@ export function MediaPicker({
   onPicksChange,
   existing = [],
   onRemoveExisting,
+  statuses,
   disabled = false,
 }: {
   picks: MediaPick[];
@@ -40,6 +75,10 @@ export function MediaPicker({
   /** Already on the session, minus any the user has marked for removal. */
   existing?: Photo[];
   onRemoveExisting?: (id: string) => void;
+  /** Set while Save is uploading: each pick's state, same order as `picks`
+   *  (a missing entry = still waiting). Tiles then show a spinner, a tick or
+   *  a failure mark, and waiting ones dim. */
+  statuses?: (PickStatus | undefined)[];
   disabled?: boolean;
 }) {
   const { t } = useLang();
@@ -137,7 +176,7 @@ export function MediaPicker({
               )}
             </li>
           ))}
-          {picks.map((m) => (
+          {picks.map((m, i) => (
             <li key={m.key} className="relative size-24">
               {m.file.type.startsWith("video/") ? (
                 <>
@@ -152,6 +191,7 @@ export function MediaPicker({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={m.url} alt={m.file.name} className={tile} />
               )}
+              {statuses && <PickStatusMark status={statuses[i]} />}
               <button
                 type="button"
                 aria-label={t("form.removeMedia", { name: m.file.name })}
@@ -179,5 +219,41 @@ export function MediaPicker({
         </ul>
       )}
     </div>
+  );
+}
+
+/** The overlay on a picked tile during upload. */
+function PickStatusMark({ status }: { status: PickStatus | undefined }) {
+  const { t } = useLang();
+  if (!status) {
+    // waiting its turn
+    return <span className="absolute inset-0 rounded-[var(--r-tile)] bg-white/60" aria-hidden />;
+  }
+  const badge = "flex size-7 items-center justify-center rounded-full text-white";
+  return (
+    <span
+      role="img"
+      aria-label={t(status === "done" ? "form.mediaDone" : status === "failed" ? "form.mediaFailed" : "form.mediaUploading")}
+      className={
+        "absolute inset-0 flex items-center justify-center rounded-[var(--r-tile)] " +
+        (status === "uploading" ? "bg-black/35" : "bg-black/20")
+      }
+    >
+      {status === "uploading" && (
+        <span className={`${badge} bg-black/55`}>
+          <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
+        </span>
+      )}
+      {status === "done" && (
+        <span className={`${badge} bg-primary`}>
+          <Check className="size-4" strokeWidth={3} aria-hidden />
+        </span>
+      )}
+      {status === "failed" && (
+        <span className={`${badge} bg-destructive`}>
+          <TriangleAlert className="size-4" aria-hidden />
+        </span>
+      )}
+    </span>
   );
 }
