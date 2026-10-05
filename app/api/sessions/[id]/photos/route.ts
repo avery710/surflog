@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 function uploadRefusal(reason: "missing" | "too_large" | "bad_type") {
   if (reason === "too_large") {
-    return NextResponse.json({ error: "file too large (15MB max)", code: reason }, { status: 413 });
+    return NextResponse.json({ error: "file too large (50MB max)", code: reason }, { status: 413 });
   }
   if (reason === "bad_type") {
     return NextResponse.json({ error: "only images/video are accepted", code: reason }, { status: 415 });

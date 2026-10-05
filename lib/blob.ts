@@ -12,8 +12,9 @@ import { getSupabase } from "./supabase";
 const BUCKET = "photos";
 const TABLE = "photo_blobs";
 
-/** Images and video, 15 MB each — the limit on anything put in the bucket. */
-export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+/** Images and video, 50 MB each — Supabase Storage's own per-file ceiling
+ *  on this project (measured 2026-10-05: 45 MB accepted, 55 MB refused). */
+export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 /**
  * Direct upload, step 1: a one-time URL the browser PUTs the file to, so the

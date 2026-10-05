@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const upload = await registerUpload(uploadId, session.user.id, { boardId: id }, ["image/"]);
   if (!upload.ok) {
     if (upload.reason === "too_large") {
-      return NextResponse.json({ error: "file too large (15MB max)", code: upload.reason }, { status: 413 });
+      return NextResponse.json({ error: "file too large (50MB max)", code: upload.reason }, { status: 413 });
     }
     if (upload.reason === "bad_type") {
       return NextResponse.json({ error: "only images are accepted", code: upload.reason }, { status: 415 });

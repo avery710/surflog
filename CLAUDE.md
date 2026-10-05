@@ -247,6 +247,9 @@ Two implementations exist:
      drops under the spot name and `⋯` stays pinned top-right (with one
      `flex-wrap` row, `⋯` was what wrapped). The board chip lost its
      "Board / 衝浪板" label (screen-reader-only now): photo + name only.
+     **Since 2026-10-05 the menu is just Edit / Delete**: the "Add
+     photos/video" item, the card's file input and the uploading spinner
+     are gone (media is managed in the edit panel, see "As of 2026-10-05").
 
    **As of 2026-09-30** (dashboard panel, `components/journal.tsx` +
    `components/activity-calendar.tsx` + `components/patterns-table.tsx`;
@@ -312,8 +315,8 @@ Two implementations exist:
    hydrates fine. Not checked: signed-out `/` in a real browser (both
    browsers are signed in), the Google button end to end.
 
-   **As of 2026-10-05** (commit `53f28c1`, deployed to staging the same
-   day; nothing below has been tried on a real phone):
+   **As of 2026-10-05** (commits `53f28c1`..`f7f9710`, all deployed to
+   staging the same day; nothing below has been tried on a real phone):
    - **One worldwide spot catalogue in the database**, maintained only
      by Avery, with a searchable picker, spot requests and an admin page
      — see "Spots".
@@ -333,6 +336,36 @@ Two implementations exist:
      Checked in cmux with injected files incl. one real save with a
      forced failure, cleaned up. Not checked: a real video, HEIC, the
      all-files-succeed toast, the English UI.
+   - **Media is added and removed in the edit panel, not on the card**
+     (on request): the same picker section as the log form
+     (`components/media-picker.tsx`, shared by both), showing existing
+     media with × and an add tile; 10 per session counting existing ones.
+     Changes are **staged until Save** like every other field, and Cancel
+     discards them. Save PATCHes the fields, then deletes and attaches
+     one request at a time (`attachFiles()` in `lib/upload-client.ts`);
+     a failure is counted and reported by toast, never thrown. Removing
+     also moved off the card — **not asked for**: the old hover × sat on
+     top of the new tap-to-view area, so a tap could have deleted a
+     photo. Avery was told and hasn't objected.
+   - **Tap a thumbnail to view it full-screen** (`components/media-viewer.tsx`,
+     on request): dark overlay, prev/next buttons, `2 / 3` counter, ←/→,
+     Escape / close / backdrop to dismiss. A video is a still with a play
+     icon on the card (`#t=0.1` so WebKit paints a frame) and plays with
+     controls in the viewer. No swipe gesture.
+   - **Upload progress** (Avery picked "bar + per-thumbnail marks" from
+     five options): a bar above Save with "Uploading 1 of 3…" and a
+     percentage from real bytes sent (the PUT uses XMLHttpRequest because
+     `fetch` can't report upload progress), and each picked tile is
+     dimmed while waiting, then spinner → tick or red warning. The marks
+     only exist during the save (the form resets / the panel closes
+     after), so a failed file is known afterwards only from the toast.
+   - Checked in cmux through the **edit panel** on a real session, then
+     undone: add two photos, view and step through them at 775 and
+     375 px, remove them; and three photos with the second forced to
+     fail (bar 0 → 32 → 67 → 98 %, tiles uploaded / failed / uploading).
+     Not checked: the log form's copy of the progress UI, a real video
+     anywhere (thumbnail, viewer, upload), a slow connection, a failed
+     delete.
    - **Edit panel copy**: header is "Conditions (entered by hand)" (no
      "Swelleye"), the button is "Refresh conditions" / "更新浪況" (was
      "Refresh Open-Meteo"; it also refetches CWA tide, so no source
@@ -1179,11 +1212,17 @@ static import.
 - **Picker** (`components/spot-picker.tsx`, log form + edit panel):
   search over English/Chinese name, area, country; sections Requested,
   Recent (4), Near <last spot> (5 within 80 km), then Taiwan regions and
-  `country · area`. Popover from `sm`, full-screen sheet on phones.
+  `country · area` — **Siargao first, then Bali** (`AREA_PRIORITY`, on
+  request), any other area alphabetical after; the admin page is plain
+  alphabetical. Popover from `sm`, full-screen sheet on phones.
   "Near me" asks for location **only on tap** and keeps it in the
   browser (Avery's decision: no permission prompt on open); a new
   user's first group comes from the browser timezone instead. Admins
-  get an "add" row, everyone else "request it".
+  get an "add" row, everyone else "request it". Neither location button
+  explains itself before the browser's own prompt. "Use my current
+  location" in the **request** form is different from "Near me": those
+  coordinates are sent and stored with the request (admin-visible) —
+  a one-line notice under it was suggested 2026-10-05, not built.
 - **Checked 2026-10-05 in cmux**: picker with all 76 spots, search
   ("bali", "外澳"), keyboard, 375 and 1280 px; picking Uluwatu shows the
   local-time note; `/api/conditions` returns full data for Uluwatu and

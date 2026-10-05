@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "only images/video are accepted", code: "bad_type" }, { status: 415 });
   }
   if (!(size > 0) || size > MAX_UPLOAD_BYTES) {
-    return NextResponse.json({ error: "file too large (15MB max)", code: "too_large" }, { status: 413 });
+    return NextResponse.json({ error: "file too large (50MB max)", code: "too_large" }, { status: 413 });
   }
 
   return NextResponse.json(await createUpload(), { status: 201 });

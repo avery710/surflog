@@ -10,10 +10,11 @@ import type { Photo } from "@/lib/types";
 /** Most photos/videos one session can carry. They upload one after another
  *  while the form waits, so this also bounds how long Save can take. */
 export const MAX_MEDIA = 10;
-/** The photo types upload-client's shrinkImage() resizes — a file of one of
- *  these may be over the 15 MB limit when picked, since it's shrunk before it
- *  goes up. Everything else (video, GIF) is sent as it is. */
-const SHRINKABLE = /^image\/(jpeg|png|webp|heic|heif)$/;
+/** Photos (shrunk by upload-client's shrinkImage()) and videos (compressed
+ *  by lib/video-compress.ts) may be over the 50 MB limit when picked, since
+ *  they get smaller before they go up; the real check happens then. A GIF is
+ *  sent as it is, so it has to fit already. */
+const SHRINKABLE = /^(image\/(jpeg|png|webp|heic|heif)|video\/)/;
 
 /** A file picked but not uploaded yet; `url` is an object URL for the preview. */
 export type MediaPick = { key: number; file: File; url: string };
@@ -22,13 +23,16 @@ export type MediaPick = { key: number; file: File; url: string };
 export type PickStatus = "uploading" | "done" | "failed";
 
 /** Which file is going up and how far the whole batch is, 0..1. */
-export type UploadProgressState = { n: number; total: number; fraction: number };
+export type UploadProgressState = { n: number; total: number; fraction: number; phase?: "compressing" | "uploading" };
 
 /** The bar shown while Save is uploading media. */
 export function UploadProgress({ progress }: { progress: UploadProgressState }) {
   const { t } = useLang();
   const percent = Math.round(Math.min(1, Math.max(0, progress.fraction)) * 100);
-  const label = t("form.uploadingMedia", { n: progress.n, total: progress.total });
+  const label = t(progress.phase === "compressing" ? "form.compressingMedia" : "form.uploadingMedia", {
+    n: progress.n,
+    total: progress.total,
+  });
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3 text-xs font-semibold text-muted-foreground">

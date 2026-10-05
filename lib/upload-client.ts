@@ -8,6 +8,7 @@
  */
 
 import type { Session } from "./types";
+import { compressVideo, VideoTooLongError } from "./video-compress";
 
 /** Longest edge kept for photos, and the JPEG quality they're re-encoded at.
  *  2560 px / 0.9 is visually lossless at any size the app shows a photo
@@ -17,7 +18,7 @@ const JPEG_QUALITY = 0.9;
 /** A photo already this small and within MAX_EDGE is sent untouched — no
  *  point re-encoding (and losing a generation) to save nothing. */
 const KEEP_AS_IS_BYTES = 3 * 1024 * 1024;
-export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 export type UploadErrorCode = "too_large" | "bad_type" | "failed";
 export class UploadError extends Error {
@@ -99,12 +100,34 @@ function putWithProgress(url: string, file: File, onProgress?: (fraction: number
   });
 }
 
-/** Shrinks a photo if needed, uploads it, and returns the upload id to
- *  attach. `onProgress` gets 0..1 for this one file as its bytes go up.
- *  Throws UploadError — callers pick the message. */
-export async function uploadFile(original: File, onProgress?: (fraction: number) => void): Promise<string> {
-  const file = await shrinkImage(original);
+export type UploadPhase = "compressing" | "uploading";
+/** How much of a file's bar the compression step takes when there is one. */
+const COMPRESS_SHARE = 0.6;
+
+/** Shrinks a photo or compresses a video if needed, uploads it, and returns
+ *  the upload id to attach. `onProgress` gets 0..1 for this one file and
+ *  which step it is in. Throws UploadError — callers pick the message. */
+export async function uploadFile(
+  original: File,
+  onProgress?: (fraction: number, phase: UploadPhase) => void
+): Promise<string> {
+  let file = original;
+  let uploadFrom = 0;
+  if (original.type.startsWith("video/")) {
+    try {
+      file = await compressVideo(original, (f) => {
+        uploadFrom = COMPRESS_SHARE;
+        onProgress?.(f * COMPRESS_SHARE, "compressing");
+      });
+    } catch (e) {
+      throw new UploadError(e instanceof VideoTooLongError ? "too_large" : "failed");
+    }
+  } else {
+    file = await shrinkImage(original);
+  }
   if (file.size > MAX_UPLOAD_BYTES) throw new UploadError("too_large");
+  const uploading = (f: number) => onProgress?.(uploadFrom + f * (1 - uploadFrom), "uploading");
+  uploading(0);
 
   const res = await fetch("/api/uploads", {
     method: "POST",
@@ -116,7 +139,7 @@ export async function uploadFile(original: File, onProgress?: (fraction: number)
     throw new UploadError(body?.code === "too_large" || body?.code === "bad_type" ? body.code : "failed");
   }
 
-  const status = await putWithProgress(body.url as string, file, onProgress);
+  const status = await putWithProgress(body.url as string, file, uploading);
   if (status < 200 || status >= 300) throw new UploadError(status === 413 ? "too_large" : "failed");
 
   return body.id as string;
@@ -136,17 +159,18 @@ export async function uploadFile(original: File, onProgress?: (fraction: number)
 export async function attachFiles(
   sessionId: string,
   files: File[],
-  onProgress?: (n: number, total: number, fraction: number) => void,
+  onProgress?: (n: number, total: number, fraction: number, phase: UploadPhase) => void,
   onFile?: (index: number, status: "uploading" | "done" | "failed") => void
 ): Promise<{ session: Session | null; failed: number }> {
   let session: Session | null = null;
   let failed = 0;
   for (let i = 0; i < files.length; i++) {
-    const report = (within: number) => onProgress?.(i + 1, files.length, (i + within) / files.length);
+    const report = (within: number, phase: UploadPhase = "uploading") =>
+      onProgress?.(i + 1, files.length, (i + within) / files.length, phase);
     report(0);
     onFile?.(i, "uploading");
     try {
-      const uploadId = await uploadFile(files[i], (f) => report(f * 0.95));
+      const uploadId = await uploadFile(files[i], (f, phase) => report(f * 0.95, phase));
       const res = await fetch(`/api/sessions/${sessionId}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

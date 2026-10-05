@@ -25,7 +25,10 @@ const DICT = {
     en: "Changes saved, but {n} photo/video change(s) failed. Open Edit to try again.",
     "zh-TW": "變更已儲存，但有 {n} 個照片/影片未能更新。請再次開啟編輯重試。",
   },
-  "toast.fileTooLarge": { en: "That file is too large (15 MB max)", "zh-TW": "檔案太大（上限 15 MB）" },
+  "toast.fileTooLarge": {
+    en: "That file is too large (50 MB max; videos up to about 4 minutes)",
+    "zh-TW": "檔案太大（上限 50 MB，影片約 4 分鐘以內）",
+  },
   "toast.notMedia": { en: "Only photos and videos can be added", "zh-TW": "只能新增照片或影片" },
   "toast.tooManyMedia": { en: "Up to {max} photos/videos per session", "zh-TW": "每筆紀錄最多 {max} 個照片/影片" },
   "toast.savedMediaFailed": {
@@ -113,6 +116,7 @@ const DICT = {
   "form.mediaUploading": { en: "Uploading", "zh-TW": "上傳中" },
   "form.mediaDone": { en: "Uploaded", "zh-TW": "已上傳" },
   "form.mediaFailed": { en: "Upload failed", "zh-TW": "上傳失敗" },
+  "form.compressingMedia": { en: "Compressing video {n} of {total}…", "zh-TW": "壓縮影片中 {n}/{total}…" },
   "form.uploadingMedia": { en: "Uploading {n} of {total}…", "zh-TW": "上傳中 {n}/{total}…" },
   "form.uploadingHint": {
     en: "Your session is saved. Keep this window open until the uploads finish.",

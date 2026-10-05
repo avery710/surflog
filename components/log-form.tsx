@@ -120,7 +120,7 @@ export function LogForm({
       const attached = await attachFiles(
         created.id,
         media.map((m) => m.file),
-        (n, total, fraction) => setProgress({ n, total, fraction }),
+        (n, total, fraction, phase) => setProgress({ n, total, fraction, phase }),
         (i, status) => setStatuses((prev) => Object.assign([...(prev ?? [])], { [i]: status }))
       );
       const session = attached.session ?? created;

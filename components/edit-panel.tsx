@@ -127,7 +127,7 @@ export function EditPanel({
       const attached = await attachFiles(
         session.id,
         picks.map((m) => m.file),
-        (n, total, fraction) => setProgress({ n, total, fraction }),
+        (n, total, fraction, phase) => setProgress({ n, total, fraction, phase }),
         (i, status) => setStatuses((prev) => Object.assign([...(prev ?? [])], { [i]: status }))
       );
       if (attached.session) saved = attached.session;
