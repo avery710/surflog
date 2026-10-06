@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLang, type TKey } from "@/lib/i18n";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { COMPASS_16, parseLocation } from "@/lib/spot-geo";
+import { geoFailureKey, locateOnce } from "@/lib/geolocation";
 import { compassLabel } from "@/lib/format";
 import type { Spot } from "@/lib/spots";
 import type { SpotRequest } from "@/lib/spot-requests";
@@ -222,23 +223,16 @@ function SpotForm({
   const [locating, setLocating] = useState(false);
   // Only ever on tap. The position fills the Location field client-side and
   // goes nowhere else until the user saves.
-  function fillFromGeolocation() {
-    if (!navigator.geolocation) {
-      setProblem({ kind: "message", text: t("spot.err.geoUnavailable") });
-      return;
-    }
+  async function fillFromGeolocation() {
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
-        setLocating(false);
-      },
-      () => {
-        setProblem({ kind: "message", text: t("spot.err.geoDenied") });
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+    setProblem(null);
+    const result = await locateOnce({ enableHighAccuracy: true, timeout: 10000 });
+    if (result.ok) setLocation(`${result.lat.toFixed(5)}, ${result.lng.toFixed(5)}`);
+    else {
+      const text = t(geoFailureKey(result)) + (lang === "en" ? " " : "") + t("spot.err.geoPasteInstead");
+      setProblem({ kind: "message", text });
+    }
+    setLocating(false);
   }
 
   const pickExisting = (spot: Spot) => {

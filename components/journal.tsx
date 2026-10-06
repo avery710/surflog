@@ -391,7 +391,7 @@ export function Journal({
             {sessions.length === 0 ? (
               <EmptyState />
             ) : (
-              <SessionList sessions={sessions} boards={boards} onUpdated={upsert} onDeleted={remove} />
+              <SessionList sessions={sessions} boards={boards} goal={goal} onUpdated={upsert} onDeleted={remove} />
             )}
           </div>
         </section>

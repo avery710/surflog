@@ -19,7 +19,7 @@ import {
 } from "@/components/media-picker";
 import { attachFiles } from "@/lib/upload-client";
 import { GoalCheck } from "@/components/goal";
-import { goalPoints, sessionPointsMet } from "@/lib/goal";
+import { goalOptions, sessionAchieved } from "@/lib/goal";
 import { useLang, type TKey } from "@/lib/i18n";
 import { TIME_SLOTS } from "@/lib/time-slots";
 import type { Board, Cond, Session } from "@/lib/types";
@@ -50,6 +50,7 @@ const COND_FIELDS: { key: CondFieldKey; placeholder: string | TKey }[] = [
 export function EditPanel({
   session,
   boards = [],
+  goal = null,
   onRequestSpot,
   pendingRequests,
   onSaved,
@@ -57,6 +58,8 @@ export function EditPanel({
 }: {
   session: Session;
   boards?: Board[];
+  /** The owner's current goal — its points can be ticked on any session. */
+  goal?: string | null;
   /** Passed straight to SpotPicker — see its props. */
   onRequestSpot?: (query: string) => void;
   pendingRequests?: PendingRequest[];
@@ -70,8 +73,11 @@ export function EditPanel({
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
-  const initialPointsMet = goalPoints(session.goalText).map((_, i) => sessionPointsMet(session)?.[i] ?? false);
-  const [pointsMet, setPointsMet] = useState<boolean[]>(initialPointsMet);
+  const initialAchieved = sessionAchieved(session);
+  const [achieved, setAchieved] = useState<string[]>(initialAchieved);
+  // The current goal's points, plus anything this session has ticked that
+  // has since been removed from the goal (kept so it can be unticked).
+  const goalChoices = goalOptions(goal, initialAchieved);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   // Media changes are staged like every other field: photos marked for
@@ -97,7 +103,8 @@ export function EditPanel({
         cond: hasAnyCond(cond) ? cond : null,
         // only sent when changed, so an untouched board never needs a write
         ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
-        ...(session.goalText && pointsMet.some((m, i) => m !== initialPointsMet[i]) ? { goalPointsMet: pointsMet } : {}),
+        // only sent when changed, like the board
+        ...(achieved.join("\n") !== initialAchieved.join("\n") ? { goalAchieved: achieved } : {}),
         ...extra,
       }),
     });
@@ -251,9 +258,7 @@ export function EditPanel({
         disabled={saving}
       />
 
-      {session.goalText && (
-        <GoalCheck goal={session.goalText} value={pointsMet} onChange={setPointsMet} />
-      )}
+      {goalChoices.length > 0 && <GoalCheck options={goalChoices} value={achieved} onChange={setAchieved} />}
 
       {progress && <UploadProgress progress={progress} />}
 

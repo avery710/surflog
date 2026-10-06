@@ -9,7 +9,7 @@ import { SpotPicker, recentSpotSlugs, usePendingRequests, type PendingRequest } 
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
-import { goalPoints } from "@/lib/goal";
+import { goalOptions } from "@/lib/goal";
 import { DateField } from "@/components/date-field";
 import { nearestSlotInZone, todayInZone } from "@/lib/format";
 import { useSpotCatalog } from "@/lib/spot-catalog";
@@ -46,7 +46,7 @@ export function LogForm({
   boards?: Board[];
   /** The owner's sessions — only used to pre-select the last-used board. */
   sessions?: Session[];
-  /** The owner's current goal for next session — snapshotted onto the session. */
+  /** The owner's current goal for next session — its points are the checkboxes. */
   goal?: string | null;
   /** Passed straight to SpotPicker — see its props. */
   onRequestSpot?: (query: string) => void;
@@ -85,7 +85,7 @@ export function LogForm({
   // undefined = not picked yet, so follow the last-used board.
   const [pickedBoardId, setBoardId] = useState<string | null | undefined>(undefined);
   const boardId = pickedBoardId === undefined ? preselectBoardId(boards, sessions) : pickedBoardId;
-  const [pointsMet, setPointsMet] = useState<boolean[]>([]);
+  const [achieved, setAchieved] = useState<string[]>([]);
   const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
   // Photos/videos picked for this log. Nothing is uploaded until Save: the
@@ -108,8 +108,8 @@ export function LogForm({
           when: `${date}T${time}`,
           notesHtml,
           boardId,
-          // unticked points count as not achieved; pad to one per point
-          ...(goal ? { goalText: goal, goalPointsMet: goalPoints(goal).map((_, i) => pointsMet[i] ?? false) } : {}),
+          // only the ticked goal points are recorded
+          ...(achieved.length ? { goalAchieved: achieved } : {}),
         }),
       });
       const body = await res.json();
@@ -127,7 +127,7 @@ export function LogForm({
       const failed = attached.failed;
       onCreated(session);
       setNotesHtml("");
-      setPointsMet([]);
+      setAchieved([]);
       setEditorKey((k) => k + 1);
       media.forEach((m) => URL.revokeObjectURL(m.url));
       setMedia([]);
@@ -231,7 +231,7 @@ export function LogForm({
 
       {goal && (
         <div className="mt-4">
-          <GoalCheck goal={goal} value={pointsMet} onChange={setPointsMet} />
+          <GoalCheck options={goalOptions(goal)} value={achieved} onChange={setAchieved} />
         </div>
       )}
 

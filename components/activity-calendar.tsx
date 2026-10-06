@@ -8,10 +8,11 @@ import { taipeiToday } from "@/lib/format";
 import type { Session } from "@/lib/types";
 
 /** Dot grid geometry — small and fixed, never stretched to fill the card.
- *  A proper week grid: 7 per row, Monday-first. Every row is now always a
- *  full Monday-Sunday week (2026-10-01: switched from month-rows, which
+ *  A proper week grid: 7 per row, Sunday-first (2026-10-06, on request;
+ *  was Monday-first since 2026-09-30). Every row is always a full
+ *  Sunday-Saturday week (2026-10-01: switched from month-rows, which
  *  needed leading blanks before day 1 to line day 1 up under its real
- *  weekday — a week-row never needs that, it always starts on Monday), so
+ *  weekday — a week-row never needs that, it always starts on Sunday), so
  *  every row is exactly the same height — see VISIBLE_WEEKS below for why
  *  that matters. Fixed pixel column widths (not fractional), so the grid
  *  never depends on flex-wrap rounding, and the weekday header row below
@@ -29,18 +30,18 @@ const DOTS_GRID_STYLE: React.CSSProperties = {
   gap: `${GAP_PX}px`,
 };
 
-/** Monday-first weekday header above the dot grid — one line, once, not
+/** Sunday-first weekday header above the dot grid — one line, once, not
  *  repeated per month (a proper week grid reads faster with the columns
  *  labelled, and this only costs one row for the whole card). Keys, not
- *  literal letters, so zh-TW gets 一二三四五六日 instead of MTWTFSS. */
+ *  literal letters, so zh-TW gets 日一二三四五六 instead of SMTWTFS. */
 const WEEKDAY_KEYS: TKey[] = [
+  "calendar.weekday.sun",
   "calendar.weekday.mon",
   "calendar.weekday.tue",
   "calendar.weekday.wed",
   "calendar.weekday.thu",
   "calendar.weekday.fri",
   "calendar.weekday.sat",
-  "calendar.weekday.sun",
 ];
 
 /** Exactly this many week-rows are visible at once, always — a fixed
@@ -49,7 +50,7 @@ const WEEKDAY_KEYS: TKey[] = [
  *  fixed height and width"; replaces the earlier month-row design, where
  *  2-3 months of variable-height rows — a 28-day Feb starting Monday is 4
  *  dot rows, a 31-day month starting Sunday is 6 — were measured from the
- *  rendered DOM after mount). Every row is now always a full Monday-Sunday
+ *  rendered DOM after mount). Every row is now always a full Sunday-Saturday
  *  week (7 dots, no leading blanks) at a fixed DOT_PX height (the month
  *  label's font-size is pinned to match DOT_PX exactly — see the label
  *  span below; at a larger size it was the tallest child in its row and
@@ -57,7 +58,7 @@ const WEEKDAY_KEYS: TKey[] = [
  *  area then clipped), so every row really is the same height and the
  *  list's total height is a plain constant. A brand-new user with less
  *  than VISIBLE_WEEKS of history still gets exactly this many rows, on
- *  request — see the `minStartMonday` floor below — so the card is never
+ *  request — see the `minStartWeekStart` floor below — so the card is never
  *  shorter than this. Older weeks beyond this window scroll into view one
  *  at a time via the ↑ arrow in the rail on the right; ↓ returns toward
  *  the current (bottom) week. */
@@ -94,14 +95,15 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-/** The Monday that starts the week containing local date y/m/d (`month` is
+/** The Sunday that starts the week containing local date y/m/d (`month` is
  *  0-based, matching `Date`'s own convention). Built from y/m/d components
  *  via `new Date(year, month, day)`, never parsed from an ISO string — no
  *  UTC shift, matching how every other date in this file is handled.
- *  `getDay()` is Sun=0..Sat=6; shifted so Monday is 0, Sunday is 6. */
-function mondayOf(year: number, month: number, day: number): Date {
+ *  `getDay()` is already Sun=0..Sat=6, so the Sunday on or before the date
+ *  is just `getDay()` days back. */
+function weekStartOf(year: number, month: number, day: number): Date {
   const d = new Date(year, month, day);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  d.setDate(d.getDate() - d.getDay());
   return d;
 }
 
@@ -126,8 +128,8 @@ function monthLabel(year: number, month: number, lang: Lang): string {
   return new Date(year, month, 1).toLocaleString(locale, { month: "short" });
 }
 
-/** Every Monday-start week from `from` through `to` inclusive, oldest
- *  first. Both must already be Mondays (see `mondayOf` above) — this just
+/** Every Sunday-start week from `from` through `to` inclusive, oldest
+ *  first. Both must already be Sundays (see `weekStartOf` above) — this just
  *  steps by 7 days and lets `Date` normalize month/year rollover. */
 function weeksBetween(from: Date, to: Date): Date[] {
   const weeks: Date[] = [];
@@ -199,14 +201,14 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   // Every date here comes from either taipeiToday() or a session's own
   // "YYYY-MM-DDTHH:mm" string, sliced and compared/split as plain text —
   // never parsed as an ISO string through Date, which would read it as UTC
-  // and could shift the day. mondayOf() below takes the already-split y/m/d
+  // and could shift the day. weekStartOf() below takes the already-split y/m/d
   // numbers, same rule.
   const todayStr = taipeiToday();
   const [ty, tm, td] = todayStr.split("-").map(Number);
-  const todayMonday = mondayOf(ty, tm - 1, td);
-  const earliestMonday = earliestDay
-    ? (([ey, em, ed]) => mondayOf(ey, em - 1, ed))(earliestDay.split("-").map(Number))
-    : todayMonday;
+  const todayWeekStart = weekStartOf(ty, tm - 1, td);
+  const earliestWeekStart = earliestDay
+    ? (([ey, em, ed]) => weekStartOf(ey, em - 1, ed))(earliestDay.split("-").map(Number))
+    : todayWeekStart;
 
   // Always at least VISIBLE_WEEKS rows, even for a brand-new user with no
   // (or very little) history — on request, so the card is always exactly
@@ -214,16 +216,17 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   // just real calendar weeks with no sessions in them (counts.get() already
   // defaults to 0), nothing special-cased. Older history beyond that floor
   // still pushes the start further back and makes the list scrollable.
-  const minStartMonday = addDays(todayMonday, -7 * (VISIBLE_WEEKS - 1));
-  const startMonday = earliestMonday.getTime() < minStartMonday.getTime() ? earliestMonday : minStartMonday;
+  const minStartWeekStart = addDays(todayWeekStart, -7 * (VISIBLE_WEEKS - 1));
+  const startWeekStart =
+    earliestWeekStart.getTime() < minStartWeekStart.getTime() ? earliestWeekStart : minStartWeekStart;
 
-  // Oldest to current. The last entry is always todayMonday (weeksBetween
-  // steps in exact 7-day hops from one Monday to another, so it lands on
+  // Oldest to current. The last entry is always todayWeekStart (weeksBetween
+  // steps in exact 7-day hops from one Sunday to another, so it lands on
   // the upper bound exactly), i.e. the current week is always present and
   // always the bottom row — and the view below defaults to scrolled-to-
   // bottom, so the visible window always ends on the current week, never
   // on 4 older ones.
-  const weeks = weeksBetween(startMonday, todayMonday);
+  const weeks = weeksBetween(startWeekStart, todayWeekStart);
   const canScroll = weeks.length > VISIBLE_WEEKS;
 
   // Enables/disables the up/down arrow buttons to match how far the list
@@ -286,7 +289,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   }, []);
 
   // Lands on the current (bottom) week on mount and whenever the displayed
-  // week range actually grows (an older session pulling earliestMonday back
+  // week range actually grows (an older session pulling earliestWeekStart back
   // further, or the calendar rolling into a new week) — not on every
   // incidental re-render, which would fight a user mid-scroll. The list's
   // own height is a fixed constant now (WEEK_LIST_HEIGHT_PX, set directly
@@ -325,7 +328,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
         {/* The weekday header and the scrollable week list share one flex-1
             column, with the ↑/↓ rail as a sibling of that whole column (not
             just of the list) — on request, so the rail spans the header's
-            height too: the ↑ button lines up with the "M T W T F S S" row,
+            height too: the ↑ button lines up with the "S M T W T F S" row,
             the ↓ button with the last (current) week row, rather than only
             spanning the shorter scrollable list below the header. */}
         <div className="flex items-stretch gap-2">
@@ -361,37 +364,39 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
               className="space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               style={{ maxHeight: WEEK_LIST_HEIGHT_PX }}
             >
-              {weeks.map((monday, i) => {
-                // Labelled by the row's *last* day (Sunday), not its first
-                // (Monday) — on request, 2026-10-01: a week straddling a
-                // month boundary (e.g. Mon 28 Sep - Sun 4 Oct) was always
-                // labelled "SEP" (the Monday's month), so a new month never
-                // got a label of its own until its first full Monday-start
-                // week, which could be most of a week away. Sunday's month
-                // is always the later/incoming one for any week containing
-                // a 1st-of-month (whichever weekday the 1st falls on, the
-                // Sunday of that week is on or after it), so the boundary
+              {weeks.map((weekStart, i) => {
+                // Labelled by the row's *last* day (Saturday), not its first
+                // (Sunday) — on request, 2026-10-01: a week straddling a
+                // month boundary (e.g. Sun 27 Sep - Sat 3 Oct) would
+                // otherwise be labelled "SEP" (the first day's month), so a
+                // new month never got a label of its own until its first
+                // full Sunday-start week, which could be most of a week
+                // away. The last day's month is always the later/incoming
+                // one for any week containing a 1st-of-month (whichever
+                // weekday the 1st falls on, the Saturday of that week is on
+                // or after it; a 1st that *is* a Sunday starts its own row,
+                // whose Saturday is in the same month), so the boundary
                 // row now reads as the new month, same as a wall calendar
                 // page-turn. Label only when it actually changes from the
                 // row above (or it's the very first row) — a week-per-row
                 // grid would otherwise repeat the same month name 4+ times
                 // in a row, unlike the old one-row-per-month layout where
                 // every row needed its own label.
-                const sunday = addDays(monday, 6);
-                const prevSunday = i > 0 ? addDays(weeks[i - 1], 6) : null;
+                const lastDay = addDays(weekStart, 6);
+                const prevLastDay = i > 0 ? addDays(weeks[i - 1], 6) : null;
                 const showLabel =
                   i === 0 ||
-                  prevSunday === null ||
-                  prevSunday.getMonth() !== sunday.getMonth() ||
-                  prevSunday.getFullYear() !== sunday.getFullYear();
+                  prevLastDay === null ||
+                  prevLastDay.getMonth() !== lastDay.getMonth() ||
+                  prevLastDay.getFullYear() !== lastDay.getFullYear();
                 // Black for the month we're in now, wherever its label sits
                 // (2026-10-06, on request). This used to test "is this the
                 // current week's row", but a month's label is only printed
                 // on its first row, so from the second week of a month on
                 // the current month's own label was grey.
-                const isCurrentMonth = sunday.getFullYear() === ty && sunday.getMonth() === tm - 1;
+                const isCurrentMonth = lastDay.getFullYear() === ty && lastDay.getMonth() === tm - 1;
                 return (
-                  <div key={dateKey(monday)} data-week-row className="flex items-center gap-2">
+                  <div key={dateKey(weekStart)} data-week-row className="flex items-center gap-2">
                     <span
                       className={cn(
                         // 10px, matching DOT_PX exactly (not the 11px tried
@@ -412,11 +417,11 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
                           : "text-[color-mix(in_srgb,white,var(--faint)_25%)]"
                       )}
                     >
-                      {showLabel ? monthLabel(sunday.getFullYear(), sunday.getMonth(), lang) : ""}
+                      {showLabel ? monthLabel(lastDay.getFullYear(), lastDay.getMonth(), lang) : ""}
                     </span>
                     <div className="grid" style={DOTS_GRID_STYLE}>
                       {Array.from({ length: 7 }, (_, d) => {
-                        const day = addDays(monday, d);
+                        const day = addDays(weekStart, d);
                         const key = dateKey(day);
                         const count = counts.get(key) ?? 0;
                         const isToday = key === todayStr;

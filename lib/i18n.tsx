@@ -156,12 +156,12 @@ const DICT = {
   },
   "patterns.editDescription": { en: "Edit description for {spot}", "zh-TW": "編輯「{spot}」的描述" },
   "toast.couldntSaveDescription": { en: "Couldn't save description", "zh-TW": "無法儲存描述" },
-  "calendar.title": { en: "Days in the water", "zh-TW": "衝浪的日子" },
+  "calendar.title": { en: "Days in the water", "zh-TW": "在海裡的日子" },
   "calendar.session": { en: "{n} session", "zh-TW": "{n} 次" },
   "calendar.sessions": { en: "{n} sessions", "zh-TW": "{n} 次" },
   "calendar.showOlderWeeks": { en: "Show older weeks", "zh-TW": "顯示較舊的週次" },
   "calendar.showNewerWeeks": { en: "Show more recent weeks", "zh-TW": "顯示較新的週次" },
-  // Monday-first weekday header above the dot grid, one letter/character each.
+  // Sunday-first (as displayed) weekday header above the dot grid, one letter/character each.
   "calendar.weekday.mon": { en: "M", "zh-TW": "一" },
   "calendar.weekday.tue": { en: "T", "zh-TW": "二" },
   "calendar.weekday.wed": { en: "W", "zh-TW": "三" },
@@ -274,10 +274,12 @@ const DICT = {
   "goal.dragPoint": { en: "Drag to reorder “{point}”", "zh-TW": "拖曳調整「{point}」的順序" },
   "goal.charsLeft": { en: "{n} characters left", "zh-TW": "剩下 {n} 字" },
   "goal.whichDidYouAchieve": { en: "Which did you achieve?", "zh-TW": "這次達成了哪些？" },
-  "goal.pointCount": { en: "{met}/{n}", "zh-TW": "{met}/{n}" },
+  "goal.achievedSession": { en: "{n} session", "zh-TW": "{n} 次" },
+  "goal.achievedSessions": { en: "{n} sessions", "zh-TW": "{n} 次" },
+  "goal.achieved": { en: "Achieved", "zh-TW": "已達成" },
+  "goal.showMore": { en: "Show {n} more achieved", "zh-TW": "再顯示 {n} 項已達成" },
+  "goal.showLess": { en: "Show less", "zh-TW": "收合" },
   "goal.scrollHint": { en: "More goal points — scroll to see them", "zh-TW": "還有更多目標項目，可捲動查看" },
-  "goal.chipCount": { en: "{met}/{n} achieved", "zh-TW": "達成 {met}/{n}" },
-  "goal.notAssessed": { en: "Not checked", "zh-TW": "未確認" },
   "toast.couldntSaveGoal": { en: "Couldn't save the goal", "zh-TW": "無法儲存目標" },
   "dialog.logSessionTitle": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "empty.title": { en: "Nothing logged yet", "zh-TW": "還沒有任何紀錄" },
@@ -327,14 +329,7 @@ const DICT = {
   },
   "spot.useMyLocation": { en: "Use my current location", "zh-TW": "使用我目前的位置" },
   "spot.locating": { en: "Locating…", "zh-TW": "定位中…" },
-  "spot.err.geoDenied": {
-    en: "Couldn't get your location. Check the browser's location permission, or paste coordinates instead.",
-    "zh-TW": "無法取得你的位置。請檢查瀏覽器的定位權限，或改貼座標。",
-  },
-  "spot.err.geoUnavailable": {
-    en: "This browser can't share its location. Paste coordinates instead.",
-    "zh-TW": "這個瀏覽器無法提供定位。請改貼座標。",
-  },
+  "spot.err.geoPasteInstead": { en: "Or paste coordinates instead.", "zh-TW": "也可以改貼座標。" },
   "request.limit": { en: "You already have 20 pending requests.", "zh-TW": "你已經有 20 個待處理的申請。" },
   "spot.facing": { en: "Faces (optional)", "zh-TW": "朝向（選填）" },
   "spot.facingUnknown": { en: "Not sure", "zh-TW": "不確定" },
@@ -468,11 +463,41 @@ const DICT = {
     en: "Sorted by distance. Your location stays on this device.",
     "zh-TW": "已依距離排序，你的位置只留在這台裝置上。",
   },
-  "picker.locationDenied": {
-    en: "Location is off for this site, so spots can't be sorted by distance.",
-    "zh-TW": "這個網站沒有定位權限，無法依距離排序。",
+  // Location failures, shared by "Near me" and both "Use my current
+  // location" buttons (lib/geolocation.ts). A refusal often comes with no
+  // prompt at all, so none of these say the user declined anything.
+  "geo.denied.ios": {
+    en: "Location is blocked for this browser or this site. In iOS Settings, open your browser's app → Location → While Using the App, then tap again.",
+    "zh-TW": "這個瀏覽器或這個網站的定位被擋住了。請到 iOS「設定」找到你的瀏覽器 App →「位置」→「使用 App 期間」，再點一次。",
   },
-  "picker.locationUnavailable": { en: "Couldn't get your location.", "zh-TW": "無法取得你的位置。" },
+  "geo.denied.android": {
+    en: "Your browser isn't allowed to use location. In Android Settings, open your browser's app → Permissions → Location, then tap again.",
+    "zh-TW": "你的瀏覽器沒有定位權限。請到 Android「設定」找到你的瀏覽器 App →「權限」→「位置」，再點一次。",
+  },
+  "geo.denied.site": {
+    en: "Location is blocked for this site in your browser. Allow it in the site settings (the icon beside the address), then tap again.",
+    "zh-TW": "瀏覽器封鎖了這個網站的定位。請在網站設定（網址列旁的圖示）允許定位，再點一次。",
+  },
+  "geo.denied.device": {
+    en: "Your browser didn't allow location. Turn on location for the browser in your device's settings, then tap again.",
+    "zh-TW": "瀏覽器沒有允許定位。請在裝置的設定裡開啟這個瀏覽器的定位，再點一次。",
+  },
+  "geo.unavailable": {
+    en: "Couldn't get your location right now. Tap to try again.",
+    "zh-TW": "目前無法取得你的位置，請再點一次試試。",
+  },
+  "geo.timeout": {
+    en: "Finding your location took too long. Tap to try again.",
+    "zh-TW": "定位花太久了，請再點一次試試。",
+  },
+  "geo.unsupported": {
+    en: "This browser can't share its location.",
+    "zh-TW": "這個瀏覽器無法提供定位。",
+  },
+  "geo.insecure": {
+    en: "Location only works on a secure (https) page.",
+    "zh-TW": "定位只能在安全連線（https）的頁面使用。",
+  },
   "picker.noMatch": { en: "No spots match “{query}”.", "zh-TW": "找不到符合「{query}」的浪點。" },
   "picker.add": { en: "Add “{query}” as a new spot", "zh-TW": "將「{query}」新增為浪點" },
   "picker.request": { en: "Can't find your spot? Request it", "zh-TW": "找不到你的浪點？申請新增" },
@@ -490,14 +515,7 @@ const DICT = {
   },
   "request.useMyLocation": { en: "Use my current location", "zh-TW": "使用我目前的位置" },
   "request.locating": { en: "Finding you…", "zh-TW": "定位中…" },
-  "request.locationDenied": {
-    en: "Location is off for this site — paste a map link instead.",
-    "zh-TW": "這個網站沒有定位權限，請改貼地圖連結。",
-  },
-  "request.locationUnavailable": {
-    en: "Couldn't get your location — paste a map link instead.",
-    "zh-TW": "無法取得你的位置，請改貼地圖連結。",
-  },
+  "request.locationPasteInstead": { en: "Or paste a map link instead.", "zh-TW": "也可以改貼地圖連結。" },
   "request.note": { en: "Note (optional)", "zh-TW": "備註（選填）" },
   "request.notePlaceholder": {
     en: "Anything that helps find it: nearest town, which side of the bay…",

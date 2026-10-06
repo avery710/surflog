@@ -16,11 +16,14 @@ const PAGE = 5;
 export function SessionList({
   sessions,
   boards,
+  goal,
   onUpdated,
   onDeleted,
 }: {
   sessions: Session[];
   boards: Board[];
+  /** The owner's current goal — passed down to each card's edit panel. */
+  goal: string | null;
   onUpdated: (s: Session) => void;
   onDeleted: (id: string) => void;
 }) {
@@ -62,7 +65,7 @@ export function SessionList({
   return (
     <>
       {visible.map((s) => (
-        <EntryCard key={s.id} session={s} boards={boards} onUpdated={onUpdated} onDeleted={onDeleted} />
+        <EntryCard key={s.id} session={s} boards={boards} goal={goal} onUpdated={onUpdated} onDeleted={onDeleted} />
       ))}
       {hasMore && <div ref={sentinelRef} aria-hidden className="h-px" />}
     </>

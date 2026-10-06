@@ -6,12 +6,11 @@
  * lines in that single string, not a new table (see CLAUDE.md "Goal for
  * next session"). The card sits above the journal and is edited inline
  * (same click-to-edit / blur-to-save shape as the spot descriptions in
- * patterns-table.tsx, extended to a row per point). Each logged session
- * snapshots the whole joined text plus one achieved/not tick per point
- * (`goal_points_met`; older sessions only have the whole-goal `goal_met`,
- * read through `sessionPointsMet()`). The card counts each point by its
- * own wording across all sessions (`pointStats()`), so editing one point
- * doesn't reset the others.
+ * patterns-table.tsx, extended to a row per point). A session records only
+ * the points ticked as achieved on it, by their wording (lib/goal.ts), so
+ * the card shows, per point, in how many sessions it was ticked
+ * (`achievedCounts()`); editing, adding or removing one point doesn't
+ * touch the others.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -35,7 +34,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Check, GripVertical, Plus, X } from "lucide-react";
 import { cn } from "cn";
 import { CALENDAR_CARD_HEIGHT_PX } from "@/components/activity-calendar";
-import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats, type GoalRename } from "@/lib/goal";
+import { achievedCounts, goalPoints, joinGoalPoints, MAX_GOAL, type GoalRename } from "@/lib/goal";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
@@ -99,9 +98,9 @@ export function GoalCard({
   const scrollRef = useRef<HTMLDivElement>(null);
   const fadeRef = useRef<HTMLDivElement>(null);
 
-  // How it's gone so far, per point, matched by the point's own text in
-  // every session (not the whole goal text) — see pointStats().
-  const stats = pointStats(goalPoints(goal), sessions);
+  // In how many sessions each point has been ticked as achieved, matched
+  // by the point's own wording — see achievedCounts().
+  const counts = achievedCounts(goalPoints(goal), sessions);
 
   const updateFade = useCallback(() => {
     const el = scrollRef.current;
@@ -178,8 +177,8 @@ export function GoalCard({
 
   // Reordering is staged like every other edit here: it only reaches the
   // server when focus leaves the block (commit()), and Escape discards it.
-  // Past sessions are unaffected — their counts match points by wording,
-  // not position (pointStats()).
+  // Past sessions are unaffected — their ticks are stored by wording, not
+  // position (achievedCounts()).
   function handleDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
     setRows((prev) => {
@@ -328,9 +327,10 @@ export function GoalCard({
                       {shownPoints.map((p, i) => (
                         <li key={i}>
                           {p}
-                          {stats[i]?.total ? (
-                            <span className="ml-2 whitespace-nowrap text-[12px] font-semibold tabular-nums text-primary">
-                              {t("goal.pointCount", { met: stats[i].met, n: stats[i].total })}
+                          {counts[i] ? (
+                            <span className="ml-2 inline-flex items-center gap-0.5 align-baseline whitespace-nowrap text-[12px] font-semibold tabular-nums text-primary">
+                              <Check className="size-3" strokeWidth={3.5} aria-hidden />
+                              {t(counts[i] === 1 ? "goal.achievedSession" : "goal.achievedSessions", { n: counts[i] })}
                             </span>
                           ) : null}
                         </li>
@@ -470,34 +470,36 @@ function SortablePointRow({
 }
 
 /** The goal box in the log form / edit panel: one checkbox per point —
- *  ticked = achieved this session, unticked = not. */
+ *  ticked = achieved this session. `options` and `value` are the points'
+ *  own wording (see lib/goal.ts: a session records only what was ticked),
+ *  so the same box works on any session, whenever it was logged. */
 export function GoalCheck({
-  goal,
+  options,
   value,
   onChange,
 }: {
-  goal: string;
-  value: boolean[];
-  onChange: (v: boolean[]) => void;
+  options: string[];
+  value: string[];
+  onChange: (v: string[]) => void;
 }) {
   const { t } = useLang();
-  const points = goalPoints(goal);
   return (
     <fieldset className="flex flex-col gap-2 rounded-[var(--r-tile)] bg-secondary px-4 py-3">
       <legend className="sr-only">{t("goal.whichDidYouAchieve")}</legend>
       <span className="text-xs font-semibold text-muted-foreground">{t("goal.whichDidYouAchieve")}</span>
       <div className="flex flex-col gap-1">
-        {points.map((p, i) => {
-          const checked = value[i] ?? false;
+        {options.map((p) => {
+          const checked = value.includes(p);
           return (
             <label
-              key={i}
+              key={p}
               className="flex cursor-pointer items-start gap-2.5 rounded-[10px] px-1 py-1 hover:bg-background/60"
             >
               <input
                 type="checkbox"
                 checked={checked}
-                onChange={(e) => onChange(points.map((_, j) => (j === i ? e.target.checked : (value[j] ?? false))))}
+                // Rebuilt from `options` so the saved list keeps their order.
+                onChange={(e) => onChange(options.filter((o) => (o === p ? e.target.checked : value.includes(o))))}
                 className="peer sr-only"
               />
               <span
@@ -518,42 +520,71 @@ export function GoalCheck({
   );
 }
 
-/** Session card: the goal this session was logged against, and how many of
- *  its points were achieved. Points join onto one line here (the chip has
- *  no room for a list). */
-export function GoalChip({ goal, pointsMet }: { goal: string; pointsMet: boolean[] | null }) {
+/** Session card: the goal points ticked as achieved, as a section under the
+ *  board chip (2026-10-06, on request; was a chip). One tick for the whole
+ *  section (aligned to the first line), then the points as inline text with a
+ *  dotted divider TRAILING each point but the last. The points are plain
+ *  inline flow, so a wrap happens between items and every wrapped line starts
+ *  flush with the first line's text; the divider stays at the end of the line
+ *  above. It is glued to its point with a word joiner (U+2060) before an
+ *  inline-block, so even a long point that breaks inside itself keeps the dots
+ *  after its last word, never alone on a line. Between items is one ordinary
+ *  space (widened with word-spacing): a space at a line end collapses, so
+ *  the gap can't force a premature wrap, and at a line start it vanishes, so
+ *  nothing indents. Width: `w-fit` shrinks the tile to its content when
+ *  everything fits on one line (a pill like BoardChip); once the text is
+ *  wider than the available space (card minus the mx-6 insets, which
+ *  `max-w` states explicitly) the tile fills that width and the text wraps.
+ *  Sized to line up with BoardChip: 20px icon, 4px inset, 8px gap, 13.5px
+ *  bold text. A session records only the points that were ticked
+ *  (lib/goal.ts), so there is no "missed" state and no "2 of 3" to show. */
+export function GoalSection({ achieved }: { achieved: string[] }) {
   const { t } = useLang();
-  const points = goalPoints(goal);
-  const compact = (pointsMet ? points.filter((_, i) => pointsMet[i]) : points).join(" · ");
-  const met = pointsMet?.filter(Boolean).length ?? 0;
-  const n = pointsMet?.length ?? 0;
+  if (!achieved.length) return null;
   return (
-    <div className="flex min-w-0 px-6 pt-2.5 pb-0.5">
-      {/* No icon here (removed on request, 2026-10-01) — it was decorative
-          (aria-hidden), so dropping it doesn't change what a screen reader
-          announces; the chip's meaning is carried entirely by its text. */}
-      <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary py-1 pr-1 pl-3">
-        {compact && (
-          <span className="min-w-0 truncate text-[13.5px] font-bold tracking-[-0.01em]" title={goal}>
-            {compact}
-          </span>
-        )}
-        {/* Main blue + white (bg-primary/text-primary-foreground), same as
-            the board rack's 常用/Go-to badge — the two were briefly on
-            --badge (dark grey) the same session, then both moved to blue
-            2026-10-02 so every "badge" in the app reads as the one accent
-            colour, not a separate neutral. "Not assessed" stays plain
-            muted text, no fill — it's not really a badge, just a label
-            for the absence of one. */}
-        <span
-          className={cn(
-            "shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums",
-            !pointsMet ? "text-muted-foreground" : "bg-primary text-primary-foreground"
-          )}
-        >
-          {!pointsMet ? t("goal.notAssessed") : t("goal.chipCount", { met, n })}
-        </span>
+    <section
+      data-goal-section
+      className="mx-6 mt-1.5 mb-0.5 flex w-fit max-w-[calc(100%-3rem)] items-start gap-2 rounded-[var(--r-tile)] bg-secondary py-1 pr-3 pl-1"
+    >
+      {/* Main blue + white, same tick as the board rack's 常用/Go-to badge.
+          Same 20px / 4px-inset geometry as BoardChip's photo, pinned to the
+          first text line (items-start). */}
+      <span
+        aria-hidden
+        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+      >
+        <Check className="size-3" strokeWidth={3.5} />
       </span>
-    </div>
+      {/* 24px lines with -my-0.5: a single line still occupies 20px (matches
+          the tick), wrapped lines get 4px between them. */}
+      <ul
+        role="list"
+        aria-label={t("goal.achieved")}
+        className="-my-0.5 min-w-0 flex-1 text-[13.5px] font-bold leading-6 tracking-[-0.01em] break-words"
+      >
+        {achieved.map((p, i) => (
+          <li key={p} className="inline">
+            {p}
+            {i < achieved.length - 1 && (
+              <>
+                {/* Three 2px dots down 10px (4px cells), in the main blue.
+                    align-top + mt-[7px] centres it on the 24px line box. */}
+                {"\u2060"}
+                <span
+                  aria-hidden
+                  className="ml-2.5 inline-block h-2.5 w-0.5 mt-[7px] align-top"
+                  style={{
+                    backgroundImage: "radial-gradient(circle at 1px 1px, var(--primary) 1px, transparent 1.2px)",
+                    backgroundSize: "2px 4px",
+                    backgroundRepeat: "repeat-y",
+                  }}
+                />
+                <span className="[word-spacing:0.375rem]"> </span>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -246,3 +246,12 @@ Direction Avery has given, newest last. When you apply a new one, add it here (d
 ## Report
 
 A few bullets: what changed per breakpoint, files touched, what wasn't verified. No full diffs.
+
+## Suggestions
+
+When Avery asks for UI suggestions, options or a critique (rather than a build), **every suggestion comes with its own ASCII sketch** (Avery's standing instruction, 2026-10-06) — including small refinements like "lighter weight" or "outline instead of fill", not only whole-layout alternatives. A suggestion described in words alone is incomplete.
+
+- Draw it at phone width (~375 px, about 40 characters wide) in a fenced code block, with real content from the component (the actual Chinese/English strings, not "Lorem"). Where a change is a before/after, show both, labelled `now:` and `suggested:`; where it has states (folded/open, empty/full), show each.
+- Use plain characters that render in a terminal: `[ ]` for pills, box-drawing or `+--+` for cards/tiles, `✓ ⌄ ⌃ …` for icons, and a short note beside the sketch for what ASCII can't show (colour, weight, radius, exact px).
+- Keep one sketch per suggestion, directly under its heading, before the trade-offs. If a suggestion truly has nothing to draw (e.g. an aria-label change), say "no visual change" instead of skipping silently.
+- Still give sizes/classes in Tailwind terms, the trade-offs, effort, and a single recommendation; mark estimates as estimates when nothing was measured in a browser.

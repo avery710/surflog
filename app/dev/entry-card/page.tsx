@@ -252,7 +252,7 @@ const CASES: CaseDef[] = [
   {
     id: "with-board",
     title: "With board",
-    caption: "session.boardId matches a board in the `boards` prop → the board chip renders, with a photo id.",
+    caption: "session.boardId matches a board in the `boards` prop → the board chip renders, with a photo id. From `sm` up it shares one row with the achieved-goals pill (chip first); below `sm` they stack.",
     session: fakeSession({ boardId: board1.id }),
     boards: [board1, fakeBoard({ id: "dev-board-2", brand: "Firewire Dominator", lengthIn: 70, volumeL: 32, rocker: "low" })],
   },
@@ -266,19 +266,35 @@ const CASES: CaseDef[] = [
   {
     id: "goal-met",
     title: "Goal chip — met",
-    caption: "Two-point goal, joined with “\\n” — shown compact with “ · ”, met badge.",
+    caption: "Both points ticked — tick mark, then the points joined with “ · ”. No “2/2”.",
     session: fakeSession({ goalText: "Pop up faster\nLook where I want to go", goalMet: true }),
   },
   {
     id: "goal-not-met",
-    title: "Goal chip — not yet",
-    caption: "Same goal, not met this time.",
+    title: "Goal chip — one of two",
+    caption: "Old-style row with one of two lines ticked — only the ticked point is listed.",
+    session: fakeSession({ goalText: "Pop up faster\nLook where I want to go", goalPointsMet: [true, false] }),
+  },
+  {
+    id: "goal-many",
+    title: "Goal pills — six achieved, long 繁中 points",
+    caption: "One pill: first goal + “+5 ⌄” (text truncates, “+5” stays); opened, the same pill grows to a row per achieved point with full wrapping text under the one tick (first row only), up arrow staying at the first row’s right end.",
+    session: fakeSession({
+      goalText:
+        "追浪時，注意看浪頭是否有人下\n起乘時，視線盯著浪壁\n背向要坐下去，左手伸向浪壁\nPop up faster\n轉向前先看要去的方向，肩膀帶動身體，不要只用腳去扭板子，重心保持在板子中間偏後\nStay low",
+      goalMet: true,
+    }),
+  },
+  {
+    id: "goal-none-met",
+    title: "Goal chip — none ticked",
+    caption: "Old-style row, no line ticked — no chip at all.",
     session: fakeSession({ goalText: "Pop up faster\nLook where I want to go", goalMet: false }),
   },
   {
     id: "goal-unchecked",
     title: "Goal chip — not assessed",
-    caption: "goalMet null — a goal was set when logged, but never checked off.",
+    caption: "Old-style row with a goal text but no ticks recorded. No chip either.",
     session: fakeSession({ goalText: "Pop up faster\nLook where I want to go", goalMet: null }),
   },
   {

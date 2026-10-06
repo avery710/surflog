@@ -6,7 +6,7 @@ import { checkRequestSpot } from "@/lib/spot-access";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
 import { resolveOwnedBoardId } from "@/lib/board-access";
-import { parseGoalFields } from "@/lib/goal";
+import { achievedGoalFields, parseGoalAchieved } from "@/lib/goal";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { CondCwaTide, CondOpenMeteo, Session } from "@/lib/types";
 
@@ -54,7 +54,9 @@ export async function POST(req: NextRequest) {
   const board = await resolveOwnedBoardId(body.boardId, session.user.id);
   if (!board.ok) return NextResponse.json({ error: "board not found" }, { status: 404 });
 
-  const goal = parseGoalFields(body);
+  // The goal points ticked as achieved — optional; see lib/goal.ts.
+  const achieved = body.goalAchieved === undefined ? [] : parseGoalAchieved(body.goalAchieved);
+  if (!achieved) return NextResponse.json({ error: "invalid goalAchieved" }, { status: 400 });
 
   let condOpenMeteo: CondOpenMeteo | null = null;
   const spotInfo = await resolveSpot(spot);
@@ -90,8 +92,8 @@ export async function POST(req: NextRequest) {
     condCwaTide,
     // omitted (not null) when unset, so the insert has no board_id column at all
     ...(board.boardId ? { boardId: board.boardId } : {}),
-    // same: omitted when no goal was set, so no goal_* columns in the insert
-    ...(goal.goalText ? goal : {}),
+    // same: omitted when nothing was ticked, so no goal_* columns in the insert
+    ...(achieved.length ? achievedGoalFields(achieved) : {}),
     createdAt: new Date().toISOString(),
   };
 

@@ -5,9 +5,10 @@ import { cn } from "cn";
 import { Dialog as DialogPrimitive, Popover as PopoverPrimitive } from "radix-ui";
 import { Check, ChevronDown, LocateFixed, Plus, Search, X } from "lucide-react";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
-import { useLang, type Lang } from "@/lib/i18n";
+import { useLang, type Lang, type TKey } from "@/lib/i18n";
 import { requestSlug, useSpotCatalog } from "@/lib/spot-catalog";
 import { distanceM, type LatLng } from "@/lib/spot-geo";
+import { geoFailureKey, locateOnce } from "@/lib/geolocation";
 import type { Region, Spot } from "@/lib/spots";
 import { useBrowserTimeZone } from "@/lib/use-browser-timezone";
 
@@ -59,7 +60,8 @@ export function usePendingRequests(given?: PendingRequest[]): PendingRequest[] {
 }
 
 type Geo =
-  | { status: "idle" | "locating" | "denied" | "unavailable" }
+  | { status: "idle" | "locating" }
+  | { status: "failed"; message: TKey }
   | ({ status: "located" } & LatLng);
 
 type Row =
@@ -170,16 +172,15 @@ export function SpotPicker({
 
   // Only ever called from the "Near me" button — never on open (no
   // permission prompt unless the user asks for it).
-  function locate() {
-    if (!("geolocation" in navigator)) {
-      setGeo({ status: "unavailable" });
-      return;
-    }
+  // Every tap asks the browser again, so it also works as "retry" once the
+  // user has fixed their settings.
+  async function locate() {
     setGeo({ status: "locating" });
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setGeo({ status: "located", lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => setGeo({ status: err.code === err.PERMISSION_DENIED ? "denied" : "unavailable" }),
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 }
+    const result = await locateOnce({ enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 });
+    setGeo(
+      result.ok
+        ? { status: "located", lat: result.lat, lng: result.lng }
+        : { status: "failed", message: geoFailureKey(result) }
     );
   }
 
@@ -526,11 +527,9 @@ function PickerBody({
       ? t("picker.locating")
       : geo.status === "located"
         ? t("picker.located")
-        : geo.status === "denied"
-          ? t("picker.locationDenied")
-          : geo.status === "unavailable"
-            ? t("picker.locationUnavailable")
-            : null;
+        : geo.status === "failed"
+          ? t(geo.message)
+          : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>

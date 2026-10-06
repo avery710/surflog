@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useLang } from "@/lib/i18n";
 import { useSpotCatalog, type OwnRequest } from "@/lib/spot-catalog";
 import { requestSlug } from "@/lib/spots";
+import { geoFailureKey, locateOnce } from "@/lib/geolocation";
 
 /** Ask the admin to add a spot (POST /api/spot-requests). Any signed-in user.
  *  The request can be logged against straight away: `onRequested` receives
@@ -48,7 +49,7 @@ function RequestForm({
   onDone: () => void;
   onRequested?: (spotValue: string) => void;
 }) {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const catalog = useSpotCatalog();
   const [name, setName] = useState(initialName ?? "");
   const [location, setLocation] = useState("");
@@ -58,23 +59,13 @@ function RequestForm({
   const [error, setError] = useState<string | null>(null);
 
   // Only on tap; the position just fills the field until the user sends.
-  function fillFromGeolocation() {
-    if (!navigator.geolocation) {
-      setError(t("request.locationUnavailable"));
-      return;
-    }
+  async function fillFromGeolocation() {
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
-        setLocating(false);
-      },
-      () => {
-        setError(t("request.locationDenied"));
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+    setError(null);
+    const result = await locateOnce({ enableHighAccuracy: true, timeout: 10000 });
+    if (result.ok) setLocation(`${result.lat.toFixed(5)}, ${result.lng.toFixed(5)}`);
+    else setError(t(geoFailureKey(result)) + (lang === "en" ? " " : "") + t("request.locationPasteInstead"));
+    setLocating(false);
   }
 
   async function submit() {

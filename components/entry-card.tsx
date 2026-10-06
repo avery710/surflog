@@ -26,19 +26,22 @@ import { TideEventsSub, tideTrend } from "@/components/tide-events";
 import { DirectionArrow } from "@/components/direction-arrow";
 import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
-import { GoalChip } from "@/components/goal";
-import { sessionPointsMet } from "@/lib/goal";
+import { GoalSection } from "@/components/goal";
+import { sessionAchieved } from "@/lib/goal";
 import { boardLabel } from "@/lib/boards";
 import type { Board, Session, TideEvent } from "@/lib/types";
 
 export function EntryCard({
   session,
   boards = [],
+  goal = null,
   onUpdated,
   onDeleted,
   readOnly = false,
 }: {
   session: Session;
+  /** The owner's current goal, for the edit panel's checkboxes. */
+  goal?: string | null;
   /** The owner's rack — to show the session's board and to pick one on edit. */
   boards?: Board[];
   onUpdated: (s: Session) => void;
@@ -78,6 +81,7 @@ export function EntryCard({
   const cwa = session.condCwaTide;
   const hasTemp = om?.seaTempC != null || om?.airTempC != null;
   const board = session.boardId ? boards.find((b) => b.id === session.boardId) : undefined;
+  const achieved = sessionAchieved(session);
   const manual = session.cond;
   const hasShore = !!fit && !fit.missing.includes("windDirDeg") && !fit.missing.includes("spot.facing");
   // CWA's tide forecast wins whenever it covers the session (accurate to
@@ -112,6 +116,7 @@ export function EntryCard({
         <EditPanel
           session={session}
           boards={boards}
+          goal={goal}
           onSaved={(s) => {
             onUpdated(s);
             setEditing(false);
@@ -128,13 +133,21 @@ export function EntryCard({
           right-hand column, so on a phone the date drops under the spot
           name while ⋯ stays pinned top-right (with one flex-wrap row, ⋯
           was what wrapped, onto its own line). Vertical padding tightened
-          2026-10-01 (smaller cards, notes as the focus — see below). */}
+          2026-10-01 (smaller cards, notes as the focus — see below).
+          The group is items-baseline (the date sits on the title's text
+          baseline when they share a row) with min-h-10 = the ⋯ button's
+          height and content-center: align-content centres the flex
+          line(s) in that min height, so a one-line header sits on the same
+          axis as ⋯ (items-baseline alone would pack the line to the top),
+          and a wrapped header (date under the title, or a two-line title)
+          just grows past 40px with nothing to centre. ⋯ stays items-start
+          (pinned top-right) when the group grows taller. */}
       <div className="flex items-start gap-2 px-6 pt-4 pb-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 gap-y-1.5 pt-1">
+        <div className="flex min-h-10 min-w-0 flex-1 flex-wrap content-center items-baseline gap-x-3 gap-y-1.5">
           <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
             {catalog.label(session.spot, lang)}
           </span>
-          <span className="text-[13px] font-medium tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-[13px] font-medium tabular-nums text-muted-foreground">
             {fmtWhen(session.when, lang)}
           </span>
         </div>
@@ -247,19 +260,19 @@ export function EntryCard({
                 className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-[1.3] sm:basis-0 sm:shrink`}
                 value={
                   <span className="flex flex-col gap-0.5">
-                    <span className="inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                    <span className="flex min-h-5 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 leading-5">
                       <Figure value={fmt1(om.windSpeedMs)} unit="m/s" />
                       {om.windSpeedMs != null && (
-                        <span className="font-sans text-[11px] font-medium tracking-normal text-muted-foreground">
+                        <span className="font-sans text-[11px] font-medium leading-none tracking-normal text-muted-foreground">
                           <WindStrength speedMs={om.windSpeedMs} gustMs={om.windGustMs} />
                         </span>
                       )}
                     </span>
                     {(hasShore || om.windDirDeg != null) && (
-                      <span className="inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                      <span className="flex min-h-4 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 leading-4">
                         <DirSub deg={om.windDirDeg} compass={compassLabel(toCompass(om.windDirDeg), lang)} />
                         {hasShore && (
-                          <span className="font-sans text-[11px] font-medium tracking-normal text-muted-foreground">
+                          <span className="font-sans text-[11px] font-medium leading-none tracking-normal text-muted-foreground">
                             <WindShoreBadge mode={fit.windMode} />
                           </span>
                         )}
@@ -352,12 +365,18 @@ export function EntryCard({
         </div>
       ) : null}
 
-      {/* Board/goal chips and notes sit below the condition tiles — reverted
-          2026-10-01 after a same-day attempt to lead with notes instead; the
-          cards (conditions) stay the primary read order, the log beneath
-          them. */}
-      {board && <BoardChip board={board} />}
-      {session.goalText && <GoalChip goal={session.goalText} pointsMet={sessionPointsMet(session)} />}
+      {/* Board chip, then the achieved goals as a section of their own
+          (2026-10-06, on request: board above goals; goals a full-width
+          section, not a chip), then notes and media below the condition
+          tiles. leading-9 makes the chip's line 36px, 8px taller than the
+          28px pill, which sits 4px down (BoardChip's mt-1). */}
+      {board && (
+        <div className="px-6 pt-1.5 text-[13.5px] leading-9 break-words">
+          <BoardChip board={board} />
+        </div>
+      )}
+
+      <GoalSection achieved={achieved} />
 
       {session.notesHtml && (
         <div
@@ -444,40 +463,46 @@ export function EntryCard({
   );
 }
 
-/** Direction arrow and compass point, arrow sitting low on the baseline. */
+/**
+ * Direction arrow and compass point, arrow sitting low on the baseline.
+ * A block-level flex line with an explicit 16px height so the swell tile's
+ * row and the wind tile's row are the same height in either language.
+ */
 function DirSub({ deg, compass }: { deg: number | null | undefined; compass: string | null | undefined }) {
   if (deg == null) return null;
   return (
-    <span className="inline-flex items-baseline gap-1 font-sans text-[11px] font-bold text-data">
+    <span className="flex h-4 items-baseline gap-1 font-sans text-[11px] font-bold leading-4 text-data">
       <DirectionArrow deg={deg} className="relative top-[2px] size-3" strokeWidth={3.5} />
       {compass}
     </span>
   );
 }
 
-/** Which board the session was surfed on: small photo (if any) + name. */
-function BoardChip({ board }: { board: Board }) {
+/** Which board the session was surfed on: small photo (if any) + name. An
+ *  inline-level 28px pill (align-top + mt-1, so it is centred in the row's
+ *  36px line and the line box stays 36px) in its own row above the goals; a long name truncates within the row. */
+function BoardChip({ board, className }: { board: Board; className?: string }) {
   const { t } = useLang();
   const name = boardLabel(board);
   return (
-    <div className="flex min-w-0 px-6 pt-1.5 pb-0.5">
-      <span className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-full bg-secondary py-1 pr-3.5 pl-1">
-        {board.photoId ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/api/blob/${board.photoId}`}
-            alt={t("board.photoAlt", { name })}
-            loading="lazy"
-            className="size-7 shrink-0 rounded-full object-cover"
-          />
-        ) : (
-          <span className="size-1.5 shrink-0" aria-hidden />
-        )}
-        {/* No visible "Board" / 衝浪板 label (removed on request) — the
-            photo and name read as a board; screen readers still get it. */}
-        <span className="sr-only">{t("entry.board")}</span>
-        <span className="min-w-0 truncate text-[13.5px] font-bold tracking-[-0.01em]">{name}</span>
-      </span>
-    </div>
+    /* Fixed h-7 = 28px, with or without a photo: 20px photo + 4px above and below. The photo is a 20px circle, 4px inset (top/left/bottom) with an 8px gap to the text,. */
+    <span className={cn("inline-flex h-7 max-w-full min-w-0 items-center gap-2 mt-1 rounded-full bg-secondary pr-3 pl-1 align-top", className)}>
+      {board.photoId ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`/api/blob/${board.photoId}`}
+          alt={t("board.photoAlt", { name })}
+          loading="lazy"
+          className="size-5 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        // Zero-width: pl-1 + gap-2 puts the name 12px in, equal to pr-3.
+        <span className="w-0 shrink-0" aria-hidden />
+      )}
+      {/* No visible "Board" / 衝浪板 label (removed on request) — the
+          photo and name read as a board; screen readers still get it. */}
+      <span className="sr-only">{t("entry.board")}</span>
+      <span className="min-w-0 truncate text-[13.5px] font-bold leading-none tracking-[-0.01em]">{name}</span>
+    </span>
   );
 }

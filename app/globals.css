@@ -149,9 +149,12 @@
      one-line change either way if a third colour is ever wanted. Grey on
      the tile's `bg-secondary` surface is high-contrast (darker than the
      blue it replaces), so the tide chart's labels (white-stroked text) and
-     session-time dot (white `stroke-card` ring) stay just as legible. */
-  --data: var(--badge);
-  --data-vivid: var(--badge);
+     session-time dot (white `stroke-card` ring) stay just as legible.
+     2026-10-06, on request: readings back to blue (`--primary`) — the
+     direction arrow+compass and the tide curve. --badge itself unchanged
+     (avatar fallback still reads it). */
+  --data: var(--primary);
+  --data-vivid: var(--primary);
   --badge: #374151; /* dark grey badge fill, ~10.3:1 with white text */
   --badge-foreground: #ffffff;
   /* Dashboard panel background (goal/calendar/patterns/boards — the
@@ -329,5 +332,29 @@
 @media (prefers-reduced-motion: reduce) {
   .auto-hide-header {
     transition: none;
+  }
+}
+
+/*
+ * iOS Safari zooms the page when a text control with a computed font-size
+ * under 16px is focused, and stays zoomed after blur — the page then looks
+ * wider than the screen and pans sideways. Fixed here, centrally, rather than
+ * per field (the goal-card inputs are 14.5px, the spot-note input 14px, the
+ * notes editor 15px, shadcn's Input/Textarea 14px from `md` up). Scoped to
+ * iOS/iPadOS WebKit (-webkit-touch-callout exists nowhere else) AND a coarse
+ * pointer, so desktop and Android are untouched. Deliberately NOT
+ * maximum-scale=1 / user-scalable=no: that would kill pinch-zoom everywhere.
+ * Unlayered on purpose: unlayered rules beat every @layer, including
+ * Tailwind's `utilities` (text-[14.5px], md:text-sm), without !important.
+ * Checkbox/radio/file/etc. aren't text entry and never zoom, so are skipped.
+ */
+@supports (-webkit-touch-callout: none) {
+  @media (pointer: coarse) {
+    textarea,
+    select,
+    input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"]),
+    [contenteditable]:not([contenteditable="false"]) {
+      font-size: 16px;
+    }
   }
 }

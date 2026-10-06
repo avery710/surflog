@@ -112,15 +112,13 @@ export interface Session {
   /** The owner's board this was surfed on (boards.id), or null. Optional so
    *  rows read before the boards migration still type-check. */
   boardId?: string | null;
-  /** Snapshot of the owner's "goal for next session" when this was logged
-   *  (copied, not referenced — editing the goal later never rewrites it),
-   *  and whether they said it was met: true / false / null = not assessed.
-   *  Optional so rows read before the goals migration still type-check. */
+  /** The goal points ticked as achieved on this session. Never read these
+   *  three directly — go through `sessionAchieved()` (lib/goal.ts), which
+   *  also understands rows from the older "snapshot of the whole goal +
+   *  a tick per line" model these columns were made for. Optional so rows
+   *  read before the goals migration still type-check. */
   goalText?: string | null;
   goalMet?: boolean | null;
-  /** One achieved/not per goal point, same order as `goalText`'s lines;
-   *  null on sessions logged before per-point ticks. Read it through
-   *  `sessionPointsMet()` (lib/goal.ts), which falls back to `goalMet`. */
   goalPointsMet?: boolean[] | null;
   createdAt: string;
   example?: true;

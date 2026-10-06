@@ -26,9 +26,10 @@ export function joinGoalPoints(points: string[]): string {
 
 export type GoalRename = { from: string; to: string };
 
-/** Rewords lines of a session's goal snapshot in place (exact-text match,
- *  applied simultaneously so swaps work). Line order — and so the
- *  per-point ticks indexed by it — is unchanged. Null if nothing changed. */
+/** Rewords lines of a session's stored goal text in place (exact-text match,
+ *  applied simultaneously so swaps work), so a reworded goal keeps its
+ *  history. Line order — and so any legacy per-point ticks indexed by it —
+ *  is unchanged. Null if nothing changed. */
 export function applyGoalRenames(text: string, renames: GoalRename[]): string | null {
   const map = new Map(renames.filter((r) => r.to.trim()).map((r) => [r.from.trim(), r.to.trim()]));
   const before = goalPoints(text);
@@ -36,90 +37,73 @@ export function applyGoalRenames(text: string, renames: GoalRename[]): string | 
   return after.some((p, i) => p !== before[i]) ? joinGoalPoints(after) : null;
 }
 
-/** Validates a per-point "achieved" array against the goal it belongs to:
- *  exactly one boolean per point, else null. */
-export function parsePointsMet(value: unknown, goalText: string | null | undefined): boolean[] | null {
-  const n = goalPoints(goalText).length;
-  if (!n || !Array.isArray(value) || value.length !== n) return null;
-  return value.every((v) => typeof v === "boolean") ? (value as boolean[]) : null;
-}
-
-/** One achieved/not per point of the session's goal, or null if nothing
- *  was recorded. Sessions logged before per-point ticks existed only have
- *  the whole-goal `goalMet`, which then stands for every point. */
-export function sessionPointsMet(s: {
+/**
+ * What a session records about goals (since 2026-10-06): only the points
+ * that were ticked as achieved on it, by their wording. There is no copy of
+ * "the whole goal at log time" any more, so:
+ *  - every session, old or new, can be ticked against the current goal;
+ *  - removing a point from the goal leaves it on the sessions that ticked
+ *    it and simply disappears everywhere else;
+ *  - there is no "2 of 3" — nothing says how many points there were.
+ *
+ * Stored in the same three columns as before, no migration: `goal_text` =
+ * the achieved points, one per line; `goal_points_met` = all true;
+ * `goal_met` = true; all three null when nothing is ticked. Rows written
+ * by the old snapshot model (the whole goal in `goal_text`, a true/false
+ * per line, or only a whole-goal `goal_met`) read correctly through
+ * sessionAchieved() — their unticked lines are just ignored — and the
+ * build still on staging reads the new rows as "a goal, fully met".
+ */
+type GoalFields = {
   goalText?: string | null;
   goalMet?: boolean | null;
   goalPointsMet?: boolean[] | null;
-}): boolean[] | null {
-  const n = goalPoints(s.goalText).length;
-  if (!n) return null;
-  if (Array.isArray(s.goalPointsMet) && s.goalPointsMet.length === n) return s.goalPointsMet;
-  if (s.goalMet != null) return Array(n).fill(s.goalMet);
-  return null;
-}
-
-/** A session body's goal fields, validated. `goalText` null means "no goal
- *  was set when this was logged", and then the rest are null too.
- *  `goalMet` is derived from the per-point ticks ("all achieved") when
- *  they're sent; a bare boolean `goalMet` is still accepted. */
-export function parseGoalFields(body: Record<string, unknown>): {
-  goalText: string | null;
-  goalMet: boolean | null;
-  goalPointsMet: boolean[] | null;
-} {
-  const raw = typeof body.goalText === "string" ? body.goalText.trim() : "";
-  const goalText = raw && raw.length <= MAX_GOAL ? raw : null;
-  const goalPointsMet = parsePointsMet(body.goalPointsMet, goalText);
-  const goalMet = goalPointsMet
-    ? goalPointsMet.every(Boolean)
-    : goalText && typeof body.goalMet === "boolean"
-      ? body.goalMet
-      : null;
-  return { goalText, goalMet, goalPointsMet };
-}
-
-export type PointStat = {
-  point: string;
-  /** Sessions that ticked this point as achieved. */
-  met: number;
-  /** Sessions whose goal had this point and recorded ticks. */
-  total: number;
 };
 
-/** Per-point history for the goal card. Each point is counted by its own
- *  text across every session, not by the whole goal text — otherwise
- *  adding, removing or rewording any one point would reset every point's
- *  count to 0, though the ticks are all still stored.
- *
- *  Matching is on exact wording (after goalPoints' trim), never fuzzy: a
- *  wrong fuzzy match would silently merge two different goals, while
- *  rewording a point on purpose starting it fresh is easy to understand.
- *  The tick is read at the point's index in *that session's own* goal
- *  (goal_points_met follows its own goal_text order); if the text appears
- *  twice there, the first occurrence wins. Sessions with no ticks at all
- *  (sessionPointsMet → null) are skipped, not counted as misses. */
-export function pointStats(
-  points: string[],
-  sessions: {
-    when: string;
-    goalText?: string | null;
-    goalMet?: boolean | null;
-    goalPointsMet?: boolean[] | null;
-  }[]
-): PointStat[] {
-  const stats = points.map((point) => ({ point, met: 0, total: 0 }));
+/** The goal points ticked as achieved on this session, in stored order. */
+export function sessionAchieved(s: GoalFields): string[] {
+  const lines = goalPoints(s.goalText);
+  const ticks =
+    Array.isArray(s.goalPointsMet) && s.goalPointsMet.length === lines.length
+      ? s.goalPointsMet
+      : // before per-point ticks, one whole-goal answer stood for every line
+        lines.map(() => s.goalMet === true);
+  return [...new Set(lines.filter((_, i) => ticks[i]))];
+}
+
+/** The session columns for a list of achieved points (see above). */
+export function achievedGoalFields(achieved: string[]): Required<GoalFields> {
+  const text = joinGoalPoints(achieved);
+  if (!text) return { goalText: null, goalMet: null, goalPointsMet: null };
+  return { goalText: text, goalMet: true, goalPointsMet: goalPoints(text).map(() => true) };
+}
+
+/** A request body's `goalAchieved`, validated: an array of one-line
+ *  strings, trimmed, blanks and repeats dropped. Null if it isn't that, or
+ *  if the joined text is over MAX_GOAL (the `sessions.goal_text` check
+ *  constraint — only reachable by ticking long-removed points on top of a
+ *  full current goal). */
+export function parseGoalAchieved(value: unknown): string[] | null {
+  if (!Array.isArray(value) || !value.every((v) => typeof v === "string" && !v.includes("\n"))) return null;
+  const achieved = [...new Set(goalPoints((value as string[]).join("\n")))];
+  return joinGoalPoints(achieved).length <= MAX_GOAL ? achieved : null;
+}
+
+/** The checkboxes offered for a session: the current goal's points, then
+ *  any point this session already has ticked that has since left the goal
+ *  — still shown so it stays visible on the post and can be unticked. */
+export function goalOptions(goal: string | null | undefined, achieved: string[] = []): string[] {
+  return [...new Set([...goalPoints(goal), ...achieved])];
+}
+
+/** For the goal card: in how many sessions each point was ticked, matched
+ *  by exact wording (never fuzzy — a wrong match would silently merge two
+ *  different goals; rewording on purpose carries the history along through
+ *  applyGoalRenames instead). */
+export function achievedCounts(points: string[], sessions: GoalFields[]): number[] {
+  const counts = new Map<string, number>();
   for (const s of sessions) {
-    const own = goalPoints(s.goalText);
-    if (!own.length) continue;
-    const ticks = sessionPointsMet(s);
-    if (!ticks) continue;
-    for (const st of stats) {
-      const i = own.indexOf(st.point.trim());
-      if (i < 0) continue;
-      st.total += 1;
-      if (ticks[i]) st.met += 1;
-    }
+    for (const p of sessionAchieved(s)) counts.set(p, (counts.get(p) ?? 0) + 1);
   }
-  return stats;
+  return points.map((p) => counts.get(p.trim()) ?? 0);
 }

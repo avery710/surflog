@@ -28,7 +28,11 @@ export function ConditionTile({
       <span className="mb-0.5 block text-[11px] font-semibold tracking-[0.01em] text-[var(--faint)]">
         {label}
       </span>
-      <span className="whitespace-nowrap font-mono text-[14px] font-medium tracking-[-0.02em] tabular-nums">
+      {/* Row 1 is a flex line with an explicit 20px height (= Figure's
+          leading-tight at 16px), not an inline line box whose height depends
+          on inherited leading and CJK fallback fonts — so the wind tile's
+          two-row value and the swell tile's single figure share one grid. */}
+      <span className="flex min-h-5 items-baseline whitespace-nowrap font-mono text-[14px] font-medium leading-5 tracking-[-0.02em] tabular-nums">
         {value ?? "—"}
         {value != null && unit ? (
           <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">{unit}</span>
