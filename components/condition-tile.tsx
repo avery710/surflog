@@ -22,8 +22,11 @@ export function ConditionTile({
     // used. lg:min-w- is deliberately small; callers that need a specific
     // lg width (e.g. the tide tile, which must leave room for its chart)
     // set it themselves via `className`.
+    // `relative` + data-tile: TileGroup draws the necks between tiles under
+    // them, and finds the tiles by this attribute (2026-10-06).
     <div
-      className={`min-w-0 shrink-0 grow basis-auto rounded-[var(--r-tile)] bg-secondary px-2.5 py-2 sm:px-3 sm:py-2.5 lg:min-w-[60px] ${className}`}
+      data-tile
+      className={`relative min-w-0 shrink-0 grow basis-auto rounded-[var(--r-tile)] bg-secondary px-2.5 py-2 sm:px-3 sm:py-2.5 lg:min-w-[60px] ${className}`}
     >
       <span className="mb-0.5 block text-[11px] font-semibold tracking-[0.01em] text-[var(--faint)]">
         {label}

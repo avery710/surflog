@@ -27,6 +27,8 @@ import { DirectionArrow } from "@/components/direction-arrow";
 import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
 import { GoalSection } from "@/components/goal";
+import { TileGroup } from "@/components/tile-group";
+import { PillNeck } from "@/components/pill-neck";
 import { sessionAchieved } from "@/lib/goal";
 import { boardLabel } from "@/lib/boards";
 import type { Board, Session, TideEvent } from "@/lib/types";
@@ -215,6 +217,9 @@ export function EntryCard({
       </Dialog>
 
       {om ? (
+        // Tiles keep an 8px gap that the shared neck bridges (2026-10-06,
+        // same stem as the board chip and goals): TileGroup draws one stem
+        // between each pair of tiles that face each other across a gap.
         // Phones (<sm): a 3-col grid, swell/period/wind then temp+tide
         // (tide moved back after temp 2026-10-01, on request).
         // sm and up (tablet and desktop, 2026-10-01): one flex row that
@@ -233,7 +238,7 @@ export function EntryCard({
         // own default stretch already handled those). overflow-x-auto is
         // just a safety net if a very narrow sm width can't fit five tiles;
         // it shouldn't be needed at 768px and up.
-        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-nowrap sm:items-stretch sm:gap-2 sm:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5">
+        <TileGroup className="grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap sm:items-stretch sm:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5">
           {om && (
             <>
               <ConditionTile
@@ -313,7 +318,7 @@ export function EntryCard({
               )}
             </>
           )}
-        </div>
+        </TileGroup>
       ) : null}
 
       {/* Open-Meteo wins where both exist: the typed Swelleye swell/wind
@@ -380,7 +385,7 @@ export function EntryCard({
 
       {session.notesHtml && (
         <div
-          className="notes-html px-6 pt-1 pb-2.5 font-sans text-[15px] leading-[1.6] text-foreground"
+          className="notes-html px-6 pt-3 pb-2.5 font-sans text-[15px] leading-[1.6] text-foreground"
           dangerouslySetInnerHTML={{ __html: session.notesHtml }}
         />
       )}
@@ -478,31 +483,52 @@ function DirSub({ deg, compass }: { deg: number | null | undefined; compass: str
   );
 }
 
-/** Which board the session was surfed on: small photo (if any) + name. An
- *  inline-level 28px pill (align-top + mt-1, so it is centred in the row's
- *  36px line and the line box stays 36px) in its own row above the goals; a long name truncates within the row. */
+/** Which board the session was surfed on: the board photo in a circle on the
+ *  left, its name in a pill on the right, joined by a thin stem (2026-10-06,
+ *  hang-tag reference). Geometry (px): circle 30, pill 28 tall with a full
+ *  semicircular left end, a 3.5px gap between them. The `Neck` SVG bridges
+ *  the gap: an 11px-tall stem (~37% of the chip) with radius-3 concave
+ *  fillets, each tangent to the stem and to its shape (solved from
+ *  |c-f| = r+3); its ends sit as chords inside the circle and pill, so no
+ *  seams. No photo: plain pill, as before. The name truncates (single line)
+ *  rather than wrapping, so the chip stays 30px tall and can't push past a
+ *  375px card. Inline-level, align-top + mt-[3px] to centre in the row's
+ *  36px line, in its own row above the goals. */
 function BoardChip({ board, className }: { board: Board; className?: string }) {
   const { t } = useLang();
   const name = boardLabel(board);
+  const label = (
+    <>
+      {/* No visible "Board" / 衝浪板 label (removed on request) — the
+          photo and name read as a board; screen readers still get it. */}
+      <span className="sr-only">{t("entry.board")}</span>
+      <span className="relative min-w-0 truncate text-[13.5px] font-bold leading-none tracking-[-0.01em]">{name}</span>
+    </>
+  );
+  if (!board.photoId) {
+    return (
+      <span className={cn("mt-1 inline-flex h-7 max-w-full min-w-0 items-center rounded-full bg-secondary px-3 align-top", className)}>
+        {label}
+      </span>
+    );
+  }
   return (
-    /* Fixed h-7 = 28px, with or without a photo: 20px photo + 4px above and below. The photo is a 20px circle, 4px inset (top/left/bottom) with an 8px gap to the text,. */
-    <span className={cn("inline-flex h-7 max-w-full min-w-0 items-center gap-2 mt-1 rounded-full bg-secondary pr-3 pl-1 align-top", className)}>
-      {board.photoId ? (
-        // eslint-disable-next-line @next/next/no-img-element
+    <span className={cn("relative mt-[3px] inline-flex h-[30px] max-w-full min-w-0 items-center align-top", className)}>
+      {/* First in DOM on purpose: it is absolutely positioned, so it paints
+          over any later non-positioned sibling and, at z-index auto, over
+          earlier positioned ones. Being first, the `relative` photo and
+          name (later, also positioned) always paint above it. */}
+      <PillNeck className="absolute top-0 left-[28px]" />
+      <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-secondary">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/api/blob/${board.photoId}`}
           alt={t("board.photoAlt", { name })}
           loading="lazy"
-          className="size-5 shrink-0 rounded-full object-cover"
+          className="relative size-[22px] rounded-full object-cover"
         />
-      ) : (
-        // Zero-width: pl-1 + gap-2 puts the name 12px in, equal to pr-3.
-        <span className="w-0 shrink-0" aria-hidden />
-      )}
-      {/* No visible "Board" / 衝浪板 label (removed on request) — the
-          photo and name read as a board; screen readers still get it. */}
-      <span className="sr-only">{t("entry.board")}</span>
-      <span className="min-w-0 truncate text-[13.5px] font-bold leading-none tracking-[-0.01em]">{name}</span>
+      </span>
+      <span className="ml-[3.5px] flex h-7 min-w-0 items-center rounded-full bg-secondary pr-3.5 pl-3">{label}</span>
     </span>
   );
 }

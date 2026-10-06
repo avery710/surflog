@@ -12,6 +12,7 @@
  * (`achievedCounts()`); editing, adding or removing one point doesn't
  * touch the others.
  */
+import { PillNeck } from "@/components/pill-neck";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   closestCenter,
@@ -330,7 +331,10 @@ export function GoalCard({
                           {counts[i] ? (
                             <span className="ml-2 inline-flex items-center gap-0.5 align-baseline whitespace-nowrap text-[12px] font-semibold tabular-nums text-primary">
                               <Check className="size-3" strokeWidth={3.5} aria-hidden />
-                              {t(counts[i] === 1 ? "goal.achievedSession" : "goal.achievedSessions", { n: counts[i] })}
+                              <span aria-hidden>{counts[i]}</span>
+                              <span className="sr-only">
+                                {t(counts[i] === 1 ? "goal.achievedSession" : "goal.achievedSessions", { n: counts[i] })}
+                              </span>
                             </span>
                           ) : null}
                         </li>
@@ -520,68 +524,83 @@ export function GoalCheck({
   );
 }
 
-/** Session card: the goal points ticked as achieved, as a section under the
- *  board chip (2026-10-06, on request; was a chip). One tick for the whole
- *  section (aligned to the first line), then the points as inline text with a
- *  dotted divider TRAILING each point but the last. The points are plain
- *  inline flow, so a wrap happens between items and every wrapped line starts
- *  flush with the first line's text; the divider stays at the end of the line
- *  above. It is glued to its point with a word joiner (U+2060) before an
- *  inline-block, so even a long point that breaks inside itself keeps the dots
- *  after its last word, never alone on a line. Between items is one ordinary
- *  space (widened with word-spacing): a space at a line end collapses, so
- *  the gap can't force a premature wrap, and at a line start it vanishes, so
- *  nothing indents. Width: `w-fit` shrinks the tile to its content when
- *  everything fits on one line (a pill like BoardChip); once the text is
- *  wider than the available space (card minus the mx-6 insets, which
- *  `max-w` states explicitly) the tile fills that width and the text wraps.
- *  Sized to line up with BoardChip: 20px icon, 4px inset, 8px gap, 13.5px
- *  bold text. A session records only the points that were ticked
- *  (lib/goal.ts), so there is no "missed" state and no "2 of 3" to show. */
+/** Session card: the goal points ticked as achieved, under the board chip
+ *  (2026-10-06, on request). A wrapping chain of grey shapes like the board
+ *  chip: [tick circle] - [goal 1] - [goal 2] ... Every goal pill has exactly
+ *  one stem (`PillNeck`): horizontal to its left neighbour when they share a
+ *  line, else vertical up to the first shape of the line above (the tick
+ *  circle for line 2, the first pill of line 2 for line 3, ...), all on one
+ *  straight spine (x=15). The tick is the section's one icon (blue badge in a
+ *  30px grey circle, the chip's photo-circle pattern); pills are text only,
+ *  radius 14px, text wraps inside, never truncated. A pill that wraps its own
+ *  text always starts a line (flex-wrap moves an item that doesn't fit on one
+ *  line down), so it never sits beside a neighbour, and `items-start` rows
+ *  are exactly as tall as their first shape, which keeps the 7px row gap the
+ *  vertical stem is drawn for. CSS can't know where a row wraps, so
+ *  `useLayoutEffect` + a ResizeObserver (list, items, and again when fonts
+ *  load) set `data-neck` straight on each li (DOM attribute, no React state):
+ *  left | up-circle | up-pill. SSR and first paint have none, so no stem is
+ *  ever drawn in the wrong place. A session records only the points that were
+ *  ticked (lib/goal.ts), so no "missed" state. */
 export function GoalSection({ achieved }: { achieved: string[] }) {
   const { t } = useLang();
+  const listRef = useRef<HTMLUListElement>(null);
+  useLayoutEffect(() => {
+    const ul = listRef.current;
+    if (!ul) return;
+    const update = () => {
+      const items = Array.from(ul.children) as HTMLElement[];
+      let lineStart = 0; // index of the first shape on the current line
+      items.forEach((li, i) => {
+        if (i === 0) return;
+        let state: string;
+        if (li.offsetLeft > items[i - 1].offsetLeft) state = "left";
+        else {
+          state = lineStart === 0 ? "up-circle" : "up-pill";
+          lineStart = i;
+        }
+        if (li.getAttribute("data-neck") !== state) li.setAttribute("data-neck", state);
+      });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(ul);
+    Array.from(ul.children).forEach((c) => ro.observe(c));
+    void document.fonts?.ready.then(update);
+    return () => ro.disconnect();
+  }, [achieved]);
   if (!achieved.length) return null;
   return (
-    <section
-      data-goal-section
-      className="mx-6 mt-1.5 mb-0.5 flex w-fit max-w-[calc(100%-3rem)] items-start gap-2 rounded-[var(--r-tile)] bg-secondary py-1 pr-3 pl-1"
-    >
-      {/* Main blue + white, same tick as the board rack's 常用/Go-to badge.
-          Same 20px / 4px-inset geometry as BoardChip's photo, pinned to the
-          first text line (items-start). */}
-      <span
-        aria-hidden
-        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
-      >
-        <Check className="size-3" strokeWidth={3.5} />
-      </span>
-      {/* 24px lines with -my-0.5: a single line still occupies 20px (matches
-          the tick), wrapped lines get 4px between them. */}
+    <section data-goal-section className="mx-6 mt-1.5 mb-0.5 max-w-[calc(100%-3rem)]">
       <ul
+        ref={listRef}
         role="list"
         aria-label={t("goal.achieved")}
-        className="-my-0.5 min-w-0 flex-1 text-[13.5px] font-bold leading-6 tracking-[-0.01em] break-words"
+        className="flex w-fit max-w-full flex-wrap items-start gap-x-[3.5px] gap-y-[7px]"
       >
-        {achieved.map((p, i) => (
-          <li key={p} className="inline">
-            {p}
-            {i < achieved.length - 1 && (
-              <>
-                {/* Three 2px dots down 10px (4px cells), in the main blue.
-                    align-top + mt-[7px] centres it on the 24px line box. */}
-                {"\u2060"}
-                <span
-                  aria-hidden
-                  className="ml-2.5 inline-block h-2.5 w-0.5 mt-[7px] align-top"
-                  style={{
-                    backgroundImage: "radial-gradient(circle at 1px 1px, var(--primary) 1px, transparent 1.2px)",
-                    backgroundSize: "2px 4px",
-                    backgroundRepeat: "repeat-y",
-                  }}
-                />
-                <span className="[word-spacing:0.375rem]"> </span>
-              </>
-            )}
+        <li aria-hidden className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-secondary">
+          {/* Main blue + white, same tick as the board rack's 常用/Go-to badge. */}
+          <span className="flex size-[22px] items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Check className="size-3" strokeWidth={3.5} />
+          </span>
+        </li>
+        {achieved.map((p) => (
+          <li key={p} className="group relative min-w-0 max-w-full self-center">
+            {/* Stems first in the li, so the pill's own text paints above. */}
+            <PillNeck className="absolute top-1/2 -left-[5.5px] -mt-[15px] hidden group-data-[neck=left]:block" />
+            <PillNeck
+              direction="vertical"
+              top="circle"
+              className="absolute -top-[9.2px] left-[6px] hidden group-data-[neck=up-circle]:block"
+            />
+            <PillNeck
+              direction="vertical"
+              top="pill"
+              className="absolute -top-[9.2px] left-[6px] hidden group-data-[neck=up-pill]:block"
+            />
+            <span className="relative block rounded-[14px] bg-secondary px-3.5 py-1 text-[13.5px] font-bold leading-5 tracking-[-0.01em] break-words">
+              {p}
+            </span>
           </li>
         ))}
       </ul>
