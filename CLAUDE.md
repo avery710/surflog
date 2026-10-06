@@ -315,7 +315,7 @@ Two implementations exist:
    hydrates fine. Not checked: signed-out `/` in a real browser (both
    browsers are signed in), the Google button end to end.
 
-   **As of 2026-10-05** (commits `53f28c1`..`f7f9710`, all deployed to
+   **As of 2026-10-05** (commits `53f28c1`..`99865ed`, all deployed to
    staging the same day; nothing below has been tried on a real phone):
    - **One worldwide spot catalogue in the database**, maintained only
      by Avery, with a searchable picker, spot requests and an admin page
@@ -363,9 +363,9 @@ Two implementations exist:
      undone: add two photos, view and step through them at 775 and
      375 px, remove them; and three photos with the second forced to
      fail (bar 0 → 32 → 67 → 98 %, tiles uploaded / failed / uploading).
-     Not checked: the log form's copy of the progress UI, a real video
-     anywhere (thumbnail, viewer, upload), a slow connection, a failed
-     delete.
+     Not checked: the log form's copy of the progress UI, a real camera
+     video (only generated clips, see "Multi-user" → photos), the viewer
+     playing a video, a slow connection, a failed delete.
    - **Edit panel copy**: header is "Conditions (entered by hand)" (no
      "Swelleye"), the button is "Refresh conditions" / "更新浪況" (was
      "Refresh Open-Meteo"; it also refetches CWA tide, so no source
@@ -412,17 +412,41 @@ journal. What this means concretely:
   file straight to Storage, then `POST /api/sessions/:id/photos` or
   `/api/boards/:id/photo` with `{ uploadId }` attaches it.
   `registerUpload()` checks what actually landed (the signed URL limits
-  neither size nor type): 15 MB cap, image/video only, and an id can be
-  claimed once; a bad object is deleted. Ids are random UUIDs, and an
+  neither size nor type): 50 MB cap, image/video only, and an id can be
+  claimed once; a bad object is deleted. **50 MB is Supabase Storage's
+  own per-file ceiling here** (measured 2026-10-05: 45 MB accepted,
+  55 MB refused — it matches the free plan's limit; which plan this
+  project is on was not checked), so raising the constant alone does
+  nothing. The cap was 15 MB until Avery hit it with a video. Ids are random UUIDs, and an
   object is unreadable until it has an owner row. The old multipart
   routes are gone. Photos over 2560 px or 3 MB are redrawn to 2560 px,
-  JPEG 0.9 (PNG stays PNG for transparency; GIF and video untouched;
-  Avery asked not to lose much quality). **Serving**: images up to 4 MB
+  JPEG 0.9 (PNG stays PNG for transparency; GIF untouched; Avery asked
+  not to lose much quality). **Videos over 16 MB are re-encoded in the
+  browser** (`lib/video-compress.ts`, WebCodecs via the `mediabunny`
+  package, MPL-2.0, dynamically imported): H.264 MP4, audio copied, aimed
+  at ≤45 MB — 1080p at 5 Mbit/s, or 720p at 2.8 Mbit/s shrinking to a
+  1.5 Mbit/s floor for longer clips; past ~4 minutes it is refused as too
+  large. A clip already within the plan, a browser without WebCodecs, or
+  any failure sends the original (console warning), which then has to be
+  under 50 MB itself. The picker therefore accepts any size of video and
+  the real check happens at upload. Measured in cmux (WebKit on this Mac,
+  ffmpeg-generated clips, through the edit panel, then removed): 24 s
+  1080p 40 MB → 7.9 MB in 3 s; 20 s portrait HEVC `.mov` 22 → 18.6 MB;
+  100 s 1080p 121 MB → 29.5 MB at 720p in 69 s; all played back at full
+  length. **The encoder does not reliably honour the bitrate**: an
+  all-noise clip came out no smaller (original sent), so very detailed
+  footage can overshoot the target. Never tried: a real iPhone clip,
+  iOS Safari, the encode time on a phone. **Serving**: images up to 4 MB
   still go through `/api/blob/:id` with the year-long private cache;
   videos and anything larger get a 302 to a 1-hour signed URL after the
   same owner check, because a function's response is capped too.
-  Unverified: a real video end to end, and whether the bucket should
-  also get its own size/type limit (not set).
+  Not decided: whether the bucket should also get its own size/type
+  limit (not set). **Deleting already frees storage**: deleting a
+  session, removing one item in Edit, replacing or deleting a board
+  photo all call `deleteBlob()` (object + row). The gap is an upload
+  that is never attached (page closed between the PUT and the save): the
+  object stays with no owner row; a clean-up was offered 2026-10-05, not
+  built. To find them, list the bucket and subtract `photo_blobs` ids.
 - **The spot catalogue is the one thing everyone shares** (2026-10-05):
   every signed-in user reads the same `spots` table. Only accounts in
   the `SPOT_ADMIN_EMAILS` env var (comma-separated Google emails,
@@ -1295,6 +1319,14 @@ type-checking (Avery's standing instruction, 2026-09-30):
   When checking that a deleted photo is gone, fetch with
   `{ cache: "no-store" }` — `/api/blob/:id` is cached for a year, so a
   plain fetch still returns 200.
+- **A hidden cmux tab stalls**: with `document.visibilityState ===
+  "hidden"` (Avery looking at another tab) timers slow down and an
+  upload froze mid-way for minutes, then completed once visible
+  (2026-10-05, first read as an upload bug). Check visibility before
+  debugging a "stuck" request; a phone leaving Safari mid-upload may
+  behave the same, untested. `cmux browser … console list` reads the
+  page console; `network requests` is not supported on WKWebView.
+  A test file can be served to the page from `public/` (delete it after).
 - Commands here run under zsh: `set -- $var` doesn't word-split, and an
   unquoted `--include=*.ts` glob errors.
 

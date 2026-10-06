@@ -14,12 +14,31 @@
  * doesn't reset the others.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Plus, X } from "lucide-react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type Modifier,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Check, GripVertical, Plus, X } from "lucide-react";
 import { cn } from "cn";
 import { CALENDAR_CARD_HEIGHT_PX } from "@/components/activity-calendar";
 import { goalPoints, joinGoalPoints, MAX_GOAL, pointStats, type GoalRename } from "@/lib/goal";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
+import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 
 /** Shared type style for a goal point's text — the display bullet list and
  *  the edit-mode inputs both use this, so toggling into/out of edit mode
@@ -29,6 +48,22 @@ import type { Session } from "@/lib/types";
  *  Safari — accepted here, since matching the display text mattered more
  *  than avoiding that; not worked around in this change. */
 const POINT_TEXT_CLASS = "text-[14.5px] font-bold leading-snug tracking-[-0.01em]";
+
+/** One point while editing. `id` is only a stable React/dnd-kit key for
+ *  this edit (rows used to be keyed by index, which can't survive a
+ *  reorder). `origin` is the row's text when editing began (null = added
+ *  this edit), so a changed row can be sent as a rename for past sessions
+ *  — it travels with the row when the row is dragged. */
+type PointRow = { id: string; text: string; origin: string | null };
+
+/** The "add a point" box is a row in the same list (always exactly one
+ *  while editing), so it can be dragged into place like any other and a
+ *  new point lands where the box sits, not always at the end. Left empty
+ *  it simply drops out on save (joinGoalPoints skips blank lines). */
+const DRAFT_ID = "draft";
+
+/** The list is a single column, so a dragged row only ever moves up/down. */
+const verticalOnly: Modifier = ({ transform }) => ({ ...transform, x: 0 });
 
 export function GoalCard({
   goal,
@@ -42,13 +77,18 @@ export function GoalCard({
 }) {
   const { t } = useLang();
   const [editing, setEditing] = useState(false);
-  const [points, setPoints] = useState<string[]>([]);
-  // Each row's text when editing began (null = added this edit), so a
-  // changed row can be sent as a rename for past sessions.
-  const [origins, setOrigins] = useState<(string | null)[]>([]);
-  const [newPoint, setNewPoint] = useState("");
+  const [rows, setRows] = useState<PointRow[]>([]);
   const [saving, setSaving] = useState(false);
   const cancelled = useRef(false);
+  const nextRowId = useRef(0);
+  const points = rows.map((r) => r.text);
+
+  // Same sensors as the board rack: a few px of movement before a press on
+  // the handle becomes a drag, plus keyboard (Space, arrows, Space).
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
   const newPointRef = useRef<HTMLInputElement>(null);
 
   // The scrollable points list (display mode only — see the height-cap
@@ -106,51 +146,74 @@ export function GoalCard({
 
   function startEdit() {
     cancelled.current = false;
-    setPoints(goalPoints(goal));
-    setOrigins(goalPoints(goal));
-    setNewPoint("");
+    setRows([
+      ...goalPoints(goal).map((text) => ({ id: `p${nextRowId.current++}`, text, origin: text })),
+      { id: DRAFT_ID, text: "", origin: null },
+    ]);
     setEditing(true);
   }
 
+  // The + button: what's typed in the "add a point" box becomes a point of
+  // its own right where the box is, and the box (same row, so it keeps
+  // focus) empties just below it for the next one.
   function addPoint() {
-    const p = newPoint.trim();
-    if (!p) return;
-    setPoints((prev) => [...prev, p]);
-    setOrigins((prev) => [...prev, null]);
-    setNewPoint("");
+    const id = `p${nextRowId.current++}`;
+    setRows((prev) =>
+      prev.flatMap((r) => {
+        if (r.id !== DRAFT_ID) return [r];
+        const text = r.text.trim();
+        return text ? [{ id, text, origin: null }, { ...r, text: "" }] : [r];
+      })
+    );
   }
 
-  function removePoint(i: number) {
-    setPoints((prev) => prev.filter((_, idx) => idx !== i));
-    setOrigins((prev) => prev.filter((_, idx) => idx !== i));
+  function removePoint(id: string) {
+    setRows((prev) => prev.filter((r) => r.id !== id));
     newPointRef.current?.focus();
   }
 
-  function updatePoint(i: number, value: string) {
-    setPoints((prev) => prev.map((p, idx) => (idx === i ? value : p)));
+  function updatePoint(id: string, value: string) {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, text: value } : r)));
+  }
+
+  // Reordering is staged like every other edit here: it only reaches the
+  // server when focus leaves the block (commit()), and Escape discards it.
+  // Past sessions are unaffected — their counts match points by wording,
+  // not position (pointStats()).
+  function handleDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id) return;
+    setRows((prev) => {
+      const from = prev.findIndex((r) => r.id === active.id);
+      const to = prev.findIndex((r) => r.id === over.id);
+      return from < 0 || to < 0 ? prev : arrayMove(prev, from, to);
+    });
+  }
+
+  function cancelEdit() {
+    cancelled.current = true;
+    setEditing(false);
   }
 
   async function commit() {
     if (cancelled.current || saving) return;
-    // Anything still sitting in the "add a point" box counts too, so
-    // tabbing/clicking away doesn't silently drop it.
-    const next = joinGoalPoints(newPoint.trim() ? [...points, newPoint] : points);
+    // Anything still sitting in the "add a point" box counts too (it's one
+    // of the rows), so tabbing/clicking away doesn't silently drop it.
+    const next = joinGoalPoints(points);
     if (next === (goal ?? "")) {
       setEditing(false);
       return;
     }
     setSaving(true);
-    const renames = points.flatMap((p, i) => {
-      const from = origins[i];
-      return from != null && p.trim() && p.trim() !== from ? [{ from, to: p.trim() }] : [];
-    });
+    const renames = rows.flatMap(({ text, origin }) =>
+      origin != null && text.trim() && text.trim() !== origin ? [{ from: origin, to: text.trim() }] : []
+    );
     const ok = await onSave(next, renames);
     setSaving(false);
     if (ok) setEditing(false);
   }
 
   const shownPoints = goalPoints(goal);
-  const total = joinGoalPoints(newPoint.trim() ? [...points, newPoint] : points).length;
+  const total = joinGoalPoints(points).length;
 
   return (
     // No mt here — this card sits inside journal.tsx's shared dashboard
@@ -203,74 +266,31 @@ export function GoalCard({
                 if (!e.currentTarget.contains(e.relatedTarget as Node | null)) void commit();
               }}
             >
-              {points.map((p, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <input
-                    autoFocus={i === 0}
-                    value={p}
-                    disabled={saving}
-                    aria-label={t("goal.editPoint", { n: i + 1 })}
-                    onChange={(e) => updatePoint(i, e.target.value)}
-                    // No Enter shortcut on purpose: it clashed with Chinese
-                    // input methods (注音/倉頡 confirm candidates with Enter).
-                    // Saving happens when focus leaves the card; Escape cancels.
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        cancelled.current = true;
-                        setEditing(false);
-                      }
-                    }}
-                    className={cn(
-                      "min-w-0 flex-1 rounded-[10px] border border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
-                      POINT_TEXT_CLASS
-                    )}
-                  />
-                  <button
-                    type="button"
-                    disabled={saving}
-                    // Safari doesn't focus buttons on click, so without this the
-                    // input blurs to <body> and the blur-to-save never fires.
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => removePoint(i)}
-                    aria-label={t("goal.removePoint", { point: p })}
-                    className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-60"
-                  >
-                    <X className="size-3.5" aria-hidden />
-                  </button>
-                </div>
-              ))}
-              <div className="flex items-center gap-1.5">
-                <input
-                  ref={newPointRef}
-                  autoFocus={points.length === 0}
-                  value={newPoint}
-                  disabled={saving}
-                  placeholder={t("goal.placeholder")}
-                  aria-label={t("goal.addPoint")}
-                  onChange={(e) => setNewPoint(e.target.value)}
-                  // No Enter shortcut here either (see above) — add with the + button.
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      cancelled.current = true;
-                      setEditing(false);
-                    }
-                  }}
-                  className={cn(
-                    "min-w-0 flex-1 rounded-[10px] border border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
-                    POINT_TEXT_CLASS
-                  )}
-                />
-                <button
-                  type="button"
-                  disabled={saving || !newPoint.trim()}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={addPoint}
-                  aria-label={t("goal.addPoint")}
-                  className="shrink-0 rounded-full p-1.5 text-primary hover:bg-secondary disabled:opacity-40"
-                >
-                  <Plus className="size-3.5" aria-hidden />
-                </button>
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[verticalOnly]}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={rows.map((r) => r.id)} strategy={verticalListSortingStrategy}>
+                  {rows.map((row, i) => (
+                    <SortablePointRow
+                      key={row.id}
+                      row={row}
+                      index={i}
+                      // "Point n" counts real points only, not the add box.
+                      n={rows.slice(0, i + 1).filter((r) => r.id !== DRAFT_ID).length}
+                      sortable={rows.length > 1}
+                      saving={saving}
+                      inputRef={row.id === DRAFT_ID ? newPointRef : undefined}
+                      onChange={updatePoint}
+                      onRemove={removePoint}
+                      onAdd={addPoint}
+                      onCancel={cancelEdit}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
               <p className="px-2 pt-0.5 text-[11px] font-medium text-[var(--faint)]">
                 {t("goal.charsLeft", { n: MAX_GOAL - total })}
               </p>
@@ -334,6 +354,118 @@ export function GoalCard({
         </div>
       </div>
     </section>
+  );
+}
+
+/** One editable point row. useSortable() is a hook, so it needs a component
+ *  per row (same reason as the board rack's card). The grip handle alone is
+ *  the drag surface — the rest of the row is a text input — with
+ *  `touch-action: none` scoped to it so a touch drag doesn't scroll the
+ *  page. Shown once there's a point besides the "add a point" box, which
+ *  is the DRAFT_ID row here: same grip, a placeholder, and + in place of ×. */
+function SortablePointRow({
+  row,
+  index,
+  n,
+  sortable,
+  saving,
+  inputRef,
+  onChange,
+  onRemove,
+  onAdd,
+  onCancel,
+}: {
+  row: PointRow;
+  index: number;
+  n: number;
+  sortable: boolean;
+  saving: boolean;
+  inputRef?: React.Ref<HTMLInputElement>;
+  onChange: (id: string, value: string) => void;
+  onRemove: (id: string) => void;
+  onAdd: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useLang();
+  const draft = row.id === DRAFT_ID;
+  const reducedMotion = usePrefersReducedMotion();
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.id,
+    disabled: !sortable || saving,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition: reducedMotion ? undefined : transition,
+      }}
+      className={cn("flex items-center gap-1.5", isDragging && "relative z-10 opacity-80")}
+    >
+      {sortable && (
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          disabled={saving}
+          {...attributes}
+          {...listeners}
+          // Keeps focus where it is (Safari doesn't focus buttons on click),
+          // so grabbing the handle never blurs the block into an early save.
+          onMouseDown={(e) => e.preventDefault()}
+          aria-label={t("goal.dragPoint", { point: row.text.trim() || t("goal.addPoint") })}
+          className={cn(
+            "-ml-1.5 shrink-0 touch-none rounded-full p-1.5 text-[var(--faint)] hover:bg-secondary hover:text-foreground focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none disabled:opacity-60",
+            isDragging ? "cursor-grabbing" : "cursor-grab"
+          )}
+        >
+          <GripVertical className="size-3.5" aria-hidden />
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        autoFocus={index === 0}
+        value={row.text}
+        disabled={saving}
+        placeholder={draft ? t("goal.placeholder") : undefined}
+        aria-label={draft ? t("goal.addPoint") : t("goal.editPoint", { n })}
+        onChange={(e) => onChange(row.id, e.target.value)}
+        // No Enter shortcut on purpose: it clashed with Chinese
+        // input methods (注音/倉頡 confirm candidates with Enter).
+        // Saving happens when focus leaves the card; Escape cancels.
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onCancel();
+        }}
+        className={cn(
+          "min-w-0 flex-1 rounded-[10px] border border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
+          POINT_TEXT_CLASS
+        )}
+      />
+      {draft ? (
+        <button
+          type="button"
+          disabled={saving || !row.text.trim()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onAdd}
+          aria-label={t("goal.addPoint")}
+          className="shrink-0 rounded-full p-1.5 text-primary hover:bg-secondary disabled:opacity-40"
+        >
+          <Plus className="size-3.5" aria-hidden />
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={saving}
+          // Safari doesn't focus buttons on click, so without this the
+          // input blurs to <body> and the blur-to-save never fires.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onRemove(row.id)}
+          aria-label={t("goal.removePoint", { point: row.text })}
+          className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-60"
+        >
+          <X className="size-3.5" aria-hidden />
+        </button>
+      )}
+    </div>
   );
 }
 

@@ -71,9 +71,14 @@ const WEEK_LIST_HEIGHT_PX = VISIBLE_WEEKS * DOT_PX + (VISIBLE_WEEKS - 1) * ROW_G
 // the week rows — see the WEEK_LIST_HEIGHT_PX comment above) plus the mb-2
 // (8px) gap before the list starts.
 const HEADER_ROW_HEIGHT_PX = DOT_PX + 8;
-// The card's own py-5 (20px top + 20px bottom) padding and 1px top + bottom
+// The card title ("Days in the water"): a fixed 20px line (h-5 leading-5) plus
+// its mb-3 (12px) gap, pinned rather than left to the font's own line
+// height so the card's total height stays a plain constant.
+const TITLE_HEIGHT_PX = 20 + 12;
+// The card's own pt-3.5 (14px, the goal card's top padding, so the two
+// titles sit on one line) + pb-5 (20px) padding and 1px top + bottom
 // border-border.
-const CARD_PADDING_Y_PX = 20 + 20;
+const CARD_PADDING_Y_PX = 14 + 20;
 const CARD_BORDER_Y_PX = 2;
 
 /** Total rendered height of the calendar's card, border to border — fixed
@@ -82,7 +87,8 @@ const CARD_BORDER_Y_PX = 2;
  *  card, 2026-10-01, on request — see its own comment) instead of a
  *  hand-typed duplicate number that would drift the next time this
  *  geometry changes. */
-export const CALENDAR_CARD_HEIGHT_PX = CARD_PADDING_Y_PX + CARD_BORDER_Y_PX + HEADER_ROW_HEIGHT_PX + WEEK_LIST_HEIGHT_PX;
+export const CALENDAR_CARD_HEIGHT_PX =
+  CARD_PADDING_Y_PX + CARD_BORDER_Y_PX + TITLE_HEIGHT_PX + HEADER_ROW_HEIGHT_PX + WEEK_LIST_HEIGHT_PX;
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -310,7 +316,12 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     // own height stays the fixed CALENDAR_CARD_HEIGHT_PX, never the taller
     // goal card's (e.g. while it's in edit mode).
     <section className="w-full sm:w-fit sm:shrink-0 sm:self-start">
-      <div className="rounded-[var(--r-card)] border border-card-border bg-card py-5 pr-6 pl-5">
+      <div className="rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-6 pb-5 pl-5">
+        {/* Same type style as the other dashboard-panel titles (goal card,
+            patterns table, board rack). */}
+        <h2 className="mb-3 h-5 font-sans text-[13px] leading-5 font-bold text-muted-foreground">
+          {t("calendar.title")}
+        </h2>
         {/* The weekday header and the scrollable week list share one flex-1
             column, with the ↑/↓ rail as a sibling of that whole column (not
             just of the list) — on request, so the rail spans the header's
@@ -373,7 +384,12 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
                   prevSunday === null ||
                   prevSunday.getMonth() !== sunday.getMonth() ||
                   prevSunday.getFullYear() !== sunday.getFullYear();
-                const isCurrentWeek = monday.getTime() === todayMonday.getTime();
+                // Black for the month we're in now, wherever its label sits
+                // (2026-10-06, on request). This used to test "is this the
+                // current week's row", but a month's label is only printed
+                // on its first row, so from the second week of a month on
+                // the current month's own label was grey.
+                const isCurrentMonth = sunday.getFullYear() === ty && sunday.getMonth() === tm - 1;
                 return (
                   <div key={dateKey(monday)} data-week-row className="flex items-center gap-2">
                     <span
@@ -391,7 +407,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
                         // theme's --muted-foreground, on request — note this
                         // is quite low contrast against the white card, since
                         // it's a tone meant for an unfilled dot, not for text.
-                        isCurrentWeek
+                        isCurrentMonth
                           ? "text-foreground"
                           : "text-[color-mix(in_srgb,white,var(--faint)_25%)]"
                       )}
