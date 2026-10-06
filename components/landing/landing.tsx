@@ -108,7 +108,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
           <h1 className="text-[38px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">
             {t("landing.hero.title")}
           </h1>
-          <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-muted-foreground">
+          <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground">
             {t("landing.hero.body")}
           </p>
           <CtaButton action={signInAction} className="mt-8" />
