@@ -152,9 +152,13 @@
      session-time dot (white `stroke-card` ring) stay just as legible.
      2026-10-06, on request: readings back to blue (`--primary`) — the
      direction arrow+compass and the tide curve. --badge itself unchanged
-     (avatar fallback still reads it). */
-  --data: var(--primary);
-  --data-vivid: var(--primary);
+     (avatar fallback still reads it).
+     2026-10-06, later, on request: readings to black, the same colour as
+     the card's prominent text (`--foreground`, #000000, which Figure and
+     the spot name inherit from body) — not the old grey. The tide event
+     dots and session-time dot follow the curve. */
+  --data: var(--foreground);
+  --data-vivid: var(--foreground);
   --badge: #374151; /* dark grey badge fill, ~10.3:1 with white text */
   --badge-foreground: #ffffff;
   /* Dashboard panel background (goal/calendar/patterns/boards — the
