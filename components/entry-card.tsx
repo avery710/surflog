@@ -149,7 +149,7 @@ export function EntryCard({
           <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
             {catalog.label(session.spot, lang)}
           </span>
-          <span className="shrink-0 text-[13px] font-medium tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-[13px] font-medium tabular-nums text-foreground">
             {fmtWhen(session.when, lang)}
           </span>
         </div>
@@ -502,7 +502,7 @@ function BoardChip({ board, className }: { board: Board; className?: string }) {
       {/* No visible "Board" / 衝浪板 label (removed on request) — the
           photo and name read as a board; screen readers still get it. */}
       <span className="sr-only">{t("entry.board")}</span>
-      <span className="relative min-w-0 truncate text-[13.5px] font-bold leading-none tracking-[-0.01em]">{name}</span>
+      <span className="relative min-w-0 truncate text-[13.5px] font-medium leading-none tracking-[-0.01em]">{name}</span>
     </>
   );
   if (!board.photoId) {

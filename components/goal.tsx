@@ -84,9 +84,9 @@ export function GoalCard({
   const points = rows.map((r) => r.text);
 
   // Same sensors as the board rack: a few px of movement before a press on
-  // the handle becomes a drag, plus keyboard (Space, arrows, Space).
+  // a handle (or, in the read view, a goal pill) becomes a drag, plus keyboard (Space, arrows, Space).
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
   const newPointRef = useRef<HTMLInputElement>(null);
@@ -101,7 +101,8 @@ export function GoalCard({
 
   // In how many sessions each point has been ticked as achieved, matched
   // by the point's own wording — see achievedCounts().
-  const counts = achievedCounts(goalPoints(goal), sessions);
+  const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
+  const counts = achievedCounts(pendingOrder ?? goalPoints(goal), sessions);
 
   const updateFade = useCallback(() => {
     const el = scrollRef.current;
@@ -189,6 +190,24 @@ export function GoalCard({
     });
   }
 
+  // Reorder from the read view: optimistic, then the same save as an edit
+  // (no renames). onSave toasts and resolves false on failure, in which case
+  // dropping pendingOrder rolls the list back to the saved order.
+  async function handleDisplayDragEnd({ active, over }: DragEndEvent) {
+    if (!over || active.id === over.id || saving) return;
+    const current = pendingOrder ?? goalPoints(goal);
+    const ids = current.map((_, i) => displayIds[i]);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(current, from, to);
+    setPendingOrder(next);
+    setSaving(true);
+    await onSave(joinGoalPoints(next), []);
+    setSaving(false);
+    setPendingOrder(null);
+  }
+
   function cancelEdit() {
     cancelled.current = true;
     setEditing(false);
@@ -212,7 +231,16 @@ export function GoalCard({
     if (ok) setEditing(false);
   }
 
-  const shownPoints = goalPoints(goal);
+  // Optimistic order while a drag-reorder is being saved (see
+  // handleDisplayDragEnd); null otherwise.
+  const shownPoints = pendingOrder ?? goalPoints(goal);
+  // Stable sortable ids: the text, numbered when a point repeats.
+  const seen = new Map<string, number>();
+  const displayIds = shownPoints.map((p) => {
+    const n = seen.get(p) ?? 0;
+    seen.set(p, n + 1);
+    return n ? `${p}\u0000${n}` : p;
+  });
   const total = joinGoalPoints(points).length;
 
   return (
@@ -313,37 +341,51 @@ export function GoalCard({
                   !shownPoints.length && "flex flex-col justify-center"
                 )}
               >
-                <button
-                  type="button"
-                  onClick={startEdit}
-                  aria-label={t("goal.edit")}
-                  className={
-                    shownPoints.length
-                      ? "w-full rounded-[10px] px-2 py-1 text-left hover:bg-secondary"
-                      : "w-full rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:bg-secondary hover:text-muted-foreground"
-                  }
-                >
-                  {shownPoints.length ? (
-                    <ul className={cn("list-disc space-y-0.5 pl-4 break-words", POINT_TEXT_CLASS)}>
-                      {shownPoints.map((p, i) => (
-                        <li key={i}>
-                          {p}
-                          {counts[i] ? (
-                            <span className="ml-2 inline-flex items-center gap-0.5 align-baseline whitespace-nowrap text-[12px] font-semibold tabular-nums text-primary">
-                              <Check className="size-3" strokeWidth={3.5} aria-hidden />
-                              <span aria-hidden>{counts[i]}</span>
-                              <span className="sr-only">
-                                {t(counts[i] === 1 ? "goal.achievedSession" : "goal.achievedSessions", { n: counts[i] })}
-                              </span>
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    t("goal.add")
-                  )}
-                </button>
+                {shownPoints.length ? (
+                  // The card is no longer one big <button> (a drag handle can't
+                  // nest inside one): an overlay button underneath takes every
+                  // click that isn't on a handle, the list sits above it with
+                  // pointer-events off except on the handles, so clicking a
+                  // pill still opens edit mode and keeps the hover tint.
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={startEdit}
+                      aria-label={t("goal.edit")}
+                      className="absolute inset-0 rounded-[10px] hover:bg-secondary/40"
+                    />
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      modifiers={[verticalOnly]}
+                      onDragEnd={handleDisplayDragEnd}
+                    >
+                      <SortableContext items={displayIds} strategy={verticalListSortingStrategy}>
+                        <ul role="list" className="pointer-events-none relative space-y-1.5 py-1">
+                          {shownPoints.map((p, i) => (
+                            <DisplayPointItem
+                              key={displayIds[i]}
+                              id={displayIds[i]}
+                              text={p}
+                              count={counts[i]}
+                              sortable={shownPoints.length > 1}
+                              onEdit={startEdit}
+                            />
+                          ))}
+                        </ul>
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startEdit}
+                    aria-label={t("goal.edit")}
+                    className="w-full rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:bg-secondary hover:text-muted-foreground"
+                  >
+                    {t("goal.add")}
+                  </button>
+                )}
               </div>
               {/* Bottom fade — visibility toggled by updateFade() above,
                   not Tailwind state classes, since it depends on a DOM
@@ -358,6 +400,73 @@ export function GoalCard({
         </div>
       </div>
     </section>
+  );
+}
+
+/** One read-view goal item: [text pill] - neck - [count pill]. With 2+ points
+ *  the text pill is the drag surface (a 6px activation distance keeps a plain
+ *  click working, which opens edit mode via onEdit); the count pill and the
+ *  gaps stay pointer-transparent so they fall through to the edit overlay. */
+function DisplayPointItem({
+  id,
+  text,
+  count,
+  sortable,
+  onEdit,
+}: {
+  id: string;
+  text: string;
+  count: number;
+  sortable: boolean;
+  onEdit: () => void;
+}) {
+  const { t } = useLang();
+  const reducedMotion = usePrefersReducedMotion();
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !sortable,
+  });
+  const pill =
+    "relative block rounded-[14px] bg-secondary px-3.5 py-1 text-[13.5px] font-bold leading-5 tracking-[-0.01em] break-words";
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition: reducedMotion ? undefined : transition }}
+      className={cn("flex w-fit max-w-full items-center gap-x-[3.5px]", isDragging && "relative z-10 opacity-80")}
+    >
+      <span className="relative min-w-0">
+        {sortable ? (
+          <span
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            onClick={onEdit}
+            aria-label={t("goal.dragPoint", { point: text })}
+            className={cn(
+              pill,
+              "pointer-events-auto touch-none focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none",
+              isDragging ? "cursor-grabbing" : "cursor-grab"
+            )}
+          >
+            {text}
+          </span>
+        ) : (
+          <span className={pill}>{text}</span>
+        )}
+      </span>
+      {count ? (
+        <span className="relative shrink-0">
+          <PillNeck className="absolute top-1/2 -left-[5.5px] -mt-[15px]" />
+          <span className="relative flex h-7 items-center gap-0.5 rounded-[14px] bg-secondary px-3 text-[13.5px] font-bold tabular-nums whitespace-nowrap text-primary">
+            <Check className="size-3" strokeWidth={3.5} aria-hidden />
+            <span aria-hidden>{count}</span>
+            <span className="sr-only">
+              {t(count === 1 ? "goal.achievedSession" : "goal.achievedSessions", { n: count })}
+            </span>
+          </span>
+        </span>
+      ) : null}
+    </li>
   );
 }
 
@@ -598,7 +707,7 @@ export function GoalSection({ achieved }: { achieved: string[] }) {
               top="pill"
               className="absolute -top-[9.2px] left-[6px] hidden group-data-[neck=up-pill]:block"
             />
-            <span className="relative block rounded-[14px] bg-secondary px-3.5 py-1 text-[13.5px] font-bold leading-5 tracking-[-0.01em] break-words">
+            <span className="relative block rounded-[14px] bg-secondary px-3.5 py-1 text-[13.5px] font-medium leading-5 tracking-[-0.01em] break-words">
               {p}
             </span>
           </li>
