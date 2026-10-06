@@ -130,7 +130,14 @@ Two implementations exist:
      linted only.
 
    **As of 2026-09-28** (uncommitted at time of writing):
-   - **Activity calendar** (`components/activity-calendar.tsx`) redesigned
+   - **Activity calendar — the description in this bullet is stale**
+     (found 2026-10-06; the component's own header comment is the source
+     of truth): since 2026-10-01 every row is one full week, not a month
+     (`VISIBLE_WEEKS` = 4, not `VISIBLE_MONTHS`), and since 2026-10-06 the
+     grid is **Sunday-first** (S M T W T F S / 日 一 … 六), not
+     Monday-first. The card also has a title now ("Days in the water").
+     What follows is the history up to 2026-09-30.
+     `components/activity-calendar.tsx` was redesigned
      on request after two swipe-grid iterations were rejected: no heading,
      a fixed-width white card (344px at the time, since narrowed to 260px
      — see "As of 2026-09-30" below; full width on phones) with months
@@ -187,6 +194,9 @@ Two implementations exist:
      align; changed on request). A missing Period/temp makes the tile
      above it span both rows. Phones/tablets: Swell · Period · Wind, then Water temp
      (1 col) + Tide (2 cols; 3 when there's no temp tile).
+     **Stale since 2026-10-01** (found 2026-10-06, see the comment in
+     `entry-card.tsx`): the `lg` grid is gone. Below `sm` it is that
+     3-column grid; from `sm` up all five tiles share one flex row.
    - **Tide chart shortened** (`components/tide-chart.tsx`, 106 → 64 px):
      x-range is the session's whole day, 00:00–24:00, cut to where the
      stored events reach (they span ±14 h + bracket, so an early session's
@@ -373,12 +383,55 @@ Two implementations exist:
      from both the edit panel and the log form. Other Swelleye mentions
      (tile label, badge, no-coordinates hint, landing copy) were left.
 
-   **As of 2026-10-06** (uncommitted at time of writing, nothing
-   deployed): **MCP access** — a signed-in user makes a personal token at
-   `/tokens` and an MCP client can then read and change that user's own
-   session log through `/api/mcp`. See "MCP access". Also the first unit
-   tests (`npm test`, Vitest) and a notes-sanitiser fix (see "Bugs
-   already hit").
+   **As of 2026-10-06** (commits `2a6f8aa`, `e5ddbae`, `7907d02`, pushed
+   to `staging` the same day, deploy green incl. the new Test step;
+   nothing below was tried on a real phone):
+   - **MCP access** — a signed-in user makes a personal token at
+     `/tokens` and an MCP client can then read and change that user's own
+     session log through `/api/mcp`. See "MCP access". Also the first unit
+     tests (`npm test`, Vitest) and a notes-sanitiser fix (see "Bugs
+     already hit").
+   - **"The neck" joins grey shapes on the session card** (on request,
+     after a hang-tag reference; `components/pill-neck.tsx`): a thin stem,
+     11 px thick with 3 px concave fillets, flat `fill-secondary`, no SVG
+     filter. Used in three places, all checked in cmux at phone and wider
+     widths:
+     - **Board chip**: photo in a 30 px grey circle, stem, name pill
+       (28 px). A board without a photo stays a plain pill. The stem SVG
+       must stay the chip's **first child**: as the last child it painted
+       over the photo's right 2 px (both are positioned, `z-index: auto`,
+       so DOM order decides).
+     - **Condition tiles** (`components/tile-group.tsx`): tiles keep an
+       8 px gap and get one stem between each pair facing each other
+       across it (phones: 3 horizontal + 3 vertical, two of them into the
+       wide Tide tile; `sm` up: 4). Stems are drawn from the tiles'
+       measured positions in a layout effect + `ResizeObserver` (DOM
+       writes, no React state), so they appear a moment after load and
+       **don't show on `/dev` pages in cmux** (no hydration). Cards
+       missing a tile (no Period / temp / Tide) were therefore never
+       looked at. The manual-`cond` tiles get no stems.
+     - **Goals on the card** (`GoalSection` in `components/goal.tsx`):
+       one blue tick in a 30 px grey circle, then one text-only pill per
+       achieved goal, in a wrapping row. A pill gets exactly one stem:
+       horizontal to its left neighbour, or, when it starts a new line,
+       vertical up to the first shape of the line above (so a phone shows
+       one spine down the left). Which one is measured after layout
+       (`data-neck="left" | "up-circle" | "up-pill"`), hidden until then.
+       Avery's spec was "icon - goal 1 - goal 2 - goal 3", one tick only.
+       Not checked: a goal long enough to wrap inside its own pill.
+   - **Goal card counts show only the number** (`✓ 3`, was `✓ 3 sessions`
+     / `✓ 3 次`), on request; `goal.achievedSession(s)` now hold the
+     screen-reader text ("achieved in 3 sessions" / "已達成 3 次") in an
+     `sr-only` span. zh-TW not looked at in a browser.
+   - **Notes have 12 px above them** (`pt-3`, was `pt-1`), on request.
+   - **Tried the same day and removed on request — don't bring back
+     unasked** (details in `.claude/agents/ui-designer.md` "Style
+     references"): a ticket-shaped session card (slot-and-bridge, then two
+     fused blocks, then a grey outer frame); the tiles butted together
+     with pinched corners; a divider line above the notes (solid, dotted,
+     inset, full-width were all tried); a transposed phone calendar
+     (weekdays down the left, weeks as columns). The session card is the
+     original single white card with one `border-card-border` outline.
 
 `BACKLOG.md` (added 2026-09-29) is Avery's list of future features and
 chores — **local only, gitignored** (not in the public repo, so it won't
@@ -555,9 +608,11 @@ session logs from an MCP client. Built in three steps the same day.
   request in a minute → 429. Token create/revoke/cap/hash were checked
   against the live table by script.
 - **Never tried**: a real MCP client (only raw JSON-RPC over curl), the
-  `/tokens` page in a browser, anything on Vercel (`SUPABASE_*` are
-  there already; no new env var is needed), the zh-TW token strings
-  (written by the agent, unreviewed).
+  `/tokens` page in a browser, a real token on staging, the zh-TW token
+  strings (written by the agent, unreviewed). On staging only the
+  signed-out behaviour was checked (2026-10-06): `POST /api/mcp` without
+  a token → 401 with `WWW-Authenticate: Bearer`, `/tokens` → redirect to
+  sign-in. No new env var was needed.
 
 ## The automation problem (read this first)
 
@@ -1391,6 +1446,11 @@ type-checking (Avery's standing instruction, 2026-09-30):
   below `lg` — emulate 1280 for desktop layouts.
 - `cmux read-screen --surface <dev-terminal> --scrollback --lines 2000`
   reads the dev server log (request timings, server errors).
+- Screenshots are 2x at the pane's native width but **1x under `viewport`
+  emulation**; to judge fine detail (seams, curves) crop and zoom a
+  native-width shot (`sips -c <h> <w> --cropOffset <y> <x>`). After a
+  `viewport` change wait ~1 s before measuring anything positioned by a
+  `ResizeObserver` (the necks): an immediate read showed a stale state.
 - Limits: native file pickers and `window.confirm` block automation — don't
   trigger them; synthetic `hover` doesn't apply `:hover`; the tab is
   Avery's **real** data — only reversible actions, and undo any test
@@ -1537,7 +1597,8 @@ Language; the choice lives in localStorage (`surflog:lang`), per browser.
 
 ## Project agents
 
-`.claude/agents/` — all run on Sonnet:
+`.claude/agents/` — all run on Sonnet, except `push-stag` on Haiku
+(changed 2026-10-06 on request):
 - **`data-source-engineer`** — Open-Meteo and CWA fetches, new datasets,
   spot harvesting into the `spots` table. Its file records the verified API
   shapes and gotchas.
