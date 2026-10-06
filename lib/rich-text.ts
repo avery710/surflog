@@ -20,6 +20,15 @@ const VOID = new Set(["br"]);
 const escapeText = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+// For text that is already HTML (the sanitizer's input): an existing entity
+// such as `&lt;` or `&amp;` must stay as it is. Escaping its `&` again turned
+// a typed "<" into a visible "&lt;" (found 2026-10-06).
+const escapeHtmlText = (s: string) =>
+  s
+    .replace(/&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#\d+|#x[0-9a-fA-F]+);)/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
 export function sanitizeNotesHtml(html: string): string {
   if (!html) return "";
   let out = "";
@@ -27,7 +36,7 @@ export function sanitizeNotesHtml(html: string): string {
   const tagRe = /<\/?([a-zA-Z0-9]+)[^>]*>/g;
   let m: RegExpExecArray | null;
   while ((m = tagRe.exec(html))) {
-    out += escapeText(html.slice(i, m.index));
+    out += escapeHtmlText(html.slice(i, m.index));
     i = tagRe.lastIndex;
 
     const closing = m[0][1] === "/";
@@ -40,7 +49,7 @@ export function sanitizeNotesHtml(html: string): string {
     // disallowed tags are dropped (both open and close) but their inner
     // text keeps flowing through, since we just continue scanning.
   }
-  out += escapeText(html.slice(i));
+  out += escapeHtmlText(html.slice(i));
   return out;
 }
 

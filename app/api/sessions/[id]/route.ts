@@ -1,144 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getSession, updateSession, deleteSession } from "@/lib/db";
-import { deleteBlob } from "@/lib/blob";
-import { resolveSpot } from "@/lib/spot-store";
-import { checkRequestSpot } from "@/lib/spot-access";
-import { getConditions } from "@/lib/openmeteo";
-import { getTide } from "@/lib/cwa-tide";
-import { resolveOwnedBoardId } from "@/lib/board-access";
-import { achievedGoalFields, parseGoalAchieved } from "@/lib/goal";
-import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
-import type { Cond, Session } from "@/lib/types";
+import { deleteSessionFor, updateSessionFor } from "@/lib/session-service";
 
 type Params = { params: Promise<{ id: string }> };
 
-const COND_KEYS: (keyof Cond)[] = [
-  "swellHeightM",
-  "swellPeriodS",
-  "swellDir",
-  "windSpeedMs",
-  "windGustMs",
-  "windDir",
-  "tideM",
-  "tideNote",
-  "seaTempC",
-  "airTempC",
-  "sky",
-];
-
 /** PATCH /api/sessions/:id — partial update. Re-fetches condOpenMeteo when
- *  spot or when actually changes (the offshore reading depends on both);
- *  pass `refreshConditions: true` to force a refetch without changing either
- *  (e.g. after Open-Meteo was briefly down at save time). */
+ *  spot or when actually changes; pass `refreshConditions: true` to force a
+ *  refetch. Logic in lib/session-service.ts. */
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = await getSession(id);
-  // 404 (not 403) when it belongs to someone else — don't confirm the id exists.
-  if (!existing || existing.ownerId !== session.user.id) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
-
   const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
-  }
-
-  const patch: Partial<Session> = {};
-
-  if (typeof body.spot === "string" && body.spot.trim()) patch.spot = body.spot.trim();
-  if (typeof body.when === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(body.when)) {
-    patch.when = body.when;
-  }
-  if (typeof body.notesHtml === "string") {
-    const notesHtml = sanitizeNotesHtml(body.notesHtml);
-    patch.notesHtml = notesHtml;
-    patch.notes = htmlToPlainText(notesHtml);
-  }
-
-  // Moving a session onto a `req:<id>` spot: only the caller's own pending request.
-  if (patch.spot && patch.spot !== existing.spot && !(await checkRequestSpot(patch.spot, session.user.id)).ok) {
-    return NextResponse.json({ error: "spot not found" }, { status: 404 });
-  }
-
-  // The goal points ticked as achieved on this session — the whole list,
-  // replacing what was there (empty clears it). Any session can take them,
-  // whenever it was logged; see lib/goal.ts.
-  if (body.goalAchieved !== undefined) {
-    const achieved = parseGoalAchieved(body.goalAchieved);
-    if (!achieved) return NextResponse.json({ error: "invalid goalAchieved" }, { status: 400 });
-    Object.assign(patch, achievedGoalFields(achieved));
-  }
-
-  // Only ever the caller's own board — a foreign/unknown id is a 404, and
-  // nothing is written.
-  const board = await resolveOwnedBoardId(body.boardId, session.user.id);
-  if (!board.ok) return NextResponse.json({ error: "board not found" }, { status: 404 });
-  if (board.boardId !== undefined) patch.boardId = board.boardId;
-
-  if (body.cond === null) {
-    patch.cond = null;
-  } else if (body.cond && typeof body.cond === "object") {
-    const c = body.cond as Record<string, unknown>;
-    const next: Cond = {
-      swellHeightM: null,
-      swellPeriodS: null,
-      swellDir: null,
-      windSpeedMs: null,
-      windGustMs: null,
-      windDir: null,
-      tideM: null,
-      tideNote: null,
-      seaTempC: null,
-      airTempC: null,
-      sky: null,
-      source: existing.cond?.source ?? "manual",
-      filledAt: new Date().toISOString(),
-      ...existing.cond,
-    };
-    for (const k of COND_KEYS) {
-      if (k in c) {
-        const v = c[k];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (next as any)[k] =
-          v === "" || v === undefined ? null : typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
-      }
-    }
-    next.filledAt = new Date().toISOString();
-    if (next.source !== "swelleye") next.source = "manual";
-    patch.cond = next;
-  }
-
-  const spotChanged = patch.spot != null && patch.spot !== existing.spot;
-  const whenChanged = patch.when != null && patch.when !== existing.when;
-  if (spotChanged || whenChanged || body.refreshConditions === true) {
-    const spot = await resolveSpot(patch.spot ?? existing.spot);
-    if (spot?.lat != null && spot.lng != null) {
-      try {
-        patch.condOpenMeteo = await getConditions(spot.lat, spot.lng, patch.when ?? existing.when, spot.timezone);
-      } catch {
-        // leave condOpenMeteo as-is if the refetch fails
-      }
-    } else if (spotChanged) {
-      patch.condOpenMeteo = null;
-    }
-
-    if (spot?.tideTownship) {
-      try {
-        patch.condCwaTide = await getTide(spot.tideTownship, patch.when ?? existing.when);
-      } catch {
-        // leave condCwaTide as-is if the refetch fails
-      }
-    } else if (spotChanged) {
-      patch.condCwaTide = null;
-    }
-  }
-
-  const saved = await updateSession(id, patch);
-  return NextResponse.json({ session: saved });
+  const result = await updateSessionFor(session.user.id, id, body);
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  return NextResponse.json({ session: result.data });
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
@@ -146,12 +23,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!session?.user?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = await getSession(id);
-  if (!existing || existing.ownerId !== session.user.id) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
-
-  await Promise.allSettled(existing.photos.map((p) => deleteBlob(p.id)));
-  const ok = await deleteSession(id);
-  return NextResponse.json({ ok });
+  const result = await deleteSessionFor(session.user.id, id);
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  return NextResponse.json({ ok: result.data });
 }

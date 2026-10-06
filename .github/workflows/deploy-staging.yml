@@ -45,6 +45,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Test
+        run: npm test
+
       - run: npm install --global vercel@latest
 
       - name: Pull Vercel project settings + Preview env vars

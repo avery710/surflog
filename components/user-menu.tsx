@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Globe, LogOut, MapPin } from "lucide-react";
+import { Download, Globe, KeyRound, LogOut, MapPin } from "lucide-react";
 import { googleSignOut } from "@/app/actions";
 import {
   DropdownMenu,
@@ -76,6 +76,13 @@ export function UserMenu({
         <DropdownMenuItem onSelect={onExportCsv}>
           <Download />
           {t("action.exportCsv")}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild>
+          <Link href="/tokens">
+            <KeyRound />
+            {t("menu.apiTokens")}
+          </Link>
         </DropdownMenuItem>
 
         {canManageSpots && (

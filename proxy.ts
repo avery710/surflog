@@ -18,6 +18,11 @@ export default auth((req) => {
   // journal itself) — only the exact root, nothing under it.
   if (pathname === "/") return;
 
+  // The MCP endpoint authenticates with a personal access token (bearer),
+  // not the cookie session — app/api/mcp/route.ts does that check itself
+  // and 401s without a valid token. Exactly this path, nothing under it.
+  if (pathname === "/api/mcp") return;
+
   // /dev is the local-only component showcase (synthetic data, no
   // Supabase/API calls) — see CLAUDE.md "Project agents" (storybook) and
   // app/dev/layout.tsx, which 404s it outright in production. Letting it

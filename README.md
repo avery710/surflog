@@ -118,6 +118,26 @@ app/api/sessions/…            session CRUD + photo upload, calls Open-Meteo at
 app/page.tsx, components/     the UI
 ```
 
+## MCP access
+
+Each user can let an MCP client (Claude Code, Claude Desktop, Cursor…) read
+and change their own session log.
+
+1. Sign in, open the avatar menu → **API tokens** (`/tokens`), create a
+   token (read only, or read and write) and copy it. It is shown once.
+2. Add the server to the client, for example in Claude Code:
+
+   ```bash
+   claude mcp add --transport http surflog https://<your-host>/api/mcp \
+     --header "Authorization: Bearer sfl_…"
+   ```
+
+Tools: `list_sessions`, `get_session`, `list_spots`, `list_boards`, and
+with a write token `create_session`, `update_session`, `delete_session`.
+A token only ever reaches its owner's own sessions. Photos and video,
+goals and spot requests are not available over MCP. Revoke a token on the
+same page. `npm test` runs the unit tests for this layer.
+
 ## Staging deploys
 
 Pushing to the `staging` branch runs `.github/workflows/deploy-staging.yml`:

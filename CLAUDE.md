@@ -373,6 +373,13 @@ Two implementations exist:
      from both the edit panel and the log form. Other Swelleye mentions
      (tile label, badge, no-coordinates hint, landing copy) were left.
 
+   **As of 2026-10-06** (uncommitted at time of writing, nothing
+   deployed): **MCP access** — a signed-in user makes a personal token at
+   `/tokens` and an MCP client can then read and change that user's own
+   session log through `/api/mcp`. See "MCP access". Also the first unit
+   tests (`npm test`, Vitest) and a notes-sanitiser fix (see "Bugs
+   already hit").
+
 `BACKLOG.md` (added 2026-09-29) is Avery's list of future features and
 chores — **local only, gitignored** (not in the public repo, so it won't
 exist on a fresh clone or in cloud sessions). The project skill `add-ticket` (`.claude/skills/add-ticket/`, renamed from `backlog` 2026-09-30) handles "add X to
@@ -476,6 +483,81 @@ journal. What this means concretely:
   fill in later — see README.md "Setting up Supabase" for why RLS/Supabase
   Auth was never the plan here (Google sign-in via Auth.js is the only auth
   system in this app).
+
+## MCP access (added 2026-10-06)
+
+Avery asked to open MCP so users can create/read/update/delete their
+session logs from an MCP client. Built in three steps the same day.
+
+- **Auth is a personal access token, not OAuth** (Avery's choice from
+  the two offered). An MCP client has no Auth.js cookie. Tokens are
+  `sfl_` + 32 random bytes, shown **once**; only the SHA-256 is stored
+  (table `api_tokens`, migration `20261006000000_create_api_tokens.sql`,
+  applied to the live project 2026-10-06; RLS on / no policies). Scope is
+  `read` or `write`; revoking sets `revoked_at` (the row stays); 10
+  active tokens per owner (the agent's number). `lib/token-auth.ts`.
+  **Consequence: claude.ai's "custom connector" flow won't work** — it
+  needs OAuth. Offered as a later step, not built. Works with clients
+  that take a header (Claude Code `--header`, Cursor, Claude Desktop via
+  config).
+- **Token management is cookie-session only** (`/tokens` page,
+  `components/api-tokens.tsx`, `GET`/`POST /api/tokens`,
+  `DELETE /api/tokens/:id`, avatar menu → API tokens): a leaked token
+  must never be able to mint or list tokens. Every signed-in user can
+  make tokens (not restricted to Avery — not explicitly decided, it
+  was one of the open questions and went unanswered).
+- **`lib/session-service.ts` is where session create/update/delete
+  lives now** (`createSessionFor(ownerId, body)`, `updateSessionFor`,
+  `deleteSessionFor`), returning `{ ok, data }` / `{ ok: false, status,
+  error }`. `app/api/sessions/**` are thin wrappers. Anything new that
+  changes sessions goes through it, so the ownership checks, validation
+  and condition refetch can't drift between the web app and MCP.
+- **Endpoint** `app/api/mcp/route.ts`: Streamable HTTP, stateless,
+  via `mcp-handler` 2.x + `@modelcontextprotocol/server` 2.x (MCP SDK
+  v2: `registerTool` with a full `z.object`, not the 1.x
+  `@modelcontextprotocol/sdk`). `proxy.ts` lets exactly `/api/mcp` past
+  the cookie gate, so **the route's own bearer check is the only thing
+  protecting it**. The server is built per request around the verified
+  token, so tools close over one `ownerId`.
+- **Tools** (`lib/mcp-tools.ts`): `list_sessions`, `get_session`,
+  `list_spots`, `list_boards`; with a write token also `create_session`,
+  `update_session`, `delete_session` (a read token doesn't get these
+  registered at all). Sessions come back in a compact shape (what the
+  card shows: headline conditions, tide trend + next turning point, CWA
+  first like the card), not the stored blobs. A foreign id is "not
+  found", same as the routes.
+- **The agent's choices, not Avery's — change if they bite**: `when`
+  must be on the 2-hour grid (even hour, `:00`) so MCP-made sessions
+  edit cleanly in the UI; `notes` is plain text and `update_session`
+  **replaces the whole note**, losing bullets/bold (the tool description
+  warns the model); only catalogue slugs are accepted (no `req:`); no
+  goal ticks, photos/video, boards or spot admin over MCP.
+- **Rate limit** (`lib/rate-limit.ts`): per owner, across all their
+  tokens — 120 requests/min at the route (429 + `Retry-After`), 60
+  changes per 10 min in the write tools. **In memory, per server
+  instance**: on Vercel a second warm instance has its own counters, so
+  it stops a runaway loop but is not an exact quota. A Postgres-backed
+  counter was the alternative, skipped to avoid a round trip per call.
+- **Notes are untrusted text to the model**: tool descriptions and the
+  server instructions say to treat `notes` as data.
+- **Tests** (`tests/*.test.ts`, `npm test`, also a CI step in
+  `deploy-staging.yml`): 58 unit tests, Supabase and the condition
+  sources mocked — session-service (ownership, validation,
+  refetch-on-change, media freed on delete), the tools (scopes, foreign
+  id, time grid, write limit), rate limit, token header parsing,
+  sanitiser. Vitest **4**, because Vitest 5 wants `@types/node` ≥22 and
+  the repo is on 20; config is `vitest.config.mts`.
+- **Checked 2026-10-06** on the local dev server with curl and fake
+  owner ids (all rows removed after): no/revoked token → 401; create
+  fills conditions; changing spot+date refetches (tide switched to CWA
+  for a future date); bad time/spot/board refused; get/update/delete on
+  a real session id of Avery's → "not found", row intact; the 121st
+  request in a minute → 429. Token create/revoke/cap/hash were checked
+  against the live table by script.
+- **Never tried**: a real MCP client (only raw JSON-RPC over curl), the
+  `/tokens` page in a browser, anything on Vercel (`SUPABASE_*` are
+  there already; no new env var is needed), the zh-TW token strings
+  (written by the agent, unreviewed).
 
 ## The automation problem (read this first)
 
@@ -1415,6 +1497,14 @@ type-checking (Avery's standing instruction, 2026-09-30):
   uploads (see "Multi-user"). Never send file bytes through a route,
   in either direction, and parse error responses with
   `.json().catch(() => null)`.
+- **The notes sanitiser double-escaped `&`, `<`, `>`** (found and fixed
+  2026-10-06 while testing MCP). `sanitizeNotesHtml()` ran its
+  text-escaper over text that was already HTML, so the browser's `&lt;`
+  became `&amp;lt;` and a typed `R&D` or `3 < 4` displayed as `R&amp;D` /
+  `3 &lt; 4`. It now leaves existing entities alone (`escapeHtmlText` in
+  `lib/rich-text.ts`, regression test in `tests/rich-text.test.ts`).
+  **Notes saved before the fix that contain those characters are still
+  stored double-escaped** — not searched for, not repaired.
 - **Dev server down mid-refactor** (2026-10-05): two agents editing the
   tree while `npm run dev` served it left every route 500ing for a few
   minutes (a deleted module still imported). When moving or renaming a
