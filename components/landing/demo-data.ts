@@ -31,9 +31,9 @@ export const DEMO_BOARDS: Board[] = [
 
 // Spot + days-ago for the history behind the calendar and spots table.
 const HISTORY: [string, number][] = [
-  ["jialeshui", 2], ["jialeshui", 4], ["nanwan", 5], ["jialeshui", 8],
-  ["waiao", 11], ["waiao", 12], ["jialeshui", 15], ["double-lions", 19],
-  ["jialeshui", 22], ["waiao", 26], ["jialeshui", 30], ["nanwan", 34],
+  ["jialeshui", 2], ["jialeshui", 4], ["waiao", 5], ["jialeshui", 8],
+  ["waiao", 11], ["waiao", 12], ["jialeshui", 15], ["jialeshui", 19],
+  ["jialeshui", 22], ["waiao", 26], ["jialeshui", 30], ["waiao", 34],
   ["jialeshui", 37], ["waiao", 41],
 ];
 

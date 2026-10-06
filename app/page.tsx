@@ -6,6 +6,7 @@ import { listAllRequests, listOwnRequests } from "@/lib/spot-requests";
 import { googleSignIn } from "@/app/actions";
 import { Journal } from "@/components/journal";
 import { Landing } from "@/components/landing/landing";
+import { getLandingSpots } from "@/lib/landing-spots";
 
 export default async function Home() {
   const session = await auth();
@@ -15,6 +16,7 @@ export default async function Home() {
   if (!session?.user?.id) {
     return (
       <Landing
+        spots={await getLandingSpots()}
         signInAction={async () => {
           "use server";
           await googleSignIn("/");

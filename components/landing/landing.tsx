@@ -1,16 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, ArrowDown, Download, Globe, Image as ImageIcon, Lock } from "lucide-react";
+import { ArrowRight, ArrowDown } from "lucide-react";
 import { EntryCard } from "@/components/entry-card";
 import { ActivityCalendar } from "@/components/activity-calendar";
 import { PatternsTable } from "@/components/patterns-table";
 import { GoalCard } from "@/components/goal";
-import { boardLabel, formatVolume } from "@/lib/boards";
 import { spotLabel, taipeiToday } from "@/lib/format";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
-import { useLang, type Lang, type TKey } from "@/lib/i18n";
+import { useLang, type Lang } from "@/lib/i18n";
+import type { LandingSpot } from "@/lib/landing-spots";
 import { cn } from "cn";
+import { BoardRack } from "@/components/board-rack";
 import { DEMO_BOARDS, demoSessions } from "./demo-data";
 import { noop } from "@/app/dev/fixtures";
 
@@ -22,7 +23,7 @@ import { noop } from "@/app/dev/fixtures";
  * get 401s). Sign-in is the same Google flow as /signin, which still exists
  * on its own for redirects and errors.
  */
-export function Landing({ signInAction }: { signInAction: () => Promise<void> }) {
+export function Landing({ signInAction, spots }: { signInAction: () => Promise<void>; spots?: LandingSpot[] | null }) {
   const { lang, setLang, t } = useLang();
 
   const goalText = `${t("landing.demo.goal1")}\n${t("landing.demo.goal2")}`;
@@ -54,14 +55,14 @@ export function Landing({ signInAction }: { signInAction: () => Promise<void> })
           including why this reads `bg-primary` directly rather than the
           panel sections' own `bg-panel` token below (that token moved to
           grey later the same session; the header kept the blue). The
-          logo/buttons are in a `max-w-[1080px]` inner column, same
+          logo/buttons are in a `max-w-[880px]` inner column, same
           `mx-auto`/`px-4.5` as the content wrapper below, so they line up
           with the page content under them. */}
       <header
         ref={headerRef}
         className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
       >
-        <div className="mx-auto flex w-full max-w-[1080px] items-center justify-between gap-3 px-4.5">
+        <div className="mx-auto flex w-full max-w-[880px] items-center justify-between gap-3 px-4.5">
           {/* Stays black even on the blue bar — see journal.tsx's matching
               comment; the earlier white (`brightness-0 invert`) version
               was tried and reverted the same session. */}
@@ -100,9 +101,9 @@ export function Landing({ signInAction }: { signInAction: () => Promise<void> })
           its content's intrinsic width, which without this let the
           patterns table's own `min-w-[420px]` push this whole column
           wider than the viewport at narrow widths. */}
-      <div className="mx-auto w-full min-w-0 max-w-[1080px] flex-1 px-4.5 pb-18">
-      {/* Hero — copy + CTA, beside a real session card from lg up. */}
-      <section className="mt-12 grid items-center gap-10 sm:mt-16 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <div className="mx-auto w-full min-w-0 max-w-[880px] flex-1 px-4.5 pb-18">
+      {/* Hero — copy + CTA. The real session card lives in section 01. */}
+      <section className="mt-12 sm:mt-16">
         <div>
           <h1 className="text-[38px] leading-[1.05] font-extrabold tracking-[-0.03em] sm:text-[52px]">
             {t("landing.hero.title")}
@@ -111,20 +112,13 @@ export function Landing({ signInAction }: { signInAction: () => Promise<void> })
             {t("landing.hero.body")}
           </p>
           <CtaButton action={signInAction} className="mt-8" />
-          <p className="mt-3 flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
-            <Lock className="size-3.5" aria-hidden />
-            {t("landing.hero.private")}
-          </p>
-        </div>
-        <div className="min-w-0">
-          <EntryCard session={hero} boards={DEMO_BOARDS} onUpdated={noop} onDeleted={noop} readOnly />
         </div>
       </section>
 
       {/* ① Conditions fill themselves */}
       <Section n="1" title={t("landing.cond.title")} body={t("landing.cond.body")}>
-        <div className="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          <Panel>
+        <div className="grid items-center gap-4 md:grid-cols-[minmax(0,2fr)_auto_minmax(0,5fr)] md:items-stretch">
+          <Panel className="md:h-full">
             <p className="mb-3 text-[12px] font-bold tracking-wide text-muted-foreground uppercase">
               {t("landing.cond.youType")}
             </p>
@@ -132,100 +126,57 @@ export function Landing({ signInAction }: { signInAction: () => Promise<void> })
             <FakeField label={t("landing.cond.when")} value="06:00" />
             <FakeField label={t("landing.cond.notes")} value={t("landing.demo.notesShort")} />
           </Panel>
-          <div className="flex justify-center text-primary" aria-hidden>
+          <div className="flex items-center justify-center text-primary" aria-hidden>
             <ArrowRight className="hidden size-7 md:block" />
             <ArrowDown className="size-7 md:hidden" />
           </div>
-          <Panel>
-            <p className="mb-3 text-[12px] font-bold tracking-wide text-muted-foreground uppercase">
-              {t("landing.cond.weAdd")}
-            </p>
-            <ul className="space-y-2.5 text-[14.5px] font-semibold">
-              {(["landing.cond.swell", "landing.cond.wind", "landing.cond.tide", "landing.cond.temp"] as TKey[]).map(
-                (k) => (
-                  <li key={k} className="flex gap-2.5">
-                    <span className="mt-[7px] size-2 shrink-0 rounded-full bg-primary" aria-hidden />
-                    {t(k)}
-                  </li>
-                )
-              )}
-            </ul>
-          </Panel>
+          <div className="flex min-w-0 flex-col md:[&>*]:flex-1 [&>*]:mt-0!">
+            <EntryCard session={hero} boards={DEMO_BOARDS} onUpdated={noop} onDeleted={noop} readOnly />
+          </div>
         </div>
-        <p className="mt-4 text-[13px] font-medium text-muted-foreground">{t("landing.cond.sources")}</p>
       </Section>
 
-      {/* ② Rhythm + ③ goals, side by side from lg */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-8 lg:grid-cols-2 lg:[&>*]:min-w-0">
-        <Section n="2" title={t("landing.rhythm.title")} body={t("landing.rhythm.body")}>
-          <div className="flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
-            <ActivityCalendar sessions={all} />
-            <PatternsTable
-              sessions={all}
-              spotNotes={spotNotes}
-              onSaveSpotNote={async (spot, description) => {
-                setSpotNotes((prev) => ({ ...prev, [spot]: description }));
-                return true;
-              }}
-            />
+      {/* ② The dashboard: goal + calendar + spots table in one panel, as in the journal */}
+      <Section n="2" title={t("landing.dash.title")} body={t("landing.dash.body")}>
+        <div className="flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
+          <div className="flex flex-col items-start gap-4 sm:flex-row">
+            <div className="w-full min-w-0 sm:flex-1">
+              <GoalCard
+                goal={goal ?? goalText}
+                sessions={all}
+                onSave={async (text) => {
+                  setGoal(text);
+                  return true;
+                }}
+              />
+            </div>
+            <div className="w-full sm:w-[260px] sm:shrink-0">
+              <ActivityCalendar sessions={all} />
+            </div>
           </div>
-        </Section>
-        <Section n="3" title={t("landing.goal.title")} body={t("landing.goal.body")}>
-          <div className="rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
-            <GoalCard
-              goal={goal ?? goalText}
-              sessions={all}
-              onSave={async (text) => {
-                setGoal(text);
-                return true;
-              }}
-            />
+          <PatternsTable
+            sessions={all}
+            spotNotes={spotNotes}
+            onSaveSpotNote={async (spot, description) => {
+              setSpotNotes((prev) => ({ ...prev, [spot]: description }));
+              return true;
+            }}
+          />
+          {/* BoardRack makes real API calls on add/edit/favourite/delete, so
+              on the signed-out page it is shown inert (look, don't touch). */}
+          <div inert>
+            <BoardRack boards={DEMO_BOARDS} onSaved={noop} onDeleted={noop} onRackChanged={noop} />
           </div>
-          <p className="mt-3 text-[13px] font-medium text-muted-foreground">{t("landing.goal.tryIt")}</p>
-        </Section>
-      </div>
-
-      {/* ④ Quiver — a plain read-only list; BoardRack itself fetches. */}
-      <Section n="4" title={t("landing.quiver.title")} body={t("landing.quiver.body")}>
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {DEMO_BOARDS.map((b) => (
-            <li key={b.id}>
-              <Panel className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[16px] font-bold">{boardLabel(b)}</p>
-                  <p className="mt-0.5 font-mono text-[13px] text-muted-foreground">
-                    {[formatVolume(b.volumeL), b.rocker && t(`board.rocker.${b.rocker}` as TKey)]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                </div>
-                {b.isFavorite && (
-                  <span className="shrink-0 rounded-full bg-primary px-2.5 py-1 text-[12.5px] font-bold text-primary-foreground">
-                    ✓ {t("board.favorite")}
-                  </span>
-                )}
-              </Panel>
-            </li>
-          ))}
-        </ul>
+        </div>
       </Section>
 
-      {/* Small extras */}
-      <section className="mt-16 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {(
-          [
-            [Globe, "landing.extra.bilingual"],
-            [ImageIcon, "landing.extra.media"],
-            [Download, "landing.extra.csv"],
-            [Lock, "landing.extra.private"],
-          ] as const
-        ).map(([Icon, k]) => (
-          <Panel key={k} className="flex items-start gap-3">
-            <Icon className="mt-0.5 size-4.5 shrink-0 text-primary" aria-hidden />
-            <p className="text-[14px] font-semibold leading-snug">{t(k)}</p>
-          </Panel>
-        ))}
-      </section>
+      {/* ③ The shared spot list — read-only, from the catalogue (see
+          lib/landing-spots.ts); hidden when it couldn't be loaded. */}
+      {spots && spots.length > 0 && (
+        <Section n="3" title={t("landing.spots.title")} body={`${t("landing.spots.body", { n: String(spots.length), c: String(new Set(spots.map((s) => s.country)).size) })} ${t("landing.spots.request")}`}>
+          <SpotsList spots={spots} />
+        </Section>
+      )}
 
       {/* Closing CTA */}
       <section className="mt-16 rounded-[var(--r-card)] bg-primary px-6 py-12 text-center text-primary-foreground">
@@ -314,5 +265,65 @@ function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) =
         </button>
       ))}
     </div>
+  );
+}
+
+/** Same order as the spot picker: Taiwan first, then these areas, then any
+ *  other area alphabetically. */
+const AREA_PRIORITY = ["Siargao", "Bali"];
+/** Best-known breaks shown on the landing page (slugs from the catalogue). */
+const FEATURED = [
+  "wushi-north", "double-lions", "fulong", "jialeshui", "nanwan", "donghe", "jinzun",
+  "cloud-9", "jacking-horse", "quicksilver", "tuason-point", "stimpys", "rock-island",
+  "uluwatu-suluban", "padang-padang", "impossibles", "bingin", "dreamland", "balangan", "batu-bolong", "echo-beach",
+];
+
+function SpotsList({ spots }: { spots: LandingSpot[] }) {
+  const { lang, t } = useLang();
+  const name = (s: LandingSpot) => (lang === "zh-TW" ? (s.nameZh ?? s.name) : s.name);
+
+  const groups = useMemo(() => {
+    const out: { key: string; title: string; list: LandingSpot[] }[] = [];
+    const taiwan = spots.filter((s) => s.region);
+    if (taiwan.length) out.push({ key: "tw", title: t("picker.taiwan"), list: taiwan });
+    const abroad = new Map<string, { area: string; list: LandingSpot[] }>();
+    for (const s of spots) {
+      if (s.region) continue;
+      const title = [s.country, s.area].filter(Boolean).join(" · ") || t("picker.elsewhere");
+      const g = abroad.get(title) ?? { area: s.area, list: [] };
+      g.list.push(s);
+      abroad.set(title, g);
+    }
+    const rank = (area: string) => {
+      const i = AREA_PRIORITY.indexOf(area);
+      return i === -1 ? AREA_PRIORITY.length : i;
+    };
+    for (const [title, g] of [...abroad].sort((a, b) => rank(a[1].area) - rank(b[1].area) || a[0].localeCompare(b[0]))) {
+      out.push({ key: `w-${title}`, title, list: g.list });
+    }
+    // Showcase only the best-known breaks, in FEATURED order; the full
+    // catalogue is in the app.
+    const rankOf = (slug: string) => FEATURED.indexOf(slug);
+    for (const g of out) g.list = g.list.filter((s) => rankOf(s.slug) !== -1).sort((a, b) => rankOf(a.slug) - rankOf(b.slug));
+    return out.filter((g) => g.list.length > 0);
+  }, [spots, t]);
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {groups.map((g) => (
+          <Panel key={g.key} className="min-w-0 p-4">
+            <h3 className="text-[14px] font-bold">{g.title}</h3>
+            <ul className="mt-2.5 flex flex-wrap gap-1.5">
+              {g.list.map((s) => (
+                <li key={s.slug} className="rounded-full bg-secondary px-2.5 py-1 text-[13px] font-semibold">
+                  {name(s)}
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        ))}
+      </div>
+    </>
   );
 }

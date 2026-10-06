@@ -187,15 +187,11 @@ const DICT = {
   "landing.signIn": { en: "Sign in", "zh-TW": "登入" },
   "landing.hero.title": {
     en: "The surf journal that fills in the ocean for you.",
-    "zh-TW": "幫你自動記下海況的衝浪日誌。",
+    "zh-TW": "幫你自動記下海況的衝浪日誌",
   },
   "landing.hero.body": {
     en: "Log the spot and the time. Swell, wind, tide and water temperature for that moment attach themselves — so after a season, you can see which conditions actually work at your breaks.",
     "zh-TW": "只要填浪點和時間，當下的湧浪、風、潮汐和水溫就會自動附上。累積一季後，你就看得出哪些條件在你常去的浪點真的好衝。",
-  },
-  "landing.hero.private": {
-    en: "Free · your journal is private to you",
-    "zh-TW": "免費・日誌只有你自己看得到",
   },
   "landing.cond.title": { en: "Conditions fill themselves", "zh-TW": "浪況自動帶入" },
   "landing.cond.body": {
@@ -217,35 +213,19 @@ const DICT = {
     "zh-TW": "漲潮或退潮、下一次滿潮或乾潮，以及當天的潮汐曲線",
   },
   "landing.cond.temp": { en: "Water and air temperature", "zh-TW": "水溫與氣溫" },
-  "landing.cond.sources": {
-    en: "Waves and wind from Open-Meteo, tide times from Taiwan's Central Weather Administration. 41 Taiwan spots built in.",
-    "zh-TW": "浪與風來自 Open-Meteo，潮汐時間來自中央氣象署。內建台灣 41 個浪點。",
+  "landing.dash.title": { en: "Your surf log, your best sidekick", "zh-TW": "你的衝浪好幫手" },
+  "landing.dash.body": {
+    en: "Set a few things to work on and tick them off each session. See every day you surfed, month by month, and where you go most — with your own notes on each spot. Try editing it!",
+    "zh-TW": "設定幾個想練的重點，每次衝完勾選做到的項目；逐月看你哪幾天下水、最常去哪裡，每個浪點還能留下自己的筆記。試著編輯看看！",
   },
-  "landing.rhythm.title": { en: "See your rhythm", "zh-TW": "看見你的衝浪節奏" },
-  "landing.rhythm.body": {
-    en: "Every day you surfed, month by month, and where you go most — with your own notes on each spot.",
-    "zh-TW": "逐月看你哪幾天下水、最常去哪裡，每個浪點還能留下自己的筆記。",
+  "landing.spots.title": { en: "A spot list surfers grow", "zh-TW": "浪友一起蒐集的浪點地圖" },
+  "landing.spots.body": {
+    en: "{n} spots across {c} countries, from Taiwan to Siargao to Bali, and growing. Pick one when you log a session and its conditions come with it.",
+    "zh-TW": "橫跨 {c} 個國家、共 {n} 個浪點，從台灣、錫亞高到峇里島，持續增加。記錄時選一個，浪況就會自動帶入。",
   },
-  "landing.goal.title": { en: "Surf with a goal", "zh-TW": "帶著目標下水" },
-  "landing.goal.body": {
-    en: "Set a few things to work on. Each session, tick off what you managed — and watch the count grow.",
-    "zh-TW": "設定幾個想練的重點，每次衝完勾選做到的項目，看著次數慢慢累積。",
-  },
-  "landing.goal.tryIt": {
-    en: "Try editing it — nothing here is saved.",
-    "zh-TW": "可以試著編輯看看，這裡的內容不會被儲存。",
-  },
-  "landing.quiver.title": { en: "Your quiver", "zh-TW": "你的衝浪板" },
-  "landing.quiver.body": {
-    en: "Keep your boards with their length, volume and rocker, and see which one you rode each session.",
-    "zh-TW": "記下每塊板的長度、體積和 rocker，每次紀錄都看得到當天用哪一塊。",
-  },
-  "landing.extra.bilingual": { en: "In English and 繁體中文", "zh-TW": "支援繁體中文與英文" },
-  "landing.extra.media": { en: "Add photos and video to any session", "zh-TW": "每筆紀錄都能加上照片和影片" },
-  "landing.extra.csv": { en: "Export everything to CSV, any time", "zh-TW": "隨時把所有紀錄匯出成 CSV" },
-  "landing.extra.private": {
-    en: "Private by default — no feed, no followers",
-    "zh-TW": "預設私人，沒有動態牆也沒有追蹤者",
+  "landing.spots.request": {
+    en: "Missing yours? Sign in, request it, and start logging there right away.",
+    "zh-TW": "找不到你的浪點？登入後申請新增，馬上就能開始記錄。",
   },
   "landing.cta.title": { en: "Ready for your next session?", "zh-TW": "準備好下一次下水了嗎？" },
   "landing.cta.body": {
