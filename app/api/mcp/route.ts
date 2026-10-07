@@ -8,9 +8,9 @@ import { authenticateBearer } from "@/lib/token-auth";
  * /api/mcp — remote MCP endpoint (Streamable HTTP, stateless) for a user's
  * own session log. See lib/mcp-tools.ts for the tools.
  *
- * Auth is a bearer token (`Authorization: Bearer sfl_…`) issued through OAuth
- * (lib/oauth.ts) to a connector such as claude.ai, or a personal token made
- * before those were removed — NOT the browser's Auth.js cookie: proxy.ts lets this one path
+ * Auth is a bearer token (`Authorization: Bearer sfl_…`) — issued through
+ * OAuth (lib/oauth.ts) to a connector such as claude.ai, or a personal one
+ * made at /tokens — NOT the browser's Auth.js cookie: proxy.ts lets this one path
  * through its cookie gate, so the check below is the only thing protecting
  * it. The server is built per request around the verified token, so tools
  * can only ever see that token's owner.

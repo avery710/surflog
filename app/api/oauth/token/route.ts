@@ -12,6 +12,16 @@ function fail(error: string, status = 400) {
   return Response.json({ error }, { status, headers: NO_STORE });
 }
 
+function basicUser(header: string | null): string {
+  const m = /^Basic\s+(\S+)$/i.exec(header?.trim() ?? "");
+  if (!m) return "";
+  try {
+    return decodeURIComponent(Buffer.from(m[1], "base64").toString("utf8").split(":")[0] ?? "");
+  } catch {
+    return "";
+  }
+}
+
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const limit = rateLimit(`oauth:token:${ip}`, 60, 60_000);
@@ -30,7 +40,10 @@ export async function POST(req: Request) {
   };
 
   const grantType = field("grant_type");
-  const clientId = field("client_id");
+  // Clients are public (no secret), so the id normally comes in the form. A
+  // client that asked to register with a secret-based method (Gemini does) may
+  // still send HTTP Basic: take the id from there and ignore the password.
+  const clientId = field("client_id") || basicUser(req.headers.get("authorization"));
   if (!clientId) return fail("invalid_request");
 
   let result: TokenResult;

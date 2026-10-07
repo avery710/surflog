@@ -1,5 +1,6 @@
 import { CORS_HEADERS, registerClient } from "@/lib/oauth";
 import { rateLimit } from "@/lib/rate-limit";
+import { redirectHosts } from "@/lib/token-auth";
 
 /**
  * RFC 7591 dynamic client registration — how claude.ai introduces itself.
@@ -24,6 +25,16 @@ export async function POST(req: Request) {
   }
   const result = await registerClient({ name: body.client_name, redirectUris: body.redirect_uris });
   if (!result.ok) {
+    // Nothing secret here, and without it a refused client is invisible: the
+    // app only tells its user "rejected by the server".
+    const uris: unknown[] = Array.isArray(body.redirect_uris) ? body.redirect_uris : [];
+    console.warn("[oauth] registration refused", {
+      reason: result.description,
+      name: typeof body.client_name === "string" ? body.client_name.slice(0, 60) : null,
+      redirectCount: uris.length,
+      redirectHosts: redirectHosts(uris).slice(0, 10),
+      authMethod: body.token_endpoint_auth_method ?? null,
+    });
     return Response.json({ error: result.error, error_description: result.description }, { status: 400, headers: CORS_HEADERS });
   }
   return Response.json(

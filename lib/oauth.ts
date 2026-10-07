@@ -19,7 +19,9 @@ const REFRESH_TOKEN_TTL_MS = 60 * 24 * 60 * 60 * 1000;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const REFRESH_PREFIX = "sflr_";
 const CODE_PREFIX = "sflc_";
-const MAX_REDIRECT_URIS = 5;
+// Gemini's custom apps register with more than five callbacks (all on
+// oauth-redirect.googleusercontent.com); five refused it (2026-10-07).
+const MAX_REDIRECT_URIS = 20;
 
 export interface OAuthClient {
   clientId: string;

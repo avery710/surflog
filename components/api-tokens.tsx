@@ -1,25 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConnectAgent } from "@/components/connect-agent";
 import { useLang } from "@/lib/i18n";
 import type { ApiToken } from "@/lib/token-auth";
 import { useLocalStamp } from "@/lib/use-local-stamp";
 
-/** /tokens — the apps connected to this journal, each with a Revoke button.
- *  An app gets connected by signing in through it (OAuth, /oauth/authorize);
- *  there is no way to make a token by hand here any more (removed 2026-10-07). */
-export function ApiTokens({ initialTokens }: { initialTokens: ApiToken[] }) {
+/** /tokens — "Connect an agent" (components/connect-agent.tsx) on top, then
+ *  everything that can already act on this journal from outside the app: apps
+ *  connected by signing in (OAuth) and personal tokens, each revocable. */
+export function ApiTokens({ initialTokens, mcpUrl }: { initialTokens: ApiToken[]; mcpUrl: string }) {
   const { lang, t } = useLang();
   const [tokens, setTokens] = useState(initialTokens);
+  const [watching, setWatching] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const active = tokens.filter((tk) => !tk.revokedAt);
   const revoked = tokens.filter((tk) => tk.revokedAt);
   const day = useLocalStamp(lang);
+
+  // While an agent is picked in "Connect an agent", re-read the list every few
+  // seconds so a connection made in another app shows up here by itself. Only
+  // while the tab is visible, and it stops after ten minutes.
+  useEffect(() => {
+    if (!watching) return;
+    let ticks = 0;
+    const id = setInterval(async () => {
+      if (++ticks > 150) return clearInterval(id);
+      if (document.visibilityState !== "visible") return;
+      const res = await fetch("/api/tokens", { cache: "no-store" }).catch(() => null);
+      const body = res?.ok ? await res.json().catch(() => null) : null;
+      if (Array.isArray(body?.tokens)) setTokens(body.tokens as ApiToken[]);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [watching]);
 
   async function revoke(id: string) {
     if (confirming !== id) {
@@ -48,6 +66,13 @@ export function ApiTokens({ initialTokens }: { initialTokens: ApiToken[] }) {
       </Link>
       <h1 className="mt-3 text-2xl font-bold">{t("tokens.title")}</h1>
       <p className="mt-2 text-[13.5px] text-muted-foreground">{t("tokens.intro")}</p>
+
+      <ConnectAgent
+        mcpUrl={mcpUrl}
+        tokens={tokens}
+        onSelect={setWatching}
+        onCreated={(record) => setTokens((list) => [record, ...list])}
+      />
 
       <section className="mt-7">
         <h2 className="text-base font-bold">

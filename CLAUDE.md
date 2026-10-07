@@ -549,24 +549,66 @@ journal. What this means concretely:
 
 ## MCP access (added 2026-10-06)
 
-**Changed 2026-10-07, on request ("remove key creation for everyone"),
-uncommitted at time of writing — read this before the bullets below,
-several of which describe the removed part.** Tokens are now issued
-**only through OAuth sign-in** (see the OAuth bullet). Gone: the create
-form and the shown-once token box on `/tokens`, `POST /api/tokens`,
-`createApiToken()`, the 10-token cap. Kept: `GET /api/tokens`,
-`DELETE /api/tokens/:id`, and the `/tokens` page, relabelled "Connected
-apps" / "已連結的應用程式" (page title and avatar-menu item; zh-TW by the
-agent, unreviewed) — it is the only place to cut off an OAuth grant.
-**Personal tokens made earlier still authenticate until revoked**
-(`authenticateBearer` is unchanged): at the time one was live, Avery's
-`claude-code` token, used by Claude Code against staging; Avery was told
-to move Claude Code and Claude Desktop to OAuth and revoke it. What this
-costs, said to Avery beforehand: no access for anything that can't open
-a browser to press Allow (scripts, scheduled jobs, the OpenAI Responses
-API `mcp` tool with a bearer). Checked in cmux: `/tokens` shows the list
-with Revoke and no form; `POST /api/tokens` signed in → 405. The agent's
-own tests that mint tokens must now insert `api_tokens` rows directly.
+**2026-10-07, personal tokens removed and put back the same day.** On
+request ("remove key creation for everyone") the create form, `POST
+/api/tokens`, `createApiToken()` and the 10-token cap were taken out once
+OAuth worked, and deployed to staging in `66372a5`. A few hours later
+Avery asked for them back ("bring the personal keys back", uncommitted at
+time of writing): ChatGPT's connectors need a paid plan, Gemini's
+registration was refused (below), and nothing that can't open a browser
+(scripts, custom agents, the OpenAI API) had a way in. **Both routes stay:
+OAuth for chat apps (the only route Claude mobile has), personal tokens
+for everything else** — don't remove either again unasked. The page
+(`/tokens`, avatar menu) is now "Apps & tokens" / "應用程式與權杖": the
+connected list first, then "New personal token". OAuth grants don't count
+against the 10-token cap. zh-TW by the agent, unreviewed. The agent's own
+SDK client check of the morning had NOT cleaned up as recorded below: two
+`client-check` tokens and one session under a fake owner (`mcp-client-c…`)
+were found and deleted.
+**"Connect an agent" (same day, on request: "a streamlined flow of
+connecting to their different agents"; uncommitted at time of writing).**
+`components/connect-agent.tsx`, the top card of `/tokens` (page title
+"Agents" / "AI 代理", avatar-menu item "Connect an agent" / "連結 AI 代理";
+the standalone token form is gone, tokens are made inside this card).
+Pick a tile — Claude, ChatGPT, Claude Code, Cursor, Something else — and
+see only that agent's steps with the server URL / `claude mcp add`
+command / Cursor `mcp.json` prefilled and a Copy button. **The user
+never chooses OAuth vs token; the tile does**: Claude, ChatGPT and
+Claude Code sign in (OAuth); Cursor gets a personal token created by one
+button and dropped into the snippet; "Something else" shows the URL,
+then OAuth if the agent can, else a token + header. The URL is this
+deployment's own (`app/tokens/page.tsx` reads host/proto from the
+request), never hard-coded. A status line says "Waiting for your agent to
+connect…" and flips to "Connected: …" when a new OAuth grant appears or
+the just-made token is first used — `components/api-tokens.tsx` re-reads
+`GET /api/tokens` every 4 s while a tile is selected (visible tab only,
+10 min max). **The agent's choices**: which tiles (Gemini left out until
+it is confirmed working), "Read and write" preselected, the Cursor
+snippet shape (`url` + `headers`, from memory of Cursor's docs, not
+tried in Cursor), and the step wording for claude.ai / ChatGPT menus
+(third-party guides; ChatGPT's needs a paid plan and was never tried).
+Checked in cmux on the dev server at the pane width and 375 px: Claude,
+Claude Code and Cursor tiles; Cursor's token created (Read only), shown
+in the snippet, then used once → "Connected: Cursor"; test token deleted.
+Not checked: ChatGPT and Something else tiles, the OAuth "Connected"
+path live (needs an app connecting while the page is open), zh-TW
+(the agent's wording, unreviewed).
+**Gemini (same day):** adding Surflog as a custom app in Gemini failed
+with "The Google redirect URL was rejected by the server. Enter your
+OAuth client ID and client secret to connect." Not seen in our logs (the
+Vercel MCP log read returns 403 for this project; the CLI isn't
+installed) — cause inferred from other servers' reports of the same
+client: Gemini registers with **more than five redirect URIs** (all
+`https://oauth-redirect.googleusercontent.com/r/user_bound_custom-mcp-…`)
+and asks for a secret-based `token_endpoint_auth_method`.
+`MAX_REDIRECT_URIS` 5 → 20; the token endpoint also takes the client id
+from HTTP Basic (password ignored; we still answer `none` and issue no
+secret); a refused registration now logs its reason, URI count and hosts
+(`[oauth] registration refused`). Checked locally with an 8-URI
+registration shaped like Gemini's (201, deleted after). **Not confirmed
+with Gemini itself**, and Google's forum has open reports of Gemini
+custom apps never calling the token endpoint after the callback, which
+would be on their side.
 **Which app is which (same day, on request):** each entry on `/tokens`
 shows the host its sign-in returns to (`Claude claude.ai · Read and
 write`; from the client's registered redirect URIs — the name is
@@ -581,9 +623,6 @@ app registers anew each time someone adds it. Web, desktop and phone of
 one account share one grant, so devices can't be told apart. Checked in
 cmux on real data (one Claude grant, one personal token); zh-TW strings
 by the agent, unreviewed.
-Also found the same day: the 2026-10-07 SDK client check had NOT cleaned
-up as recorded below — two `client-check` tokens and one session under a
-fake owner (`mcp-client-c…`) were still there; deleted.
 
 Avery asked to open MCP so users can create/read/update/delete their
 session logs from an MCP client. Built in three steps the same day.

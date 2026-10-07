@@ -180,3 +180,18 @@ describe("listConnectedServices", () => {
     expect(JSON.stringify(out)).not.toMatch(/owner/);
   });
 });
+
+describe("registerClient", () => {
+  const uri = (n: number) => `https://oauth-redirect.googleusercontent.com/r/user_bound_custom-mcp-${n}`;
+  it("accepts a client that lists more than five callbacks (Gemini)", async () => {
+    const { registerClient } = await import("@/lib/oauth");
+    const out = await registerClient({ name: "Gemini", redirectUris: Array.from({ length: 8 }, (_, i) => uri(i)) });
+    expect(out.ok && out.client.redirectUris.length).toBe(8);
+  });
+  it("still refuses an absurd number, an empty list, and a bad URI among good ones", async () => {
+    const { registerClient } = await import("@/lib/oauth");
+    expect((await registerClient({ name: "x", redirectUris: Array.from({ length: 21 }, (_, i) => uri(i)) })).ok).toBe(false);
+    expect((await registerClient({ name: "x", redirectUris: [] })).ok).toBe(false);
+    expect((await registerClient({ name: "x", redirectUris: [uri(1), "http://evil.example/cb"] })).ok).toBe(false);
+  });
+});

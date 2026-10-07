@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { registerSurflogTools } from "@/lib/mcp-tools";
 import { MCP_REQUESTS, MCP_WRITES } from "@/lib/rate-limit";
-import type { TokenScope } from "@/lib/token-auth";
+import { MAX_ACTIVE_TOKENS, type TokenScope } from "@/lib/token-auth";
 
 /**
  * /dev/mcp — what the MCP endpoint (/api/mcp) can and can't do.
@@ -84,7 +84,7 @@ const NOT_AVAILABLE = [
   "Rich text in notes — notes go in and come out as plain text; bullets and bold written in the app are flattened on read, and lost if the note is rewritten through MCP.",
   "Hand-entered conditions, raw condition blobs (secondary swell, wind waves, full tide curve, grid node) and “Refresh conditions”.",
   "Other people's data — every tool is bound to the token's owner; a foreign id answers “not found”.",
-  "Token management — a token can't list or revoke connected apps, or approve a new one (browser sign-in only, at /tokens and the consent page).",
+  "Token management — a token can't create, list or revoke tokens, or approve an app (browser sign-in only, at /tokens and the consent page).",
 ];
 
 const RULES = [
@@ -154,9 +154,9 @@ export default function McpDocPage() {
             <tbody>
               {[
                 ["Endpoint", "POST /api/mcp — Streamable HTTP, stateless"],
-                ["Auth", "OAuth sign-in (authorization code + PKCE, open client registration): add the URL as a connector, sign in with Google, press Allow. The client then sends Authorization: Bearer sfl_… (1-hour access token, refreshed automatically). Personal tokens can no longer be created; ones made earlier work until revoked."],
+                ["Auth", "Authorization: Bearer sfl_… obtained either way: OAuth sign-in (authorization code + PKCE, open client registration — add the URL as a connector, sign in, press Allow; 1-hour access token, refreshed automatically), or a personal token made at /tokens for clients that can't sign in."],
                 ["Scopes", `read → ${readTools.length} tools · write → ${allTools.length} tools`],
-                ["Connected apps", "Listed at /tokens, each revocable; only hashes are stored"],
+                ["Apps & tokens", `Listed at /tokens, each revocable; only hashes are stored. A personal token is shown once; up to ${MAX_ACTIVE_TOKENS} active per person (app connections don't count)`],
                 ["Request limit", `${MCP_REQUESTS.limit} requests per ${MCP_REQUESTS.windowMs / 1000} s per person (429 + Retry-After)`],
                 ["Change limit", `${MCP_WRITES.limit} session or goal changes per ${MCP_WRITES.windowMs / 60_000} min per person`],
               ].map(([k, v]) => (
