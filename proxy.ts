@@ -60,6 +60,9 @@ export default auth((req) => {
   // path prefix; every other route's auth is untouched.
   const isDevRoute = pathname === "/dev" || pathname.startsWith("/dev/");
   if (isDevRoute && process.env.NODE_ENV !== "production") return;
+  if (isDevRoute && process.env.NODE_ENV === "production") {
+    return new NextResponse("Not Found", { status: 404 });
+  }
 
   if (!req.auth) {
     if (pathname.startsWith("/api/")) {
