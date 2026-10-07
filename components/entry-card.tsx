@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ConditionTile, Figure } from "@/components/condition-tile";
 import { EditPanel } from "@/components/edit-panel";
+import { ShareDialog } from "@/components/share-dialog";
 import { MediaViewer } from "@/components/media-viewer";
 import { cn } from "cn";
 import { useSpotCatalog } from "@/lib/spot-catalog";
@@ -22,7 +23,8 @@ import { computeSessionFit } from "@/lib/session-fit";
 import { compassLabel, fmt1, fmtWhen } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import { TideChart } from "@/components/tide-chart";
-import { TideEventsSub, tideTrend } from "@/components/tide-events";
+import { TideEventsSub } from "@/components/tide-events";
+import { pickTide } from "@/lib/tide-display";
 import { DirectionArrow } from "@/components/direction-arrow";
 import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
@@ -31,7 +33,7 @@ import { TileGroup } from "@/components/tile-group";
 import { PillNeck } from "@/components/pill-neck";
 import { sessionAchieved } from "@/lib/goal";
 import { boardLabel } from "@/lib/boards";
-import type { Board, Session, TideEvent } from "@/lib/types";
+import type { Board, Session } from "@/lib/types";
 
 export function EntryCard({
   session,
@@ -56,6 +58,7 @@ export function EntryCard({
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   // Which photo/video is open full-screen (index into session.photos), or null.
   const [viewing, setViewing] = useState<number | null>(null);
 
@@ -80,7 +83,6 @@ export function EntryCard({
   }
 
   const om = session.condOpenMeteo;
-  const cwa = session.condCwaTide;
   const hasTemp = om?.seaTempC != null || om?.airTempC != null;
   const board = session.boardId ? boards.find((b) => b.id === session.boardId) : undefined;
   const achieved = sessionAchieved(session);
@@ -88,24 +90,10 @@ export function EntryCard({
   const hasShore = !!fit && !fit.missing.includes("windDirDeg") && !fit.missing.includes("spot.facing");
   // CWA's tide forecast wins whenever it covers the session (accurate to
   // ~10 min against real references; Open-Meteo's offshore grid node runs
-  // 20-65 min off — see CLAUDE.md "CWA tide forecast", 2026-09-28). CWA is
-  // forward-only (~32 days), so most past/overseas sessions still fall back
-  // to Open-Meteo's tideEvents, same as before.
-  const cwaEvents = cwa?.events ?? [];
-  const omEvents = om?.tideEvents ?? [];
-  const tideSource: "cwa" | "open-meteo" | null =
-    cwaEvents.length > 0 ? "cwa" : omEvents.length > 0 ? "open-meteo" : null;
-  const tideEvents = tideSource === "cwa" ? cwaEvents : omEvents;
-  // Older CWA rows (pre-2026-09-24) only ever stored the single nearest
-  // event, not `events` — build a one-item array so tideTrend() (which
-  // already handles a lone event) can still read a direction off it.
-  const cwaLegacyEvent: TideEvent[] =
-    cwa?.time && cwa?.tideType ? [{ type: cwa.tideType, time: cwa.time.slice(0, 16), heightM: cwa.tideM }] : [];
-  const tideTrendValue =
-    tideTrend(tideEvents, session.when) ??
-    tideTrend(cwaLegacyEvent, session.when) ??
-    om?.seaLevelTrend ??
-    null;
+  // 20-65 min off — see CLAUDE.md "CWA tide forecast", 2026-09-28). The
+  // choice and the rising/falling headline live in lib/tide-display.ts so
+  // the share images and public page read the same thing.
+  const { source: tideSource, events: tideEvents, trend: tideTrendValue } = pickTide(session);
   const trendHeadline = (trend: "rising" | "falling" | null) =>
     trend ? <Figure value={<span className="capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>} /> : null;
 
@@ -166,6 +154,10 @@ export function EntryCard({
               <Pencil />
               {t("entry.edit")}
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+              <Share2 />
+              {t("entry.share")}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onSelect={() => setDeleteDialogOpen(true)}
@@ -178,6 +170,15 @@ export function EntryCard({
         </DropdownMenu>
         </>)}
       </div>
+
+      {!readOnly && (
+        <ShareDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          sessionId={session.id}
+          fileStem={session.when.slice(0, 10)}
+        />
+      )}
 
       <Dialog
         open={deleteDialogOpen}

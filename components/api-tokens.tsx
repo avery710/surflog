@@ -3,52 +3,23 @@
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Copy, KeyRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { fmtDate } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
-import type { ApiToken, TokenScope } from "@/lib/token-auth";
+import type { ApiToken } from "@/lib/token-auth";
+import { useLocalStamp } from "@/lib/use-local-stamp";
 
-/** /tokens — make and revoke personal access tokens. The plain token comes
- *  back once from POST /api/tokens and is held only in this component's state
- *  until dismissed; the server keeps just its hash. */
+/** /tokens — the apps connected to this journal, each with a Revoke button.
+ *  An app gets connected by signing in through it (OAuth, /oauth/authorize);
+ *  there is no way to make a token by hand here any more (removed 2026-10-07). */
 export function ApiTokens({ initialTokens }: { initialTokens: ApiToken[] }) {
   const { lang, t } = useLang();
   const [tokens, setTokens] = useState(initialTokens);
-  const [name, setName] = useState("");
-  const [scope, setScope] = useState<TokenScope>("write");
-  const [creating, setCreating] = useState(false);
-  const [fresh, setFresh] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const active = tokens.filter((tk) => !tk.revokedAt);
   const revoked = tokens.filter((tk) => tk.revokedAt);
-  const day = (iso: string) => fmtDate(iso.slice(0, 10), lang, false);
-
-  async function create(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim() || creating) return;
-    setCreating(true);
-    try {
-      const res = await fetch("/api/tokens", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), scope }),
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok || !body?.token) throw new Error(body?.error ?? t("tokens.couldntCreate"));
-      setFresh(body.token);
-      setTokens((list) => [body.record as ApiToken, ...list]);
-      setName("");
-      toast.success(t("tokens.created"));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("tokens.couldntCreate"));
-    } finally {
-      setCreating(false);
-    }
-  }
+  const day = useLocalStamp(lang);
 
   async function revoke(id: string) {
     if (confirming !== id) {
@@ -66,15 +37,6 @@ export function ApiTokens({ initialTokens }: { initialTokens: ApiToken[] }) {
     }
   }
 
-  async function copy(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(t("tokens.copied"));
-    } catch {
-      // clipboard blocked — the token is selectable in the box above
-    }
-  }
-
   return (
     <div className="mx-auto w-full min-w-0 max-w-[640px] flex-1 px-4.5 pb-18 pt-6">
       <Link
@@ -86,60 +48,6 @@ export function ApiTokens({ initialTokens }: { initialTokens: ApiToken[] }) {
       </Link>
       <h1 className="mt-3 text-2xl font-bold">{t("tokens.title")}</h1>
       <p className="mt-2 text-[13.5px] text-muted-foreground">{t("tokens.intro")}</p>
-
-      {fresh && (
-        <div role="status" className="mt-5 rounded-[var(--r-tile)] border border-primary bg-card p-4">
-          <div className="text-[13.5px] font-semibold">{t("tokens.copyNow")}</div>
-          <div className="mt-2 flex items-center gap-2">
-            <code
-              className="min-w-0 flex-1 select-all break-all rounded-lg bg-muted px-2.5 py-2 font-mono text-[12.5px]"
-              data-testid="new-token"
-            >
-              {fresh}
-            </code>
-            <Button type="button" variant="outline" onClick={() => copy(fresh)}>
-              <Copy aria-hidden />
-              {t("tokens.copy")}
-            </Button>
-          </div>
-          <Button type="button" className="mt-3" onClick={() => setFresh(null)}>
-            {t("tokens.dismiss")}
-          </Button>
-        </div>
-      )}
-
-      <form onSubmit={create} className="mt-5 flex flex-col gap-3 rounded-[var(--r-card)] border bg-card p-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="token-name">{t("tokens.nameLabel")}</Label>
-          <Input
-            id="token-name"
-            value={name}
-            maxLength={60}
-            placeholder={t("tokens.namePlaceholder")}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <fieldset className="flex flex-col gap-1.5">
-          <legend className="mb-1.5 text-sm font-medium">{t("tokens.scopeLabel")}</legend>
-          <div className="flex flex-wrap gap-2">
-            {(["read", "write"] as const).map((s) => (
-              <Button
-                key={s}
-                type="button"
-                variant={scope === s ? "default" : "outline"}
-                aria-pressed={scope === s}
-                onClick={() => setScope(s)}
-              >
-                {t(s === "read" ? "tokens.scopeRead" : "tokens.scopeWrite")}
-              </Button>
-            ))}
-          </div>
-        </fieldset>
-        <Button type="submit" disabled={!name.trim() || creating} className="self-start">
-          <KeyRound aria-hidden />
-          {t("tokens.create")}
-        </Button>
-      </form>
 
       <section className="mt-7">
         <h2 className="text-base font-bold">
@@ -158,6 +66,8 @@ export function ApiTokens({ initialTokens }: { initialTokens: ApiToken[] }) {
                   <div className="truncate text-[14px] font-semibold">
                     {tk.name}{" "}
                     <span className="font-mono text-[11.5px] font-medium text-muted-foreground">
+                      {tk.kind === "app" ? tk.host : t("tokens.personal")}
+                      {" · "}
                       {t(tk.scope === "read" ? "tokens.scopeRead" : "tokens.scopeWrite")}
                     </span>
                   </div>

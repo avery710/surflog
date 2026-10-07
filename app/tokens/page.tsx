@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { ApiTokens } from "@/components/api-tokens";
 import { listApiTokens } from "@/lib/token-auth";
 
-/** /tokens — create and revoke the caller's personal access tokens. */
+/** /tokens — the apps connected to the caller's journal (OAuth grants, plus any
+ *  personal token made before those were removed), each revocable. */
 export default async function TokensPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/signin?callbackUrl=/tokens");

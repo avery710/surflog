@@ -12,7 +12,7 @@
  */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { getSupabase } from "./supabase";
-import { hashToken, PREFIX, type TokenScope } from "./token-auth";
+import { hashToken, PREFIX, redirectHosts, type TokenScope } from "./token-auth";
 
 export const ACCESS_TOKEN_TTL_S = 60 * 60;
 const REFRESH_TOKEN_TTL_MS = 60 * 24 * 60 * 60 * 1000;
@@ -244,4 +244,53 @@ export async function parseAuthorizeRequest(p: Record<string, string | undefined
   const asked = (p.scope ?? "").split(/\s+/).filter(Boolean);
   const defaultScope: TokenScope = asked.length > 0 && asked.every((s) => s === "read") ? "read" : "write";
   return { client, redirectUri: p.redirect_uri, codeChallenge: challenge, state: (p.state ?? "").slice(0, 500), defaultScope };
+}
+
+/** One line of the admin's "Connected services" table: an app (grouped by the
+ *  name it registered with and where its sign-in returns to) and how many
+ *  people currently have it connected. Counts only — never who. */
+export interface ConnectedService {
+  /** "personal" = hand-made tokens from before those were removed. */
+  kind: "app" | "personal";
+  name: string;
+  host: string | null;
+  users: number;
+  connections: number;
+  lastUsedAt: string | null;
+}
+
+/** Admin only (the caller checks). Active = not revoked; an app whose every
+ *  grant was revoked, or that registered and was never approved, is left out. */
+export async function listConnectedServices(): Promise<ConnectedService[]> {
+  const { data, error } = await getSupabase()
+    .from("api_tokens")
+    .select("owner_id, last_used_at, client_id, oauth_clients(client_name, redirect_uris)")
+    .is("revoked_at", null);
+  if (error) throw new Error(`Supabase listConnectedServices: ${error.message}`);
+
+  const groups = new Map<string, { svc: ConnectedService; owners: Set<string> }>();
+  for (const row of data as unknown as {
+    owner_id: string;
+    last_used_at: string | null;
+    client_id: string | null;
+    oauth_clients: { client_name: string; redirect_uris: unknown } | null;
+  }[]) {
+    const app = row.client_id != null;
+    const name = app ? (row.oauth_clients?.client_name ?? "MCP client") : "";
+    const host = app ? redirectHosts(row.oauth_clients?.redirect_uris).join(", ") || null : null;
+    // An app registers anew each time someone adds it, so group by what it
+    // says it is and where it lives, not by client id.
+    const key = app ? `app\u0000${name}\u0000${host}` : "personal";
+    const g = groups.get(key) ?? {
+      svc: { kind: app ? "app" : "personal", name, host, users: 0, connections: 0, lastUsedAt: null },
+      owners: new Set<string>(),
+    };
+    g.owners.add(row.owner_id);
+    g.svc.connections++;
+    if (row.last_used_at && (!g.svc.lastUsedAt || row.last_used_at > g.svc.lastUsedAt)) g.svc.lastUsedAt = row.last_used_at;
+    groups.set(key, g);
+  }
+  return [...groups.values()]
+    .map((g) => ({ ...g.svc, users: g.owners.size }))
+    .sort((a, b) => (a.kind === b.kind ? b.users - a.users || a.name.localeCompare(b.name) : a.kind === "app" ? -1 : 1));
 }

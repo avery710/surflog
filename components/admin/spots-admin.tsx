@@ -24,9 +24,12 @@ type DialogState = { kind: "add" } | { kind: "edit"; spot: Spot } | { kind: "app
 export function SpotsAdmin({
   initialSpots,
   initialRequests,
+  children,
 }: {
   initialSpots: Spot[];
   initialRequests: SpotRequest[];
+  /** Further admin sections, rendered under the catalogue. */
+  children?: React.ReactNode;
 }) {
   const { lang, t } = useLang();
   const [spots, setSpots] = useState(initialSpots);
@@ -246,6 +249,7 @@ export function SpotsAdmin({
             </div>
           ))}
         </section>
+        {children}
       </div>
 
       <AddSpotDialog

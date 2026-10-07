@@ -156,3 +156,27 @@ describe("originOf", () => {
     expect(originOf(new Request("http://localhost:3000/x"))).toBe("http://localhost:3000");
   });
 });
+
+describe("listConnectedServices", () => {
+  it("groups by app name and host, counts distinct users, and never returns an owner", async () => {
+    const claude = { client_name: "Claude", redirect_uris: ["https://claude.ai/api/mcp/auth_callback"] };
+    result.next = {
+      data: [
+        { owner_id: "a", last_used_at: "2026-10-07T06:00:00Z", client_id: "c1", oauth_clients: claude },
+        { owner_id: "a", last_used_at: "2026-10-07T08:00:00Z", client_id: "c2", oauth_clients: claude },
+        { owner_id: "b", last_used_at: null, client_id: "c3", oauth_clients: claude },
+        { owner_id: "b", last_used_at: null, client_id: "c4", oauth_clients: { client_name: "Claude", redirect_uris: ["https://evil.example/cb"] } },
+        { owner_id: "a", last_used_at: null, client_id: null, oauth_clients: null },
+      ],
+      error: null,
+    };
+    const { listConnectedServices } = await import("@/lib/oauth");
+    const out = await listConnectedServices();
+    expect(out).toEqual([
+      { kind: "app", name: "Claude", host: "claude.ai", users: 2, connections: 3, lastUsedAt: "2026-10-07T08:00:00Z" },
+      { kind: "app", name: "Claude", host: "evil.example", users: 1, connections: 1, lastUsedAt: null },
+      { kind: "personal", name: "", host: null, users: 1, connections: 1, lastUsedAt: null },
+    ]);
+    expect(JSON.stringify(out)).not.toMatch(/owner/);
+  });
+});

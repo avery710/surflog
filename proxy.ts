@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { publicSharePath } from "@/lib/share-paths";
+import { clientIp, limitShareRequest } from "@/lib/share-limits";
 
 /**
  * Everything requires sign-in except the auth routes themselves and the
@@ -33,6 +35,21 @@ export default auth((req) => {
     pathname === "/api/oauth/register" ||
     pathname === "/api/oauth/token"
   ) {
+    return;
+  }
+
+  // Public share links: exactly /s/<token>, /s/<token>/card.png and
+  // /api/share/<token>/media/<id> (lib/share-paths.ts). Each handler does its
+  // own token check; here only the per-IP request limit is applied.
+  const shareKind = publicSharePath(pathname);
+  if (shareKind) {
+    const limited = limitShareRequest(clientIp(req.headers), shareKind);
+    if (!limited.ok) {
+      return new NextResponse("Too many requests", {
+        status: 429,
+        headers: { "Retry-After": String(limited.retryAfterS), "Cache-Control": "no-store" },
+      });
+    }
     return;
   }
 

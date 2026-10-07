@@ -549,6 +549,42 @@ journal. What this means concretely:
 
 ## MCP access (added 2026-10-06)
 
+**Changed 2026-10-07, on request ("remove key creation for everyone"),
+uncommitted at time of writing — read this before the bullets below,
+several of which describe the removed part.** Tokens are now issued
+**only through OAuth sign-in** (see the OAuth bullet). Gone: the create
+form and the shown-once token box on `/tokens`, `POST /api/tokens`,
+`createApiToken()`, the 10-token cap. Kept: `GET /api/tokens`,
+`DELETE /api/tokens/:id`, and the `/tokens` page, relabelled "Connected
+apps" / "已連結的應用程式" (page title and avatar-menu item; zh-TW by the
+agent, unreviewed) — it is the only place to cut off an OAuth grant.
+**Personal tokens made earlier still authenticate until revoked**
+(`authenticateBearer` is unchanged): at the time one was live, Avery's
+`claude-code` token, used by Claude Code against staging; Avery was told
+to move Claude Code and Claude Desktop to OAuth and revoke it. What this
+costs, said to Avery beforehand: no access for anything that can't open
+a browser to press Allow (scripts, scheduled jobs, the OpenAI Responses
+API `mcp` tool with a bearer). Checked in cmux: `/tokens` shows the list
+with Revoke and no form; `POST /api/tokens` signed in → 405. The agent's
+own tests that mint tokens must now insert `api_tokens` rows directly.
+**Which app is which (same day, on request):** each entry on `/tokens`
+shows the host its sign-in returns to (`Claude claude.ai · Read and
+write`; from the client's registered redirect URIs — the name is
+self-declared, the host is not) or "Personal token" for an old key
+(`ApiToken.kind` / `.host`, `redirectHosts()` in `lib/token-auth.ts`).
+`/admin` gained a **Connected services** table at the bottom
+(`components/admin/connected-services.tsx`, `listConnectedServices()` in
+`lib/oauth.ts`): per app name + host, distinct users, active
+connections, last used — **counts only, no user is named**; old personal
+tokens are one row. Grouped by name + host, not client id, because an
+app registers anew each time someone adds it. Web, desktop and phone of
+one account share one grant, so devices can't be told apart. Checked in
+cmux on real data (one Claude grant, one personal token); zh-TW strings
+by the agent, unreviewed.
+Also found the same day: the 2026-10-07 SDK client check had NOT cleaned
+up as recorded below — two `client-check` tokens and one session under a
+fake owner (`mcp-client-c…`) were still there; deleted.
+
 Avery asked to open MCP so users can create/read/update/delete their
 session logs from an MCP client. Built in three steps the same day.
 
@@ -595,8 +631,10 @@ session logs from an MCP client. Built in three steps the same day.
   `tools/list`, refresh rotation, old access/refresh refused, wrong
   client refused, expired and revoked → 401), and once through the real
   consent page in cmux as Avery (Read only → Allow → code → 5 tools);
-  every row removed after. **Never tried**: claude.ai or the mobile app
-  as the client (needs staging), the zh-TW consent strings in a browser,
+  every row removed after. On staging since `1efb44e`; **Avery connected
+  claude.ai there the same day and reports it works** (the agent did not
+  see it; the mobile app itself was not reported on). **Never tried**:
+  ChatGPT or another non-Claude client, the zh-TW consent strings in a browser,
   the Cancel button, a phone-width consent card, a custom-scheme
   redirect.
 - **Token management is cookie-session only** (`/tokens` page,
@@ -687,6 +725,119 @@ session logs from an MCP client. Built in three steps the same day.
   signed-out behaviour was checked (2026-10-06): `POST /api/mcp` without
   a token → 401 with `WWW-Authenticate: Bearer`, `/tokens` → redirect to
   sign-in. No new env var was needed.
+
+## Share a session (added 2026-10-07, uncommitted, migration applied)
+
+Avery asked to share a session two ways: generated images to post/send, and
+a public link. Built in a worktree; nothing was run against the live
+project and nothing was tried in a browser or on a phone.
+
+- **Entry point**: session card ⋯ → **Share** → `components/share-dialog.tsx`
+  (preview, Sticker / Card switch, image-language switch, Share / Copy image
+  / Save image, the "Share link" switch with a copy-link field and a page-
+  language choice, and a hint for Instagram stories: copy or save, open
+  Instagram, paste the sticker — stories can't be opened from the web, and
+  there are no per-app deep-link buttons, by decision). Image language
+  starts as the app language. Everything is feature-detected: Share only
+  where `navigator.canShare({files})` accepts the PNG; Copy image only
+  with `ClipboardItem` (its blob is a Promise handed over synchronously in
+  the click, for iOS Safari); Save is a plain download.
+- **Images** (`lib/share-image.tsx`, next/og/satori; numbers from
+  `lib/share-card-data.ts`, which reuses the card's own rules: CWA-first
+  tide via `lib/tide-display.ts` — extracted from `entry-card.tsx`, whose
+  look is unchanged —, wind label, shore word, compass, formatters). Both
+  show spot, date/time, swell, period, wind, water temp, tide direction +
+  next turning point, board name, notes, a Surflog wordmark (text, not the
+  logo svg); never goal ticks. Missing tiles are left out, like the card.
+  - **Sticker**: 1080 px wide, height from content, fully transparent
+    canvas (checked: corner alpha 0, plate alpha 215/255) holding one dark
+    rounded plate (84% opaque) with white text. Chosen over bare text with a
+    shadow because a plate reads on bright sky/sea glare and on a dark
+    photo alike. Notes max 4 lines.
+  - **Card**: 1080x1350 (Instagram 4:5), Surflog blue field + white card.
+    Notes max 7 lines.
+  - **og** (not offered in the dialog): 1200x630 cut of the card, used only
+    for link previews, because chat apps and X crop a portrait image badly;
+    notes max 2 lines. Avery said "the solid card" for previews — this is
+    that card, landscape.
+  - Notes wrapped by us (`lib/share-text.ts`, estimated glyph widths, CJK
+    per character, no line starting with closing punctuation, code points
+    never split) and cut with "…". Estimates, not font metrics.
+  - **Fonts** (`lib/share-fonts.ts`): satori can't read the app's WOFF2
+    next/font files, so Funnel Sans, IBM Plex Mono and Noto Sans TC (all SIL
+    OFL) are fetched as TTF *subsets* from Google Fonts' CSS API with
+    `&text=<glyphs drawn>` and an old User-Agent, cached in memory per
+    instance. Nothing bundled; costs 3-4 outbound requests on a cold start,
+    and if Google is unreachable the image routes answer 503. No committed
+    fallback files (a Latin-only fallback is the obvious hardening).
+  - Verified here by rendering through a dev route and looking at the PNGs
+    (en and zh-TW, long CJK notes, no notes, sparse data, no conditions):
+    layout, CJK glyphs, truncation, alpha. Not verified: how a sticker
+    looks pasted into a real story.
+- **Public link** (migration `20261008000000_create_session_shares.sql`,
+  applied to the live project 2026-10-07): table `session_shares` (token PK, session_id unique with
+  `on delete cascade`, owner_id, lang, owner_name, owner_image). Private by
+  default; on = a row with a 32-byte base64url token (43 chars); off =
+  the row is deleted, so the link 404s at once and turning it on again mints
+  a new token; turning on twice keeps the token. **The token is stored
+  plain, not hashed**: the owner must be able to copy the link again, and
+  a hash can't give it back. A database leak would reveal live links, but
+  those only open what the page shows anyway, and the table is service-role
+  only (RLS on, no policies). Owner name and Google avatar URL are
+  **snapshotted** into the row when sharing is turned on (nothing else
+  knows them) and refresh on every enable call.
+  - `lib/session-share.ts`: owner functions (`getShareStatus`,
+    `enableShare`, `disableShare`, `ownedShareCard`: a session that isn't the
+    caller's is 404) and public ones that return only `PublicShare`
+    (`lib/share-public.ts`), built field by field — no ownerId, sub, email,
+    goal, spot notes, raw condition blobs, session id, token. A test
+    (`tests/session-share.test.ts`) feeds it a session full of secrets and
+    checks none appears and that the key list is exactly the allow-list.
+  - Routes: owner, cookie only (never bearer): `GET/PUT/DELETE
+    /api/sessions/:id/share`, `GET /api/sessions/:id/share-image?variant=
+    sticker|card&lang=`. Public: page `/s/<token>`, `/s/<token>/card.png
+    [?v=og|card&lang=]`, `/api/share/<token>/media/<blobId>`. `/api/blob/:id`
+    is untouched and still owner-only; the media route serves a blob only if
+    it is one of the shared session's own photos and recorded as the owner's,
+    images ≤4 MB through the function, videos/larger by 302 to a **15-minute**
+    signed URL (the owner route uses an hour; the link outlives "off" for
+    that long), with `nosniff` and a sandboxing CSP on bytes we serve.
+  - **`proxy.ts` lets through only those three path shapes**
+    (`lib/share-paths.ts`: base64url token 20-128 chars, 32-hex blob id,
+    exact `card.png`); `/s/short`, `/s/<token>/x` etc. still redirect to
+    sign-in (checked). The proxy also applies the per-IP limit: page 60/min,
+    image 20/min, media 300/min; handlers add 20 misses/min per IP
+    (unknown and turned-off tokens give the identical 404, over budget 429).
+    In memory per instance (`lib/rate-limit.ts`): a brake, not a quota.
+    Verified the 429 locally; the IP is the first `x-forwarded-for` hop.
+  - **Caching**: page `force-dynamic`; card.png `no-store`; media
+    `private, max-age=60` (never public / s-maxage / immutable) — a shared
+    CDN copy would outlive "turn off". The cost is a render per crawler hit.
+  - Page language: the owner's choice if set, else Accept-Language
+    (`zh*` → zh-TW, else en); strings come from `lib/share-strings.ts`
+    (the server-side counterpart of `lib/i18n.tsx`, which is a client module;
+    a test fails if the copied keys drift). OG/Twitter tags use the og image
+    (`?v=og&lang=` in the URL, since crawlers send no Accept-Language), noindex,
+    `referrer: no-referrer`. Visitors see spot, date, tiles, board name, notes
+    (sanitized again), photos/videos, owner name + avatar, and an "Open
+    Surflog" button. The page does not reuse `EntryCard` (it takes a full
+    Session, which must never be sent to a stranger).
+- **/dev/share** shows seven synthetic cases in en/zh-TW (sticker on a
+  checkerboard and on light/dark stand-ins, card, og, public page) through
+  the real code; its image route `/dev/share/image` repeats the production
+  check itself (route handlers aren't covered by `app/dev/layout.tsx`).
+- **Checked 2026-10-07 in cmux on one real session (no notes, no media),
+  then undone** (0 rows left in `session_shares`): the ⋯ menu's Share item,
+  the dialog with the sticker preview at 734 px, Share link on → public
+  page 200 with the right OG tags, avatar and name, no private field in
+  the HTML → `card.png` 200 → off → page and image 404 → on again mints a
+  different token.
+- **Not verified**: the Card style and 中文 in the dialog, the Share /
+  Copy image / Save image buttons, a phone width, a session WITH notes or
+  media on the public page (so the share-scoped media route has never
+  served a real photo or video), iOS clipboard and share sheet, Instagram
+  paste, WhatsApp / LINE / Messages link previews, font fetching on
+  Vercel, anything on staging.
 
 ## The automation problem (read this first)
 

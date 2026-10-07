@@ -4,21 +4,8 @@ import { fmt1 } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
 import type { TideEvent } from "@/lib/types";
 
-/**
- * Whether the tide was rising or falling at the session, read off the
- * bracketing events: heading toward a high (or just past a low) means
- * rising. Works with a single event too — older CWA rows only stored the
- * nearest one. `time` and `sessionWhen` share the "YYYY-MM-DDTHH:mm"
- * format, so a string compare orders them.
- */
-export function tideTrend(input: TideEvent[], sessionWhen: string): "rising" | "falling" | null {
-  const events = [...input].sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
-  const next = events.find((e) => e.time > sessionWhen);
-  if (next) return next.type === "high" ? "rising" : "falling";
-  const prev = events.findLast((e) => e.time <= sessionWhen);
-  if (prev) return prev.type === "low" ? "rising" : "falling";
-  return null;
-}
+// tideTrend lives in lib/tide-display.ts (shared with the share images).
+export { tideTrend } from "@/lib/tide-display";
 
 /**
  * Small print under the rising/falling headline: the next low and next high

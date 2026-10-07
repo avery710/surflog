@@ -1,24 +1,25 @@
 /**
- * Personal access tokens (table `api_tokens`, see supabase/migrations/
- * 20261006000000_create_api_tokens.sql) — how a non-browser client such as an
- * MCP client proves who it acts for. The cookie-based Auth.js session is
- * unusable there.
+ * Bearer tokens for the MCP endpoint (table `api_tokens`) — how a non-browser
+ * client proves who it acts for. The cookie-based Auth.js session is unusable
+ * there.
  *
- * - The plain token (`sfl_` + 32 random bytes, base64url) is returned once by
- *   `createApiToken()`; only its SHA-256 is stored.
+ * - Tokens are issued only through OAuth sign-in (lib/oauth.ts) since
+ *   2026-10-07; making a personal token by hand was removed on request.
+ *   Personal tokens made before that have no `client_id` / `expires_at` and
+ *   keep working until revoked.
+ * - Only the SHA-256 of a token (`sfl_` + 32 random bytes) is stored.
  * - A token resolves to an owner and a scope; callers pass that owner to
  *   lib/session-service.ts, which does the per-row ownership checks.
- * - Managing tokens (create / list / revoke) is cookie-session only, never
- *   bearer: a leaked token must not be able to mint more tokens.
+ * - Listing and revoking is cookie-session only, never bearer: a leaked token
+ *   must not be able to see or manage the others.
  *
  * Server-only (Supabase service-role key, node:crypto).
  */
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { getSupabase } from "./supabase";
 
 const TABLE = "api_tokens";
 export const PREFIX = "sfl_";
-export const MAX_ACTIVE_TOKENS = 10;
 /** Only touch `last_used_at` when it is older than this — not on every call. */
 const LAST_USED_REFRESH_MS = 60_000;
 
@@ -37,6 +38,8 @@ interface TokenRow {
   client_id: string | null;
   /** OAuth access tokens expire; personal tokens never do. */
   expires_at: string | null;
+  /** Joined in by listApiTokens only. */
+  oauth_clients?: { redirect_uris: unknown } | null;
 }
 
 /** What the app shows and returns — never the hash. */
@@ -47,6 +50,27 @@ export interface ApiToken {
   createdAt: string;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  /** "app" = connected through OAuth sign-in; "personal" = a hand-made token
+   *  from before those were removed. */
+  kind: "app" | "personal";
+  /** Where the app's sign-in was sent back to (`claude.ai`). The app's name is
+   *  whatever it called itself; this is the part it can't make up. */
+  host: string | null;
+}
+
+/** The distinct hosts of a client's registered redirect URIs — for a custom
+ *  app scheme (no host) the scheme itself. */
+export function redirectHosts(uris: unknown): string[] {
+  if (!Array.isArray(uris)) return [];
+  const hosts = uris.flatMap((u) => {
+    try {
+      const url = new URL(String(u));
+      return [url.host || url.protocol];
+    } catch {
+      return [];
+    }
+  });
+  return [...new Set(hosts)];
 }
 
 function rowToToken(row: TokenRow): ApiToken {
@@ -57,6 +81,8 @@ function rowToToken(row: TokenRow): ApiToken {
     createdAt: row.created_at,
     lastUsedAt: row.last_used_at,
     revokedAt: row.revoked_at,
+    kind: row.client_id ? "app" : "personal",
+    host: redirectHosts(row.oauth_clients?.redirect_uris).join(", ") || null,
   };
 }
 
@@ -71,41 +97,11 @@ export function parseTokenScope(v: unknown): TokenScope | null {
 export async function listApiTokens(ownerId: string): Promise<ApiToken[]> {
   const { data, error } = await getSupabase()
     .from(TABLE)
-    .select("*")
+    .select("*, oauth_clients(redirect_uris)")
     .eq("owner_id", ownerId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(`Supabase listApiTokens: ${error.message}`);
   return (data as TokenRow[]).map(rowToToken);
-}
-
-export type CreateTokenResult =
-  | { ok: true; token: string; record: ApiToken }
-  | { ok: false; error: string };
-
-/** Mint a token. The plain value is in the result and nowhere else — it can't
- *  be shown again. Refuses past MAX_ACTIVE_TOKENS un-revoked tokens. */
-export async function createApiToken(ownerId: string, name: string, scope: TokenScope): Promise<CreateTokenResult> {
-  const supabase = getSupabase();
-
-  const { count, error: countError } = await supabase
-    .from(TABLE)
-    .select("id", { count: "exact", head: true })
-    .eq("owner_id", ownerId)
-    .is("client_id", null) // connector (OAuth) grants don't use up the personal-token allowance
-    .is("revoked_at", null);
-  if (countError) throw new Error(`Supabase createApiToken: ${countError.message}`);
-  if ((count ?? 0) >= MAX_ACTIVE_TOKENS) {
-    return { ok: false, error: `You can have at most ${MAX_ACTIVE_TOKENS} active tokens — revoke one first` };
-  }
-
-  const token = PREFIX + randomBytes(32).toString("base64url");
-  const { data, error } = await supabase
-    .from(TABLE)
-    .insert({ id: randomUUID(), owner_id: ownerId, name, scope, token_hash: hashToken(token) })
-    .select("*")
-    .single();
-  if (error) throw new Error(`Supabase createApiToken: ${error.message}`);
-  return { ok: true, token, record: rowToToken(data as TokenRow) };
 }
 
 /** Revoke one of the caller's own tokens. False when it isn't theirs / doesn't
