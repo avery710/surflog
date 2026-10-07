@@ -27,7 +27,7 @@ export function PublicShareView({
       <header className="bg-primary">
         <div className="mx-auto flex max-w-[680px] items-center justify-between px-4.5 py-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/surflog-logo.svg" alt="Surflog" className="h-7 w-auto" />
+          <img src="/surflog-logo.png" alt="Surflog" className="h-5 w-auto brightness-0 invert" />
           <a
             href={homeHref}
             className="rounded-full bg-card px-4 py-2 text-[13.5px] font-semibold text-primary outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-white"

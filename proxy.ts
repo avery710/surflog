@@ -79,6 +79,6 @@ export default auth((req) => {
 });
 
 export const config = {
-  // surflog-logo.svg is public/ — the sign-in and landing pages show it before sign-in.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|surflog-logo.svg).*)"],
+  // surflog-logo.png is public/ — the sign-in and landing pages show it before sign-in.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|surflog-logo.png).*)"],
 };

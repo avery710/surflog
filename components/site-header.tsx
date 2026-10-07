@@ -33,9 +33,15 @@ export function SiteHeader({
     >
       <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
         <Link href="/" className="rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-white">
-          {/* Black on the blue bar on purpose, as in journal.tsx. */}
+          {/* White on the blue bar, as in journal.tsx. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/surflog-logo.svg" alt="Surflog" width={2292} height={603} className="block h-9 w-auto" />
+          <img
+            src="/surflog-logo.png"
+            alt="Surflog"
+            width={1200}
+            height={228}
+            className="block h-6 w-auto brightness-0 invert"
+          />
         </Link>
         <div className="flex items-center gap-2.5">
           {/* Same white circle as the journal's "+". The log form only exists

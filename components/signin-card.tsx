@@ -20,7 +20,7 @@ export function SignInCard({
     <div className="w-full max-w-[360px] rounded-[var(--r-card)] border border-card-border bg-card p-8 text-center">
       <h1>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/surflog-logo.svg" alt="Surflog" width={2292} height={603} className="mx-auto block h-9 w-auto" />
+        <img src="/surflog-logo.png" alt="Surflog" width={1200} height={228} className="mx-auto block h-6 w-auto" />
       </h1>
       <p className="mt-1.5 text-[14px] font-medium text-muted-foreground">{t("signin.subtitle")}</p>
 

@@ -230,14 +230,17 @@ export function Journal({
       >
         <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
           <h1 className="py-1">
-            {/* Stays black even on the blue bar — asked for specifically
-                (2026-10-02): the earlier `brightness-0 invert` (white
-                wordmark) was tried and reverted the same session. Black
-                on `#0018FF` is ~2.6:1, under the 4.5:1 small-text floor,
-                but accepted here as a deliberate choice for the logotype,
-                not an oversight — see CLAUDE.md's header note. */}
+            {/* White wordmark on the blue bar (2026-10-08, new logo file and
+                `brightness-0 invert` requested again — supersedes the
+                black-on-purpose note this comment used to have). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/surflog-logo.svg" alt="Surflog" width={2292} height={603} className="block h-9 w-auto" />
+            <img
+              src="/surflog-logo.png"
+              alt="Surflog"
+              width={1200}
+              height={228}
+              className="block h-6 w-auto brightness-0 invert"
+            />
           </h1>
           <div className="flex items-center gap-2.5">
             <Button

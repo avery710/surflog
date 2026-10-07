@@ -81,12 +81,17 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
         className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
       >
         <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
-          {/* Stays black even on the blue bar — see journal.tsx's matching
-              comment; the earlier white (`brightness-0 invert`) version
-              was tried and reverted the same session. */}
+          {/* White wordmark on the blue bar — see journal.tsx's matching
+              comment (2026-10-08: new logo file, white requested again). */}
           <div className="py-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/surflog-logo.svg" alt="Surflog" width={2292} height={603} className="block h-9 w-auto" />
+            <img
+              src="/surflog-logo.png"
+              alt="Surflog"
+              width={1200}
+              height={228}
+              className="block h-6 w-auto brightness-0 invert"
+            />
           </div>
           <div className="flex items-center gap-2.5">
             <form action={signInAction}>

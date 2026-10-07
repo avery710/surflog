@@ -30,7 +30,7 @@ export function OAuthConsent({
     <div className="w-full max-w-[400px] rounded-[var(--r-card)] border border-card-border bg-card p-8">
       <h1>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/surflog-logo.svg" alt="Surflog" width={2292} height={603} className="block h-8 w-auto" />
+        <img src="/surflog-logo.png" alt="Surflog" width={1200} height={228} className="block h-6 w-auto" />
       </h1>
 
       {!request ? (
