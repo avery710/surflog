@@ -236,7 +236,7 @@ const DICT = {
     en: "Anyone with the link sees the conditions, your notes, photos and videos, with no sign-in. Turn it off and the link stops working.",
     "zh-TW": "拿到連結的人不用登入，就能看到浪況、你的筆記、照片與影片。關閉後連結就會失效。",
   },
-  "landing.agent.title": { en: "Bring your own AI agent", "zh-TW": "接上你自己的 AI Agent" },
+  "landing.agent.title": { en: "Bring your own AI app", "zh-TW": "接上你自己的 AI App" },
   "landing.agent.body": {
     en: "Connect the AI you already use: Claude, ChatGPT, Gemini and more. Log a session by just saying so, then have it analyse your journal and give you advice. Conditions fill in the same way as when you log by hand.",
     "zh-TW": "連結你平常在用的 AI：Claude、ChatGPT、Gemini 等等。用一句話就能記錄一次下水，再請它分析你的日誌、給你建議。浪況會和手動記錄時一樣自動帶入。",
@@ -612,7 +612,7 @@ const DICT = {
   },
   // spot admin dashboard (/admin) — only ever rendered for SPOT_ADMIN_EMAILS
   "menu.spotAdmin": { en: "Spot admin", "zh-TW": "浪點管理" },
-  "menu.apiTokens": { en: "Connect an agent", "zh-TW": "連結 Agent" },
+  "menu.apiTokens": { en: "Connect an AI app", "zh-TW": "連結 AI App" },
   // /spots — the whole catalogue as a page
   "menu.spots": { en: "Surf spots", "zh-TW": "浪點總覽" },
   "spots.title": { en: "Surf spots", "zh-TW": "浪點總覽" },
@@ -646,8 +646,8 @@ const DICT = {
     "zh-TW": "選擇後將返回 {host}。僅在你從信任的應用程式發起時才繼續。",
   },
   "oauth.revokeNote": {
-    en: "You can revoke access any time under Connect an agent.",
-    "zh-TW": "你隨時可在「連結 Agent」中撤銷存取。",
+    en: "You can revoke access any time under Connect an AI app.",
+    "zh-TW": "你隨時可在「連結 AI App」中撤銷存取。",
   },
   "oauth.allow": { en: "Allow", "zh-TW": "允許" },
   "oauth.deny": { en: "Cancel", "zh-TW": "取消" },
@@ -655,19 +655,19 @@ const DICT = {
     en: "This connection link isn't valid. Go back to the app and start the connection again.",
     "zh-TW": "此連結無效。請回到應用程式重新發起連線。",
   },
-  "tokens.title": { en: "Agents", "zh-TW": "Agents" },
+  "tokens.title": { en: "AI apps", "zh-TW": "AI Apps" },
   "tokens.back": { en: "Back to journal", "zh-TW": "回到日誌" },
   "tokens.intro": {
-    en: "Let your own AI agent read and log your surf sessions. It acts as you, on your journal only, and you can cut it off here at any time.",
-    "zh-TW": "讓你自己的 AI Agent 讀取並記錄你的衝浪紀錄。它以你的身分操作，只限你的日誌，你隨時可在此中斷存取。",
+    en: "Let your own AI app read and log your surf sessions. It acts as you, on your journal only, and you can cut it off here at any time.",
+    "zh-TW": "讓你自己的 AI App 讀取並記錄你的衝浪紀錄。它以你的身分操作，只限你的日誌，你隨時可在此中斷存取。",
   },
   "tokens.scopeLabel": { en: "Access", "zh-TW": "權限" },
   "tokens.scopeRead": { en: "Read only", "zh-TW": "僅讀取" },
   "tokens.scopeWrite": { en: "Read and write", "zh-TW": "讀取與寫入" },
   "tokens.active": { en: "Connected", "zh-TW": "已連結" },
   "tokens.none": {
-    en: "Nothing connected yet. Pick your agent above to connect it.",
-    "zh-TW": "尚未連結任何項目。請在上方選擇你的 Agent 來連結。",
+    en: "Nothing connected yet. Pick your AI app above to connect it.",
+    "zh-TW": "尚未連結任何項目。請在上方選擇你的 AI App 來連結。",
   },
   "tokens.createdOn": { en: "Created {date}", "zh-TW": "建立於 {date}" },
   "tokens.lastUsed": { en: "Last used {date}", "zh-TW": "上次使用 {date}" },
@@ -682,10 +682,10 @@ const DICT = {
   "tokens.copied": { en: "Copied", "zh-TW": "已複製" },
   "tokens.dismiss": { en: "I've saved it", "zh-TW": "我已儲存" },
   "tokens.couldntCreate": { en: "Couldn't create the token", "zh-TW": "無法建立權杖" },
-  "connect.title": { en: "Connect an agent", "zh-TW": "連結 Agent" },
+  "connect.title": { en: "Connect an AI app", "zh-TW": "連結 AI App" },
   "connect.intro": { en: "Which one do you use?", "zh-TW": "你使用哪一個？" },
   "connect.other": { en: "Others", "zh-TW": "其他" },
-  "connect.otherTokenName": { en: "My agent", "zh-TW": "我的 Agent" },
+  "connect.otherTokenName": { en: "My AI app", "zh-TW": "我的 AI App" },
   "connect.pasteUrl": { en: "Name it Surflog and paste this URL:", "zh-TW": "名稱填 Surflog，並貼上此網址：" },
   "connect.allow": {
     en: "Sign in to Surflog if asked, choose what it may do, and press Allow.",
@@ -735,8 +735,8 @@ const DICT = {
   },
   "connect.cursor.3": { en: "Restart Cursor.", "zh-TW": "重新啟動 Cursor。" },
   "connect.other.1": {
-    en: "Point your agent at this MCP server (Streamable HTTP):",
-    "zh-TW": "將你的 Agent 指向此 MCP 伺服器（Streamable HTTP）：",
+    en: "Point your AI app at this MCP server (Streamable HTTP):",
+    "zh-TW": "將你的 AI App 指向此 MCP 伺服器（Streamable HTTP）：",
   },
   "connect.other.2": {
     en: "If it can sign in with OAuth, that's all: sign in and press Allow.",
@@ -746,8 +746,8 @@ const DICT = {
     en: "If not, name it, create a token and send it as this header:",
     "zh-TW": "若不支援，請為它命名、建立權杖，並以此標頭傳送：",
   },
-  "connect.waiting": { en: "Waiting for your agent to connect…", "zh-TW": "等待你的 Agent 連線…" },
-  "connect.nameLabel": { en: "Name for this agent", "zh-TW": "這個 Agent 的名稱" },
+  "connect.waiting": { en: "Waiting for your AI app to connect…", "zh-TW": "等待你的 AI App 連線…" },
+  "connect.nameLabel": { en: "Name for this AI app", "zh-TW": "這個 AI App 的名稱" },
   "connect.namePlaceholder": { en: "Name it, e.g. n8n, my script", "zh-TW": "取個名字，例如：n8n、我的腳本" },
   "connect.another": { en: "Connect another", "zh-TW": "再連結一個" },
   "connect.already": {

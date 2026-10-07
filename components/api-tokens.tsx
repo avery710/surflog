@@ -11,7 +11,7 @@ import { PAGE_COLUMN } from "@/lib/layout";
 import type { ApiToken } from "@/lib/token-auth";
 import { useLocalStamp } from "@/lib/use-local-stamp";
 
-/** /agents — "Connect an agent" (components/connect-agent.tsx) on top, then
+/** /ai-apps — "Connect an AI app" (components/connect-agent.tsx) on top, then
  *  everything that can already act on this journal from outside the app: apps
  *  connected by signing in (OAuth) and personal tokens, each revocable. */
 export function ApiTokens({ initialTokens, mcpUrl }: { initialTokens: ApiToken[]; mcpUrl: string }) {

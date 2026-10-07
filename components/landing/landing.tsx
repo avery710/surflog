@@ -181,7 +181,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
         </div>
       </Section>
 
-      {/* ③ Your own AI agent (MCP, see /agents). One card: a static mock
+      {/* ③ Your own AI agent (MCP, see /ai-apps). One card: a static mock
           conversation, nothing here calls the API. The agents are named in
           the description only (Claude, ChatGPT, Gemini — the ones seen to
           connect); the bullet list and "Works with" row were removed on

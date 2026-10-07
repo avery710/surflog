@@ -8,7 +8,7 @@ import { PAGE_COLUMN } from "@/lib/layout";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 
 /**
- * The blue bar on sub pages (/agents, /admin) — the journal's header: wordmark
+ * The blue bar on sub pages (/ai-apps, /admin) — the journal's header: wordmark
  * linking home, the log-session "+" (a link to `/?log=1`, since the form's
  * dialog only exists on the journal) and the same avatar menu. Kept visually
  * identical to the header in components/journal.tsx (same classes, same

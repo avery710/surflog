@@ -72,7 +72,7 @@ export function UserMenu({
         <DropdownMenuSeparator />
 
         <DropdownMenuItem asChild>
-          <Link href="/agents">
+          <Link href="/ai-apps">
             <KeyRound />
             {t("menu.apiTokens")}
           </Link>

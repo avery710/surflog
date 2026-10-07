@@ -5,7 +5,7 @@
  *
  * - Two ways to get one: OAuth sign-in from an app that supports it
  *   (lib/oauth.ts — the only route for claude.ai / mobile connectors), or a
- *   personal token made by hand on /agents, for anything that can't open a
+ *   personal token made by hand on /ai-apps, for anything that can't open a
  *   browser to press Allow (scripts, custom agents, API clients). Personal
  *   tokens were removed for a few hours on 2026-10-07 and put back the same
  *   day: OAuth alone left those clients with no way in.

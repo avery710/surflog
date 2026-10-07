@@ -9,7 +9,7 @@ import { useLang, type TKey } from "@/lib/i18n";
 import type { ApiToken, TokenScope } from "@/lib/token-auth";
 
 /**
- * "Connect an agent" on /agents: pick the agent, get only that agent's steps
+ * "Connect an AI app" on /ai-apps: pick the agent, get only that agent's steps
  * with the server URL / command / config already filled in, and watch it land.
  *
  * The user never chooses between OAuth and a token — the agent decides:

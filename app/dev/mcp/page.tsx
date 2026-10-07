@@ -84,7 +84,7 @@ const NOT_AVAILABLE = [
   "Rich text in notes — notes go in and come out as plain text; bullets and bold written in the app are flattened on read, and lost if the note is rewritten through MCP.",
   "Hand-entered conditions, raw condition blobs (secondary swell, wind waves, full tide curve, grid node) and “Refresh conditions”.",
   "Other people's data — every tool is bound to the token's owner; a foreign id answers “not found”.",
-  "Token management — a token can't create, list or revoke tokens, or approve an app (browser sign-in only, at /agents and the consent page).",
+  "Token management — a token can't create, list or revoke tokens, or approve an app (browser sign-in only, at /ai-apps and the consent page).",
 ];
 
 const RULES = [
@@ -154,9 +154,9 @@ export default function McpDocPage() {
             <tbody>
               {[
                 ["Endpoint", "POST /api/mcp — Streamable HTTP, stateless"],
-                ["Auth", "Authorization: Bearer sfl_… obtained either way: OAuth sign-in (authorization code + PKCE, open client registration — add the URL as a connector, sign in, press Allow; 1-hour access token, refreshed automatically), or a personal token made at /agents for clients that can't sign in."],
+                ["Auth", "Authorization: Bearer sfl_… obtained either way: OAuth sign-in (authorization code + PKCE, open client registration — add the URL as a connector, sign in, press Allow; 1-hour access token, refreshed automatically), or a personal token made at /ai-apps for clients that can't sign in."],
                 ["Scopes", `read → ${readTools.length} tools · write → ${allTools.length} tools`],
-                ["Apps & tokens", `Listed at /agents, each revocable; only hashes are stored. A personal token is shown once; up to ${MAX_ACTIVE_TOKENS} active per person (app connections don't count)`],
+                ["Apps & tokens", `Listed at /ai-apps, each revocable; only hashes are stored. A personal token is shown once; up to ${MAX_ACTIVE_TOKENS} active per person (app connections don't count)`],
                 ["Request limit", `${MCP_REQUESTS.limit} requests per ${MCP_REQUESTS.windowMs / 1000} s per person (429 + Retry-After)`],
                 ["Change limit", `${MCP_WRITES.limit} session or goal changes per ${MCP_WRITES.windowMs / 60_000} min per person`],
               ].map(([k, v]) => (

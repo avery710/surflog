@@ -653,12 +653,34 @@ against the 10-token cap. zh-TW by the agent, unreviewed. The agent's own
 SDK client check of the morning had NOT cleaned up as recorded below: two
 `client-check` tokens and one session under a fake owner (`mcp-client-c…`)
 were found and deleted.
-**The page is `/agents` since 2026-10-07 (on request; uncommitted at
-time of writing):** `app/agents/page.tsx`; `/tokens` is a redirect to it,
-and the API routes keep their names (`/api/tokens`, `/api/tokens/:id`).
-Where this file says "`/tokens` page" for anything written earlier, read
-`/agents`. The last tile is "Others" (was "Something else", renamed the
-same day on request).
+**The page was `/agents` from 2026-10-07, now `/ai-apps` (same day,
+Avery's call).** Reason: Claude/ChatGPT/Gemini only call these tools when
+asked in a chat turn — they're MCP clients, not autonomous agents the way
+Claude Code/Codex are — so calling every tile "an agent" overclaimed for
+the chat-app ones. `app/ai-apps/page.tsx` holds the real page;
+`app/agents/page.tsx` and `app/tokens/page.tsx` are both redirects to it,
+and the API routes still keep their names (`/api/tokens`,
+`/api/tokens/:id`). User-facing strings in `lib/i18n.tsx` changed from
+"agent" to "AI app" wording (`menu.apiTokens`, `tokens.title`,
+`connect.title`, etc.; zh-TW keeps "AI App" as an English loanword, same
+as "Agent" before it) — **not** touched: `landing.agent.*` (the landing
+page's own section, wording not revisited in this pass) and the internal
+type/component names in `components/connect-agent.tsx` (`AgentId`,
+`AGENTS`, `ConnectAgent`), left as implementation detail. Checked in cmux
+on Avery's real session: `/ai-apps` renders, `/agents` redirects, avatar
+menu says "Connect an AI app". Not checked: zh-TW in a browser, the
+`/tokens` redirect itself, a live token-creation click-through after the
+rename. Where this file says "`/tokens` page" or "`/agents`" for anything
+written earlier, read `/ai-apps`. The last tile is "Others" (was
+"Something else", renamed 2026-10-07 on request).
+
+**Stale, not yet reconciled**: the "Several agents on one tile" and
+"Tiles in two groups" paragraphs below describe a grouped layout — Claude
+Code/Codex/Cursor tiles under a "Coding tools" row alongside a "Chat
+apps" row — that isn't in `components/connect-agent.tsx` today. The
+current file renders one flat row of 4 tiles (Claude, ChatGPT, Gemini,
+Others), no grouping. Found while doing the rename above; not resolved
+this session.
 **Sub pages have the header (same day, on request):**
 `components/site-header.tsx` on `/agents` and `/admin` — the journal's
 blue bar: wordmark (a link home), the white "+" and the avatar menu. The
