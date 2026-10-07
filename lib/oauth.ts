@@ -22,6 +22,7 @@ const CODE_PREFIX = "sflc_";
 // Gemini's custom apps register with more than five callbacks (all on
 // oauth-redirect.googleusercontent.com); five refused it (2026-10-07).
 const MAX_REDIRECT_URIS = 20;
+const MAX_STATE_LENGTH = 8192;
 
 export interface OAuthClient {
   clientId: string;
@@ -144,7 +145,9 @@ function response(access: string, refresh: string, scope: TokenScope): TokenResp
 export async function exchangeCode(input: {
   code: string;
   clientId: string;
-  redirectUri: string;
+  /** Optional: OAuth 2.1 dropped it from the token request and some clients
+   *  omit it. When sent it must match; PKCE is what binds the code either way. */
+  redirectUri?: string;
   codeVerifier: string;
 }): Promise<TokenResult> {
   const supabase = getSupabase();
@@ -160,7 +163,7 @@ export async function exchangeCode(input: {
   const row = data?.[0];
   if (!row) return { ok: false, error: "invalid_grant" };
 
-  if (row.client_id !== input.clientId || row.redirect_uri !== input.redirectUri) {
+  if (row.client_id !== input.clientId || (input.redirectUri != null && row.redirect_uri !== input.redirectUri)) {
     return { ok: false, error: "invalid_grant" };
   }
   if (!pkceMatches(input.codeVerifier, row.code_challenge)) return { ok: false, error: "invalid_grant" };
@@ -245,7 +248,13 @@ export async function parseAuthorizeRequest(p: Record<string, string | undefined
   if (!client || !p.redirect_uri || !redirectUriMatches(client, p.redirect_uri)) return null;
   const asked = (p.scope ?? "").split(/\s+/).filter(Boolean);
   const defaultScope: TokenScope = asked.length > 0 && asked.every((s) => s === "read") ? "read" : "write";
-  return { client, redirectUri: p.redirect_uri, codeChallenge: challenge, state: (p.state ?? "").slice(0, 500), defaultScope };
+  // `state` belongs to the client and must go back byte for byte. It was cut
+  // to 500 characters until 2026-10-07; Gemini's is a longer signed blob, so
+  // Google rejected its own state ("Ciphertext HMAC does not verify") and never
+  // redeemed the code. Never shorten it: past a sane size, refuse instead.
+  const state = p.state ?? "";
+  if (state.length > MAX_STATE_LENGTH) return null;
+  return { client, redirectUri: p.redirect_uri, codeChallenge: challenge, state, defaultScope };
 }
 
 /** One line of the admin's "Connected services" table: an app (grouped by the

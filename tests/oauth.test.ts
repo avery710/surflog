@@ -195,3 +195,27 @@ describe("registerClient", () => {
     expect((await registerClient({ name: "x", redirectUris: [uri(1), "http://evil.example/cb"] })).ok).toBe(false);
   });
 });
+
+describe("exchangeCode without redirect_uri (OAuth 2.1 clients)", () => {
+  const row = { client_id: "c1", owner_id: "o1", redirect_uri: "https://a.example/cb", code_challenge: challenge, scope: "read" };
+  it("accepts an omitted redirect_uri, still refuses a wrong one and a wrong verifier", async () => {
+    result.next = { data: [row], error: null };
+    expect((await exchangeCode({ code: "sflc_x", clientId: "c1", codeVerifier: verifier })).ok).toBe(true);
+    expect((await exchangeCode({ code: "sflc_x", clientId: "c1", redirectUri: "https://evil.example/cb", codeVerifier: verifier })).ok).toBe(false);
+    expect((await exchangeCode({ code: "sflc_x", clientId: "c1", codeVerifier: "b".repeat(64) })).ok).toBe(false);
+  });
+});
+
+describe("parseAuthorizeRequest state", () => {
+  const client = { client_id: "c1", client_name: "Google", redirect_uris: ["https://a.example/cb"] };
+  const base = { response_type: "code", code_challenge_method: "S256", code_challenge: challenge, client_id: "c1", redirect_uri: "https://a.example/cb" };
+  it("returns a long state untouched (Gemini's is ~700 characters)", async () => {
+    result.next = { data: client, error: null };
+    const state = "A".repeat(699) + "z";
+    expect((await parseAuthorizeRequest({ ...base, state }))?.state).toBe(state);
+  });
+  it("refuses an absurdly long state rather than shortening it", async () => {
+    result.next = { data: client, error: null };
+    expect(await parseAuthorizeRequest({ ...base, state: "A".repeat(8193) })).toBeNull();
+  });
+});

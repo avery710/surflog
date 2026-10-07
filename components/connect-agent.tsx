@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Copy, KeyRound, Loader2 } from "lucide-react";
+import { Check, Copy, KeyRound, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useLang, type TKey } from "@/lib/i18n";
 import type { ApiToken, TokenScope } from "@/lib/token-auth";
 
@@ -29,6 +30,15 @@ const AGENTS: { id: AgentId; label: string; auth: "oauth" | "token" | "either" }
 ];
 
 const TOKEN_PLACEHOLDER = "sfl_…";
+
+/** "Cursor", then "Cursor 2", "Cursor 3"… — two live connections never share
+ *  a name, or revoking the right one becomes a guess. A revoked one frees its
+ *  name. */
+export function uniqueName(base: string, tokens: readonly ApiToken[]): string {
+  const taken = new Set(tokens.filter((tk) => !tk.revokedAt).map((tk) => tk.name));
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n++) if (!taken.has(`${base} ${n}`)) return `${base} ${n}`;
+}
 
 /** Does this live connection belong to that tile? By where the app's sign-in
  *  returns to when that is distinctive (claude.ai, chatgpt.com, Google's
@@ -108,7 +118,10 @@ export function ConnectAgent({
   const [baseline, setBaseline] = useState<ReadonlySet<string>>(new Set());
   const [scope, setScope] = useState<TokenScope>("write");
   const [creating, setCreating] = useState(false);
-  const [fresh, setFresh] = useState<{ id: string; token: string } | null>(null);
+  const [fresh, setFresh] = useState<{ id: string; token: string; name: string } | null>(null);
+  // "Others" only: what the user calls this agent, so several can be told
+  // apart in the list below.
+  const [name, setName] = useState("");
 
   const selected = AGENTS.find((a) => a.id === agent) ?? null;
 
@@ -116,8 +129,17 @@ export function ConnectAgent({
     const next = agent === id ? null : id;
     setAgent(next);
     setFresh(null);
+    setName("");
     setBaseline(new Set(tokens.map((tk) => tk.id)));
     onSelect(next != null);
+  }
+
+  /** Same tile, next agent: forget the token just shown and treat everything
+   *  connected so far as "already there". */
+  function another() {
+    setFresh(null);
+    setName("");
+    setBaseline(new Set(tokens.map((tk) => tk.id)));
   }
 
   async function copy(text: string) {
@@ -129,8 +151,9 @@ export function ConnectAgent({
     }
   }
 
-  async function createToken(name: string) {
+  async function createToken(wanted: string) {
     if (creating) return;
+    const name = uniqueName(wanted.trim().slice(0, 56) || t("connect.otherTokenName"), tokens);
     setCreating(true);
     try {
       const res = await fetch("/api/tokens", {
@@ -140,7 +163,7 @@ export function ConnectAgent({
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.token) throw new Error(body?.error ?? t("tokens.couldntCreate"));
-      setFresh({ id: body.record.id, token: body.token });
+      setFresh({ id: body.record.id, token: body.token, name });
       onCreated(body.record as ApiToken);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("tokens.couldntCreate"));
@@ -151,7 +174,7 @@ export function ConnectAgent({
 
   const newApp = tokens.find((tk) => tk.kind === "app" && !tk.revokedAt && !baseline.has(tk.id));
   const freshUsed = fresh ? tokens.find((tk) => tk.id === fresh.id)?.lastUsedAt : null;
-  const connectedName = newApp ? `${newApp.name}${newApp.host ? ` · ${newApp.host}` : ""}` : freshUsed ? selected?.label || t("connect.other") : null;
+  const connectedName = newApp ? `${newApp.name}${newApp.host ? ` · ${newApp.host}` : ""}` : freshUsed && fresh ? fresh.name : null;
 
   // Already connected before this visit: say so instead of "waiting", which
   // read as "it isn't working" to someone who had connected it earlier.
@@ -169,8 +192,19 @@ export function ConnectAgent({
   const code = (text: string, secret = false) => (
     <Code text={text} label={t("tokens.copy")} disabled={secret && !fresh} onCopy={copy} />
   );
-  const tokenMaker = (name: string) => (
+  const tokenMaker = (defaultName: string | null) => (
     <div className="mt-2 flex flex-wrap items-center gap-2">
+      {defaultName == null && (
+        <Input
+          value={fresh ? fresh.name : name}
+          maxLength={56}
+          disabled={fresh != null}
+          aria-label={t("connect.nameLabel")}
+          placeholder={t("connect.namePlaceholder")}
+          onChange={(e) => setName(e.target.value)}
+          className="h-8 w-full sm:w-56"
+        />
+      )}
       {(["write", "read"] as const).map((s) => (
         <Button
           key={s}
@@ -184,7 +218,7 @@ export function ConnectAgent({
           {t(s === "read" ? "tokens.scopeRead" : "tokens.scopeWrite")}
         </Button>
       ))}
-      <Button type="button" size="sm" disabled={creating || fresh != null} onClick={() => createToken(name)}>
+      <Button type="button" size="sm" disabled={creating || fresh != null} onClick={() => createToken(defaultName ?? name)}>
         {fresh ? <Check aria-hidden /> : <KeyRound aria-hidden />}
         {t(fresh ? "tokens.created" : "tokens.create")}
       </Button>
@@ -255,7 +289,7 @@ export function ConnectAgent({
         <Step n={2}>{t("connect.other.2")}</Step>
         <Step n={3}>
           {t("connect.other.3")}
-          {tokenMaker(t("connect.otherTokenName"))}
+          {tokenMaker(null)}
           {code(`Authorization: Bearer ${token}`, true)}
           {fresh && <p className="mt-1.5 text-[12.5px] font-semibold text-warm">{t("tokens.copyNow")}</p>}
         </Step>
@@ -307,6 +341,12 @@ export function ConnectAgent({
                 ? t("connect.already", { name: existingName })
                 : t("connect.waiting")}
           </div>
+          {(fresh || newApp) && (
+            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={another}>
+              <Plus aria-hidden />
+              {t("connect.another")}
+            </Button>
+          )}
         </>
       )}
     </section>

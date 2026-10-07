@@ -5,7 +5,7 @@ vi.mock("sonner", () => ({ toast: {} }));
 vi.mock("@/components/ui/button", () => ({ Button: () => null }));
 vi.mock("@/lib/i18n", () => ({ useLang: () => ({ t: (k: string) => k, lang: "en" }) }));
 
-import { connectionMatches } from "@/components/connect-agent";
+import { connectionMatches, uniqueName } from "@/components/connect-agent";
 import type { ApiToken } from "@/lib/token-auth";
 
 const tk = (over: Partial<ApiToken>): ApiToken => ({
@@ -42,5 +42,16 @@ describe("connectionMatches", () => {
   });
   it("is not fooled by a name alone for claude.ai", () => {
     expect(connectionMatches("claude", tk({ name: "Claude", host: "evil.example" }))).toBe(false);
+  });
+});
+
+describe("uniqueName", () => {
+  it("keeps a free name and numbers a taken one", () => {
+    expect(uniqueName("n8n", [])).toBe("n8n");
+    expect(uniqueName("n8n", [tk({ name: "n8n" })])).toBe("n8n 2");
+    expect(uniqueName("n8n", [tk({ name: "n8n" }), tk({ id: "2", name: "n8n 2" })])).toBe("n8n 3");
+  });
+  it("lets a revoked connection's name be used again", () => {
+    expect(uniqueName("Cursor", [tk({ name: "Cursor", revokedAt: "2026-10-07T01:00:00Z" })])).toBe("Cursor");
   });
 });

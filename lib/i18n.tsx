@@ -638,20 +638,20 @@ const DICT = {
     "zh-TW": "之後即可在 Claude 網頁版、桌面版與手機 App 中使用。",
   },
   "connect.chatgpt.1": {
-    en: "In ChatGPT on the web, open Settings → Apps & Connectors → Advanced and turn on Developer mode.",
-    "zh-TW": "在 ChatGPT 網頁版開啟「設定 → 應用程式與連接器 → 進階」，啟用開發人員模式。",
+    en: "In ChatGPT, open Plugins and choose Create a custom MCP server.",
+    "zh-TW": "在 ChatGPT 開啟「外掛程式（Plugins）」，選擇建立自訂 MCP 伺服器。",
   },
   "connect.chatgpt.2": {
-    en: "Create a connector named Surflog, choose OAuth, and paste this URL:",
-    "zh-TW": "建立名為 Surflog 的連接器，驗證方式選 OAuth，並貼上此網址：",
+    en: "Name it Surflog, choose OAuth if asked how to sign in, and paste this URL:",
+    "zh-TW": "名稱填 Surflog，若詢問登入方式請選 OAuth，並貼上此網址：",
   },
   "connect.chatgpt.note": {
-    en: "Custom connectors in ChatGPT need a paid plan. Menu names may differ slightly.",
-    "zh-TW": "ChatGPT 的自訂連接器需要付費方案。選單名稱可能略有不同。",
+    en: "Menu names inside ChatGPT may differ slightly.",
+    "zh-TW": "ChatGPT 內的選單名稱可能略有不同。",
   },
   "connect.gemini.1": {
-    en: "In Gemini on the web, open Settings and add a custom app (an MCP server).",
-    "zh-TW": "在 Gemini 網頁版開啟設定，新增自訂應用程式（MCP 伺服器）。",
+    en: "In Gemini, open Settings → Personal intelligence → Connected apps → Custom apps and create a custom app.",
+    "zh-TW": "在 Gemini 開啟「設定 → Personal intelligence → Connected apps → Custom apps」，建立自訂應用程式。",
   },
   "connect.gemini.note": {
     en: "Custom apps in Gemini are new and may not be available on every account. If Gemini asks for a client ID and secret, the connection was refused: tell us what it said.",
@@ -675,10 +675,13 @@ const DICT = {
     "zh-TW": "若它支援 OAuth 登入，這樣就完成了：登入後按「允許」。",
   },
   "connect.other.3": {
-    en: "If not, create a token and send it as this header:",
-    "zh-TW": "若不支援，請建立權杖並以此標頭傳送：",
+    en: "If not, name it, create a token and send it as this header:",
+    "zh-TW": "若不支援，請為它命名、建立權杖，並以此標頭傳送：",
   },
   "connect.waiting": { en: "Waiting for your agent to connect…", "zh-TW": "等待你的 Agent 連線…" },
+  "connect.nameLabel": { en: "Name for this agent", "zh-TW": "這個 Agent 的名稱" },
+  "connect.namePlaceholder": { en: "Name it, e.g. n8n, my script", "zh-TW": "取個名字，例如：n8n、我的腳本" },
+  "connect.another": { en: "Connect another", "zh-TW": "再連結一個" },
   "connect.already": {
     en: "Already connected: {name}. Follow the steps only to connect another device.",
     "zh-TW": "已連結：{name}。只有要連結其他裝置時才需要依步驟操作。",

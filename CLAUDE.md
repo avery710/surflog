@@ -589,6 +589,55 @@ Sign-in, OAuth consent, dialogs, landing and `/s/` share pages keep their
 own widths. It duplicates the journal header's classes — keep the two in
 step. Checked in cmux at 761 and 375 px: alignment, the menu, "+" →
 journal with the form open → Escape → reload stays closed.
+**Several agents on one tile (same day, on request):** "Others" has a
+name field ("n8n", "my script") so each token is labelled by what uses
+it; a taken name is numbered (`uniqueName()`: "Cursor", "Cursor 2"; a
+revoked one frees its name; default "My agent" / "我的 Agent"). After a
+token is made, or an app connects, a **"Connect another"** button resets
+the step and the "what was already there" baseline without toggling the
+tile. The status line names the token just made. Unit-tested
+(`tests/connect-agent.test.ts`); **the form itself was not clicked
+through** — the cmux tab was hidden at the time.
+**ChatGPT works (2026-10-07, Avery's own account):** Avery added
+Surflog in ChatGPT through **Plugins → "Create a custom MCP server"**
+and it connected (grant seen in the table: client "ChatGPT", return
+address `chatgpt.com/connector/oauth/<id>`, write scope, used the same
+minute). Avery had said earlier they were on ChatGPT's free plan, so the
+agent's earlier claim that custom connectors need a paid plan and
+Developer mode (from third-party guides) was wrong, or out of date; the
+ChatGPT tile's steps and note were rewritten to Avery's path and the
+paid-plan line removed. Which tools ChatGPT actually calls, and whether
+it asks before writes, was not looked at.
+**Gemini, later the same day:** Avery's path in the Gemini app is
+Settings → Personal intelligence → Connected apps → Custom apps (the tile
+says so; the zh-TW step keeps Google's English menu names because their
+Chinese labels were not seen). After the limit fix reached staging,
+Gemini's registration was accepted: client name "Google", **6 redirect
+URIs** on `oauth-redirect.googleusercontent.com`, `oauth-redirect-test…`
+and `oauth-redirect-sandbox…` — which confirms the >5 diagnosis. No grant
+existed a minute later; whether Gemini completes the token exchange is
+still unknown. A minute after that, the table showed Avery HAD
+pressed Allow (a code issued 08:51 UTC) and **Gemini had not redeemed
+it** — the code was still unused, and a refused exchange would have
+burned it, so either Gemini never called the token endpoint (Google's
+forum has open reports of exactly that) or its request was turned away
+before the code was looked at. Made the token endpoint more tolerant on
+that guess (uncommitted at time of writing): `redirect_uri` is optional
+there (OAuth 2.1 dropped it; when sent it must still match, PKCE binds
+the code either way), a JSON body is accepted as well as form-encoded,
+and every refusal logs which parameter NAMES arrived (`[oauth] token
+refused`, never values). Unconfirmed against Gemini.
+**The real cause, found minutes later from the URL Avery pasted:** our
+authorize step cut the client's `state` to 500 characters
+(`.slice(0, 500)` in `parseAuthorizeRequest`). Gemini's `state` is a
+longer signed blob; it came back exactly 500 long, Google failed to
+verify it ("com.google.security.keymaster.KeymasterException: Ciphertext
+HMAC does not verify") and never redeemed the code. Claude and ChatGPT
+send short states, so they never hit it. `state` now goes back untouched
+(refused outright past 8192 characters, never shortened). **Never
+truncate, trim or re-encode a value that belongs to the other side of a
+protocol.** The redirect_uri/JSON tolerance above stays but was not the
+cause. Still unconfirmed with Gemini until it is deployed and retried.
 **Already-connected state (same day, after Avery's screenshot from
 staging):** picking a tile for an agent that was connected earlier showed
 "Waiting for your agent to connect…", which read as "not connected". Now
