@@ -84,8 +84,8 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
           {/* Stays black even on the blue bar — see journal.tsx's matching
               comment; the earlier white (`brightness-0 invert`) version
               was tried and reverted the same session. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="py-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/surflog-logo.svg" alt="Surflog" width={2292} height={603} className="block h-9 w-auto" />
           </div>
           <div className="flex items-center gap-2.5">
