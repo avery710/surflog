@@ -42,7 +42,6 @@ const DICT = {
   "toast.conditionsRefreshed": { en: "Conditions refreshed", "zh-TW": "浪況已更新" },
   "toast.stillNoCoords": { en: "Still no coordinates for this spot", "zh-TW": "這個浪點還沒有座標" },
   "toast.couldntRefresh": { en: "Couldn't refresh", "zh-TW": "無法更新" },
-  "toast.nothingToExport": { en: "Nothing to export yet", "zh-TW": "還沒有可匯出的紀錄" },
 
   "tile.swellOpenMeteo": { en: "Swell", "zh-TW": "湧浪" },
   "tile.swellSwelleye": { en: "Swell (Swelleye)", "zh-TW": "湧浪（Swelleye）" },
@@ -241,7 +240,6 @@ const DICT = {
   "landing.demo.goal2": { en: "Eyes on the wave face", "zh-TW": "視線盯著浪壁" },
 
   "action.logSession": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
-  "action.exportCsv": { en: "Export CSV", "zh-TW": "匯出 CSV" },
   "action.signOut": { en: "Sign out", "zh-TW": "登出" },
   "section.sessions": { en: "Sessions", "zh-TW": "紀錄" },
   "goal.title": { en: "Goal for next session", "zh-TW": "下次衝浪的目標" },

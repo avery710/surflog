@@ -16,12 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { downloadCsv } from "@/lib/csv";
 import type { GoalRename } from "@/lib/goal";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
 import { SpotCatalogProvider, type OwnRequest } from "@/lib/spot-catalog";
-import { isRequestSlug, requestSlug, type Spot } from "@/lib/spots";
-import { spotLabel } from "@/lib/format";
+import type { Spot } from "@/lib/spots";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
 import type { Board, Session } from "@/lib/types";
@@ -159,16 +157,6 @@ export function Journal({
     setFormOpen(false);
   }
 
-  function handleExport() {
-    if (!sessions.length) {
-      toast.info(t("toast.nothingToExport"));
-      return;
-    }
-    downloadCsv(sessions, boards, (slug) =>
-      isRequestSlug(slug) ? (requests.find((r) => requestSlug(r.id) === slug)?.name ?? slug) : spotLabel(slug, "en", spots)
-    );
-  }
-
   function upsert(s: Session) {
     setSessions((prev) => {
       const next = prev.some((x) => x.id === s.id)
@@ -277,7 +265,7 @@ export function Journal({
             >
               <LogIcon className="size-4" />
             </Button>
-            <UserMenu user={user} onExportCsv={handleExport} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
+            <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
           </div>
         </div>
       </header>

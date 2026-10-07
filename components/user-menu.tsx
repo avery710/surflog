@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Globe, KeyRound, LogOut, MapPin } from "lucide-react";
+import { Globe, KeyRound, LogOut, MapPin } from "lucide-react";
 import { googleSignOut } from "@/app/actions";
 import {
   DropdownMenu,
@@ -19,12 +19,10 @@ import { useLang, type Lang } from "@/lib/i18n";
 
 export function UserMenu({
   user,
-  onExportCsv,
   canManageSpots = false,
   pendingSpotRequests = 0,
 }: {
   user: { name?: string | null; email?: string | null; image?: string | null };
-  onExportCsv: () => void;
   /** Spot admin only: shows the link to /admin, with the waiting-request count. */
   canManageSpots?: boolean;
   pendingSpotRequests?: number;
@@ -72,11 +70,6 @@ export function UserMenu({
         </div>
 
         <DropdownMenuSeparator />
-
-        <DropdownMenuItem onSelect={onExportCsv}>
-          <Download />
-          {t("action.exportCsv")}
-        </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <Link href="/tokens">
