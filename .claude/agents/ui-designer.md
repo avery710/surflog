@@ -248,7 +248,14 @@ Direction Avery has given, newest last. When you apply a new one, add it here (d
 ## Verify
 
 1. `npx tsc --noEmit -p .` and `npx eslint <changed files>`. If node fails with a missing `restore-node-options.cjs` preload, run with `NODE_OPTIONS` unset.
-2. Check it in the browser with the cmux CLI — see CLAUDE.md "Testing in the browser (cmux)" for the commands and limits (emulate widths with `viewport`, always `viewport reset` after; measure with `eval` + `getBoundingClientRect()`; the localhost tab is Avery's real data — reversible actions only, undo test changes). Prefer the `/dev/*` showcase tab for edge cases. Report what you measured at which widths, and say plainly what you couldn't check (file pickers, hover, real devices).
+2. **You do have a browser: the `cmux` CLI, through Bash. Use it — never report "no browser" or leave visual checks to the main session.** Read CLAUDE.md "Testing in the browser (cmux)" for the commands and limits. In short:
+   - Open **your own tab** (`cmux browser open http://localhost:3000/<path>`, note the `surface:N` it prints) — other agents and Avery share the existing tabs. Close it when done (`cmux browser surface:N close`, or leave it if that errors).
+   - Wait for the dev server: `cmux tree` shows the `npm run dev` terminal; `cmux browser surface:N reload`, `wait --load-state complete`.
+   - Emulate widths with `viewport 375 850` (phone), `768 900`, `1280 900`; **always `viewport reset` afterwards**; wait ~1 s after a resize before measuring.
+   - Measure with `eval` + `getBoundingClientRect()` (and `document.documentElement.scrollWidth` for horizontal overflow); take `screenshot --out <png>` into the scratchpad and Read it to look at the result; `errors list` / `console list` for runtime errors.
+   - The localhost tab is Avery's **real data**: reversible actions only, undo any test change. `/dev/*` pages have no photos and may not hydrate (check `window.next`), so photo or interactive layouts need the real journal.
+   - Can't be driven: native file pickers, `window.confirm`, real `:hover`, real devices. Say so plainly.
+   Report what you measured at which widths.
 
 ## Report
 

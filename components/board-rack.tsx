@@ -434,18 +434,12 @@ function SortableBoardCard({
         Three breakpoints share this one wrapper (`lg:contents`
         makes it disappear at lg so the photo and text column
         become direct children of the li's grid again):
-        - below sm (phone, one rack column, narrow): stacked in
-          one column, left-aligned — photo on top, full card
-          width, then name/specs/note below it. The photo is now
-          cropped square (`aspect-square`, on request 2026-10-08 —
-          was a plain static <img> at its natural height, "nothing
-          cropped", which made a tall portrait photo stretch the
-          whole card tall). Same absolutely-positioned-wrapper
-          technique as sm+ below, not a plain <img aspect-square>:
-          see the note at the bottom of this comment for why a
-          plain stretched <img> breaks in WebKit. A board with no
-          photo renders no box at all here (`hidden`), not an
-          empty placeholder square.
+        - below sm (phone): same row as sm+ — square photo (cropped,
+          `object-cover`, 64-96px, matching the text column's height)
+          on the left, details on the right (on request 2026-10-08;
+          was photo stacked on top). A board with no photo renders
+          no box below sm (`hidden`) and the grid is one column, so
+          the text isn't pushed into the auto-width photo column.
         - sm to lg (the 2-up rack grid, still a narrow column
           per board): unchanged from before this pass — photo
           beside name/specs/note in a 2-col row
@@ -462,20 +456,17 @@ function SortableBoardCard({
         every breakpoint now, so its own (large) pixel size can't
         drive the layout — a plain <img> with aspect-square +
         stretch did the opposite in WebKit (2026-09-30, first hit
-        at sm+, same risk now that phone is also stretched by
-        `w-full`+`aspect-square`): the photo grew to its natural
-        size and squeezed the text to one character wide. Below sm
-        the wrapper is `aspect-square w-full` (width drives height,
-        since there's no `h-full` row to match yet); at sm+ it's
-        capped at 96px and fills the row (h-full, width from
-        aspect-square) to match the text column — a board with a
+        at sm+, same risk applies on phones now): the photo grew to its
+        natural size and squeezed the text to one character wide.
+        At every width the wrapper is capped at 96px and fills the
+        row (h-full, width from aspect-square) to match the text column — a board with a
         note (or a narrow phone) makes that column tall, and an
         uncapped photo would grow and squeeze the text further.
       */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] lg:contents">
+      <div className={"grid gap-3 lg:contents " + (photoSrc ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-1 sm:grid-cols-[auto_minmax(0,1fr)]")}>
         <div
           className={
-            "relative aspect-square w-full overflow-hidden rounded-[12px] bg-background sm:h-full sm:max-h-24 sm:min-h-16 sm:min-w-16 sm:max-w-24 sm:w-auto" +
+            "relative aspect-square h-full max-h-24 min-h-16 min-w-16 max-w-24 overflow-hidden rounded-[12px] bg-background" +
             (photoSrc ? "" : " hidden sm:block")
           }
         >
