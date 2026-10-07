@@ -436,15 +436,16 @@ function SortableBoardCard({
         become direct children of the li's grid again):
         - below sm (phone, one rack column, narrow): stacked in
           one column, left-aligned — photo on top, full card
-          width, then name/specs/note below it. The image itself
-          is 100% wide with its natural height (a plain static
-          <img>, `h-auto`) — on request 2026-09-30, after a
-          fixed 112px-tall letterboxed box. Safe here because
-          nothing stretches it: this is a one-column stack, not
-          the stretched row that blew up in WebKit (see below).
-          Nothing is cropped; a tall portrait photo makes a tall
-          card. A board with no photo renders no box at all here
-          (`hidden`), not an empty placeholder square.
+          width, then name/specs/note below it. The photo is now
+          cropped square (`aspect-square`, on request 2026-10-08 —
+          was a plain static <img> at its natural height, "nothing
+          cropped", which made a tall portrait photo stretch the
+          whole card tall). Same absolutely-positioned-wrapper
+          technique as sm+ below, not a plain <img aspect-square>:
+          see the note at the bottom of this comment for why a
+          plain stretched <img> breaks in WebKit. A board with no
+          photo renders no box at all here (`hidden`), not an
+          empty placeholder square.
         - sm to lg (the 2-up rack grid, still a narrow column
           per board): unchanged from before this pass — photo
           beside name/specs/note in a 2-col row
@@ -457,21 +458,24 @@ function SortableBoardCard({
           name · 常用 badge · ⋯), specs, note; photo matching that
           column's height. There's no separate button row any
           more at any breakpoint.
-        The image is absolutely positioned inside a wrapper, so
-        its own (large) pixel size can't drive the layout — a
-        plain <img> with aspect-square + stretch did the
-        opposite in WebKit (2026-09-30): the photo grew to its
-        natural size and squeezed the text to one character
-        wide. At sm+ the wrapper is capped at 96px and fills
-        the row (h-full, width from aspect-square) to match the
-        text column; a board with a note (or a narrow phone)
-        makes that column tall, and an uncapped photo would
-        grow and squeeze the text further.
+        The image is absolutely positioned inside a wrapper at
+        every breakpoint now, so its own (large) pixel size can't
+        drive the layout — a plain <img> with aspect-square +
+        stretch did the opposite in WebKit (2026-09-30, first hit
+        at sm+, same risk now that phone is also stretched by
+        `w-full`+`aspect-square`): the photo grew to its natural
+        size and squeezed the text to one character wide. Below sm
+        the wrapper is `aspect-square w-full` (width drives height,
+        since there's no `h-full` row to match yet); at sm+ it's
+        capped at 96px and fills the row (h-full, width from
+        aspect-square) to match the text column — a board with a
+        note (or a narrow phone) makes that column tall, and an
+        uncapped photo would grow and squeeze the text further.
       */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] lg:contents">
         <div
           className={
-            "relative w-full overflow-hidden rounded-[12px] bg-background sm:aspect-square sm:h-full sm:max-h-24 sm:min-h-16 sm:min-w-16 sm:max-w-24 sm:w-auto" +
+            "relative aspect-square w-full overflow-hidden rounded-[12px] bg-background sm:h-full sm:max-h-24 sm:min-h-16 sm:min-w-16 sm:max-w-24 sm:w-auto" +
             (photoSrc ? "" : " hidden sm:block")
           }
         >
@@ -481,7 +485,7 @@ function SortableBoardCard({
               src={photoSrc}
               alt={t("board.photoAlt", { name })}
               loading="lazy"
-              className="block h-auto w-full sm:absolute sm:inset-0 sm:size-full sm:object-cover"
+              className="absolute inset-0 size-full object-cover"
             />
           )}
         </div>

@@ -663,10 +663,13 @@ and the API routes still keep their names (`/api/tokens`,
 `/api/tokens/:id`). User-facing strings in `lib/i18n.tsx` changed from
 "agent" to "AI app" wording (`menu.apiTokens`, `tokens.title`,
 `connect.title`, etc.; zh-TW keeps "AI App" as an English loanword, same
-as "Agent" before it) — **not** touched: `landing.agent.*` (the landing
-page's own section, wording not revisited in this pass) and the internal
-type/component names in `components/connect-agent.tsx` (`AgentId`,
-`AGENTS`, `ConnectAgent`), left as implementation detail. Checked in cmux
+as "Agent" before it). `landing.agent.title` got the same treatment the
+same day ("Bring your own AI agent" → "Bring your own AI app" / zh-TW
+"AI Agent" → "AI App") — `landing.agent.body`/`ask`/`reply`/`ask2`/
+`reply2` were deliberately left alone (Avery's own hand-edited mock-
+conversation wording). Also left alone: the internal type/component names
+in `components/connect-agent.tsx` (`AgentId`, `AGENTS`, `ConnectAgent`),
+implementation detail. Checked in cmux
 on Avery's real session: `/ai-apps` renders, `/agents` redirects, avatar
 menu says "Connect an AI app". Not checked: zh-TW in a browser, the
 `/tokens` redirect itself, a live token-creation click-through after the
@@ -1726,12 +1729,20 @@ a keyboard drag on the focused card (Space, ↑, Space) reordered two 常用
 boards and saved — then moved back. Mouse/touch drag not driven from the
 CLI.
 Card layout (2026-09-30, measured in cmux): phones stack a full-width
-photo at its natural height (plain static `<img>`, nothing cropped) above
-the name row `name · 常用 badge · ⋯` (`name · 常用`, no ⋯, in 排序 mode) (⋯ transparent until hover /
+photo above the name row `name · 常用 badge · ⋯` (`name · 常用`, no ⋯, in 排序 mode) (⋯ transparent until hover /
 open), then specs and note; from `sm` the photo is a small square beside
 the text, capped at 96 px (absolutely-positioned `<img>` in a wrapper —
 a stretched plain `<img>` blew up to 329 px in WebKit and squeezed the
 text to one character wide).
+**2026-10-08, on request ("crop the board image into square even in
+small screen"):** the phone-width photo is now square too
+(`aspect-square`), cropped with `object-cover`, instead of the original
+full-width/natural-height/uncropped `<img>` — a tall portrait photo no
+longer stretches the whole card tall. Uses the same absolutely-
+positioned-wrapper technique as the `sm`+ photo, not a plain `<img
+aspect-square>`, for the same WebKit reason noted above (a plain
+stretched `<img>` ignores the wrapper's size and grows to its own
+natural pixel size, squeezing the text column).
 `components/board-select.tsx` (the log form / edit panel picker) already
 called `sortBoards()`, so it follows the saved order with no changes there.
 
