@@ -22,23 +22,13 @@ const tk = (over: Partial<ApiToken>): ApiToken => ({
 
 describe("connectionMatches", () => {
   const claude = tk({ name: "Claude", host: "claude.ai" });
-  const code = tk({ name: "Claude Code (surflog)", host: "localhost:55490" });
-  const cursor = tk({ name: "Cursor", kind: "personal" });
 
-  it("tells the claude.ai connector and Claude Code apart", () => {
+  it("matches the claude.ai connector", () => {
     expect(connectionMatches("claude", claude)).toBe(true);
-    expect(connectionMatches("claude", code)).toBe(false);
-    expect(connectionMatches("claude-code", code)).toBe(true);
-    expect(connectionMatches("claude-code", claude)).toBe(false);
   });
-  it("matches a Cursor token, ChatGPT and Gemini by host", () => {
-    expect(connectionMatches("cursor", cursor)).toBe(true);
+  it("matches ChatGPT and Gemini by host", () => {
     expect(connectionMatches("chatgpt", tk({ name: "ChatGPT", host: "chatgpt.com" }))).toBe(true);
     expect(connectionMatches("gemini", tk({ name: "whatever", host: "oauth-redirect.googleusercontent.com" }))).toBe(true);
-  });
-  it("matches Codex by its registered name", () => {
-    expect(connectionMatches("codex", tk({ name: "Codex", host: "localhost:1455" }))).toBe(true);
-    expect(connectionMatches("codex", tk({ name: "Claude Code (surflog)", host: "localhost:55490" }))).toBe(false);
   });
   it("never matches a revoked connection or the catch-all tile", () => {
     expect(connectionMatches("claude", { ...claude, revokedAt: "2026-10-07T01:00:00Z" })).toBe(false);

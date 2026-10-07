@@ -2076,8 +2076,9 @@ Language; the choice lives in localStorage (`surflog:lang`), per browser.
   Swelleye), CSV export, error messages returned by API routes, and user
   content (notes, typed Swelleye readings).
 - Terminology: 浪點 spot · 湧浪 swell · 週期 period · 陣風 gust · 滿潮/乾潮
-  high/low tide (CWA's terms) · compass points in CWA's form (北北東,
-  東南…).
+  high/low tide (CWA's terms; "high tide" and "full tide" both → 滿潮,
+  "low tide" → 乾潮; 高潮 is understood but use 滿潮 since CWA does) ·
+  compass points in CWA's form (北北東, 東南…).
 
 ## Project agents
 

@@ -69,9 +69,12 @@ export function GoalCard({
   goal,
   sessions,
   onSave,
+  readOnly = false,
 }: {
   goal: string | null;
   sessions: Session[];
+  /** Static display (landing demo): no edit/drag affordances, no hover tint. */
+  readOnly?: boolean;
   /** Resolves true if saved, so the card knows whether to leave edit mode. */
   onSave: (text: string, renames: GoalRename[]) => Promise<boolean>;
 }) {
@@ -348,12 +351,14 @@ export function GoalCard({
                   // pointer-events off except on the handles, so clicking a
                   // pill still opens edit mode and keeps the hover tint.
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={startEdit}
-                      aria-label={t("goal.edit")}
-                      className="absolute inset-0 rounded-[10px] hover:bg-secondary/40"
-                    />
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={startEdit}
+                        aria-label={t("goal.edit")}
+                        className="absolute inset-0 rounded-[10px] hover:bg-secondary/40"
+                      />
+                    )}
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
@@ -368,7 +373,7 @@ export function GoalCard({
                               id={displayIds[i]}
                               text={p}
                               count={counts[i]}
-                              sortable={shownPoints.length > 1}
+                              sortable={!readOnly && shownPoints.length > 1}
                               onEdit={startEdit}
                             />
                           ))}
@@ -376,6 +381,8 @@ export function GoalCard({
                       </SortableContext>
                     </DndContext>
                   </div>
+                ) : readOnly ? (
+                  <p className="px-2 py-1 text-[14px] font-medium text-[var(--faint)]">{t("goal.add")}</p>
                 ) : (
                   <button
                     type="button"

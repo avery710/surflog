@@ -214,8 +214,8 @@ const DICT = {
   "landing.cond.temp": { en: "Water and air temperature", "zh-TW": "水溫與氣溫" },
   "landing.dash.title": { en: "Your surf log, your best sidekick", "zh-TW": "你的衝浪好幫手" },
   "landing.dash.body": {
-    en: "Set a few things to work on and tick them off each session. See every day you surfed, month by month, and where you go most — with your own notes on each spot. Try editing it!",
-    "zh-TW": "設定幾個想練的重點，每次衝完勾選做到的項目；逐月看你哪幾天下水、最常去哪裡，每個浪點還能留下自己的筆記。試著編輯看看！",
+    en: "Set a few things to work on and tick them off each session. See every day you surfed, month by month, and where you go most — with your own notes on each spot.",
+    "zh-TW": "設定幾個想練的重點，每次衝完勾選做到的項目；逐月看你哪幾天下水、最常去哪裡，每個浪點還能留下自己的筆記。",
   },
   "landing.dash.photoCredits": { en: "Board photos", "zh-TW": "板子照片來源" },
   "landing.spots.title": { en: "A spot list surfers grow", "zh-TW": "和浪友一起蒐集世界浪點地圖" },
@@ -269,8 +269,25 @@ const DICT = {
     "zh-TW": "早上很乾淨、海面平滑，每幾分鐘就有一組浪。退潮時抓到這個月最好的一道右邊浪。",
   },
   "landing.demo.notesShort": { en: "Clean and glassy early…", "zh-TW": "早上很乾淨、海面平滑…" },
-  "landing.demo.goal1": { en: "Pop up without rushing", "zh-TW": "起乘不要心急，感受腳站穩再下" },
-  "landing.demo.goal2": { en: "Eyes on the wave face", "zh-TW": "視線盯著浪壁" },
+  "landing.demo.spotNote.jialeshui": {
+    en: "Best at mid tide, on ENE to SSE swell with a west wind. Steady river-mouth rights.",
+    "zh-TW": "中潮最好，東北東到南南東的湧浪配西風，河口右浪很穩",
+  },
+  "landing.demo.spotNote.fulong": {
+    en: "Works on any tide, on N to E swell with a south or southwest wind. Sandbar lefts and rights.",
+    "zh-TW": "乾潮到滿潮都能衝，北到東的湧浪配南或西南風，沙洲左右浪都有",
+  },
+  "landing.demo.board.goofyNote": {
+    en: "Zero flex. Maximum wipeout.",
+    "zh-TW": "零炫技，摔爆全場。",
+  },
+  "landing.demo.board.stitchNote": {
+    en: "Blue alien energy. Pure joy.",
+    "zh-TW": "藍色外星人能量，純粹開心。",
+  },
+  "landing.demo.goal1": { en: "Eyes down the line", "zh-TW": "視線看向要去的地方" },
+  "landing.demo.goal2": { en: "Check the peak before you paddle in", "zh-TW": "起乘時留意浪頭是否有人下了" },
+  "landing.demo.goal3": { en: "Sit back into your heels on backside", "zh-TW": "背向要往腳跟坐下去" },
 
   "action.logSession": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "action.signOut": { en: "Sign out", "zh-TW": "登出" },
@@ -667,8 +684,6 @@ const DICT = {
   "tokens.couldntCreate": { en: "Couldn't create the token", "zh-TW": "無法建立權杖" },
   "connect.title": { en: "Connect an agent", "zh-TW": "連結 Agent" },
   "connect.intro": { en: "Which one do you use?", "zh-TW": "你使用哪一個？" },
-  "connect.group.chat": { en: "Chat apps", "zh-TW": "聊天應用" },
-  "connect.group.coding": { en: "Coding tools", "zh-TW": "開發工具" },
   "connect.other": { en: "Others", "zh-TW": "其他" },
   "connect.otherTokenName": { en: "My agent", "zh-TW": "我的 Agent" },
   "connect.pasteUrl": { en: "Name it Surflog and paste this URL:", "zh-TW": "名稱填 Surflog，並貼上此網址：" },
@@ -705,10 +720,6 @@ const DICT = {
   "connect.gemini.1": {
     en: "In Gemini, open Settings → Personal intelligence → Connected apps → Custom apps and create a custom app.",
     "zh-TW": "在 Gemini 開啟「設定 → Personal intelligence → Connected apps → Custom apps」，建立自訂應用程式。",
-  },
-  "connect.gemini.note": {
-    en: "Custom apps in Gemini are new and may not be available on every account. If Gemini asks for a client ID and secret, the connection was refused: tell us what it said.",
-    "zh-TW": "Gemini 的自訂應用程式功能較新，並非所有帳戶都能使用。若 Gemini 要求輸入用戶端 ID 與密鑰，表示連線遭拒，請告訴我們它顯示的訊息。",
   },
   "connect.claudeCode.2": {
     en: "In Claude Code run /mcp, pick surflog, choose Authenticate, then press Allow in the browser.",

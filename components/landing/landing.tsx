@@ -7,6 +7,7 @@ import { ActivityCalendar } from "@/components/activity-calendar";
 import { PatternsTable } from "@/components/patterns-table";
 import { GoalCard } from "@/components/goal";
 import { spotLabel, taipeiToday } from "@/lib/format";
+import { PAGE_COLUMN } from "@/lib/layout";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang, type Lang } from "@/lib/i18n";
 import type { LandingSpot } from "@/lib/landing-spots";
@@ -27,7 +28,7 @@ import { noop } from "@/app/dev/fixtures";
 export function Landing({ signInAction, spots }: { signInAction: () => Promise<void>; spots?: LandingSpot[] | null }) {
   const { lang, setLang, t } = useLang();
 
-  const goalText = `${t("landing.demo.goal1")}\n${t("landing.demo.goal2")}`;
+  const goalText = `${t("landing.demo.goal1")}\n${t("landing.demo.goal2")}\n${t("landing.demo.goal3")}`;
   const { hero, all } = useMemo(
     () =>
       demoSessions(taipeiToday(), {
@@ -41,7 +42,23 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
   // Demo-only edits: the goal and spot notes are editable, but only in
   // this tab's memory — try-it-out, never saved.
   const [goal, setGoal] = useState<string | null>(null);
-  const [spotNotes, setSpotNotes] = useState<Record<string, string>>({});
+  const spotNotes = useMemo<Record<string, string>>(
+    () => ({
+      jialeshui: t("landing.demo.spotNote.jialeshui"),
+      fulong: t("landing.demo.spotNote.fulong"),
+    }),
+    [t]
+  );
+  // Board notes are demo copy, so they go through t() here (brand names are
+  // product names and stay as written).
+  const boards = useMemo(
+    () =>
+      DEMO_BOARDS.map((b) => ({
+        ...b,
+        note: t(b.id === "demo-board-3" ? "landing.demo.board.goofyNote" : "landing.demo.board.stitchNote"),
+      })),
+    [t]
+  );
   // No forceVisible needed here — unlike journal.tsx's log-session
   // dialog, nothing in this header opens off a plain button; the
   // language toggle is a custom pair of buttons, not a Radix popover.
@@ -63,20 +80,15 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
         ref={headerRef}
         className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
       >
-        <div className="mx-auto flex w-full max-w-[880px] items-center justify-between gap-3 px-4.5">
+        <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
           {/* Stays black even on the blue bar — see journal.tsx's matching
               comment; the earlier white (`brightness-0 invert`) version
               was tried and reverted the same session. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/surflog-logo.svg"
-            alt="Surflog"
-            width={2292}
-            height={603}
-            className="block h-[30px] w-auto sm:h-9"
-          />
-          <div className="flex items-center gap-2">
-            <LangToggle lang={lang} setLang={setLang} label={t("menu.language")} />
+          <div className="py-1">
+            <img src="/surflog-logo.svg" alt="Surflog" width={2292} height={603} className="block h-9 w-auto" />
+          </div>
+          <div className="flex items-center gap-2.5">
             <form action={signInAction}>
               {/* White fill + blue text, not bg-primary — on the header's
                   own solid blue this is the same "would vanish" problem
@@ -93,6 +105,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
                 {t("landing.signIn")}
               </button>
             </form>
+            <LangToggle lang={lang} setLang={setLang} label={t("menu.language")} />
           </div>
         </div>
       </header>
@@ -101,8 +114,9 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
           comment: a flex child of <body> defaults to not shrinking below
           its content's intrinsic width, which without this let the
           patterns table's own `min-w-[420px]` push this whole column
-          wider than the viewport at narrow widths. */}
-      <div className="mx-auto w-full min-w-0 max-w-[880px] flex-1 px-4.5 pb-18">
+          wider than the viewport at narrow widths.
+          key={lang} — triggers fade effect on language change */}
+      <div key={lang} className={`animate-in fade-in duration-300 ${PAGE_COLUMN} min-w-0 flex-1 pb-18`}>
       {/* Hero — copy + CTA. The real session card lives in section 01. */}
       <section className="mt-12 sm:mt-16">
         <div>
@@ -116,8 +130,38 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
         </div>
       </section>
 
-      {/* ① Conditions fill themselves */}
-      <Section n="1" title={t("landing.cond.title")} body={t("landing.cond.body")}>
+      {/* ① The dashboard: goal + calendar + spots table in one panel, as in the journal */}
+      <Section n="1" title={t("landing.dash.title")} body={t("landing.dash.body")}>
+        <div className="flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
+          <div className="flex flex-col items-start gap-4 sm:flex-row">
+            <div className="w-full min-w-0 sm:flex-1">
+              <GoalCard
+                goal={goalText}
+                sessions={all}
+                onSave={async () => false}
+                readOnly
+              />
+            </div>
+            <div className="w-full sm:w-[260px] sm:shrink-0">
+              <ActivityCalendar sessions={all} />
+            </div>
+          </div>
+          <PatternsTable
+            sessions={all}
+            spotNotes={spotNotes}
+            onSaveSpotNote={async () => false}
+            readOnly
+          />
+          {/* BoardRack makes real API calls on add/edit/favourite/delete, so
+              on the signed-out page it is shown inert (look, don't touch). */}
+          <div inert>
+            <BoardRack boards={boards} onSaved={noop} onDeleted={noop} onRackChanged={noop} />
+          </div>
+        </div>
+      </Section>
+
+      {/* ② Conditions fill themselves */}
+      <Section n="2" title={t("landing.cond.title")} body={t("landing.cond.body")}>
         <div className="grid items-center gap-4 md:grid-cols-[minmax(0,2fr)_auto_minmax(0,5fr)] md:items-stretch">
           <Panel className="md:h-full">
             <p className="mb-3 text-[12px] font-bold tracking-wide text-muted-foreground uppercase">
@@ -132,53 +176,8 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
             <ArrowDown className="size-7 md:hidden" />
           </div>
           <div className="flex min-w-0 flex-col md:[&>*]:flex-1 [&>*]:mt-0!">
-            <EntryCard session={hero} boards={DEMO_BOARDS} onUpdated={noop} onDeleted={noop} readOnly />
+            <EntryCard session={hero} boards={boards} onUpdated={noop} onDeleted={noop} readOnly />
           </div>
-        </div>
-      </Section>
-
-      {/* ② The dashboard: goal + calendar + spots table in one panel, as in the journal */}
-      <Section n="2" title={t("landing.dash.title")} body={t("landing.dash.body")}>
-        <div className="flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
-          <div className="flex flex-col items-start gap-4 sm:flex-row">
-            <div className="w-full min-w-0 sm:flex-1">
-              <GoalCard
-                goal={goal ?? goalText}
-                sessions={all}
-                onSave={async (text) => {
-                  setGoal(text);
-                  return true;
-                }}
-              />
-            </div>
-            <div className="w-full sm:w-[260px] sm:shrink-0">
-              <ActivityCalendar sessions={all} />
-            </div>
-          </div>
-          <PatternsTable
-            sessions={all}
-            spotNotes={spotNotes}
-            onSaveSpotNote={async (spot, description) => {
-              setSpotNotes((prev) => ({ ...prev, [spot]: description }));
-              return true;
-            }}
-          />
-          {/* BoardRack makes real API calls on add/edit/favourite/delete, so
-              on the signed-out page it is shown inert (look, don't touch). */}
-          <div inert>
-            <BoardRack boards={DEMO_BOARDS} onSaved={noop} onDeleted={noop} onRackChanged={noop} />
-          </div>
-          <p className="px-1 text-[11.5px] leading-relaxed text-muted-foreground">
-            {t("landing.dash.photoCredits")}
-            {BOARD_PHOTO_CREDITS.map((c) => (
-              <span key={c.href}>
-                {" · "}
-                <a href={c.href} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                  {c.label}
-                </a>
-              </span>
-            ))}
-          </p>
         </div>
       </Section>
 
@@ -227,7 +226,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
 
       {/* ⑤ Sharing: the two generated images and the public link's preview. */}
       <Section n="5" title={t("landing.share.title")} body={t("landing.share.body")}>
-        <ShareShowcase session={hero} boards={DEMO_BOARDS} />
+        <ShareShowcase session={hero} boards={boards} />
       </Section>
 
       {/* Closing CTA */}
@@ -296,7 +295,7 @@ function CtaButton({
 
 function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) => void; label: string }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-full bg-secondary p-0.5 text-[13px] font-bold">
+    <div role="group" aria-label={label} className="flex rounded-full bg-secondary p-0.5 text-[13px] font-bold transition-all duration-300">
       {(
         [
           ["en", "EN"],
@@ -309,11 +308,15 @@ function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) =
           aria-pressed={lang === code}
           onClick={() => setLang(code)}
           className={cn(
-            "whitespace-nowrap rounded-full px-2.5 py-1.5 transition-colors",
-            lang === code ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            "whitespace-nowrap rounded-full px-2.5 py-1.5 transition-all duration-200 ease-out",
+            lang === code
+              ? "bg-card text-primary shadow-sm scale-100"
+              : "text-primary/60 hover:text-primary scale-95"
           )}
         >
-          {text}
+          <span className="inline-block transition-opacity duration-200">
+            {text}
+          </span>
         </button>
       ))}
     </div>

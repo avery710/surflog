@@ -29,21 +29,18 @@ function daysBefore(ymd: string, n: number): string {
 // licences are in BOARD_PHOTO_CREDITS, which the page must keep showing —
 // the Haydenshapes photo is CC BY-SA and needs its credit.
 export const DEMO_BOARDS: Board[] = [
-  fakeBoard({ id: "demo-board-1", brand: "Hypto Krypto", note: "Haydenshapes FutureFlex", lengthIn: 70, volumeL: 33.73, rocker: "low", isFavorite: true, sortOrder: 0, photoUrl: "/landing/haydenshapes-futureflex.jpg" }),
-  fakeBoard({ id: "demo-board-2", brand: "Wavestorm Classic", lengthIn: 96, volumeL: 81, rocker: null, sortOrder: 1, photoUrl: "/landing/wavestorm-8ft-classic.jpg" }),
+  fakeBoard({ id: "demo-board-3", brand: "Goofy Plank", note: "Zero flex. Maximum wipeout.", lengthIn: 84, volumeL: 55, rocker: "low", isFavorite: true, sortOrder: 0, photoUrl: "/landing/goofy-lightning-plank.jpg" }),
+  fakeBoard({ id: "demo-board-1", brand: "Stitch Barrel", note: "Blue alien energy. Pure joy.", lengthIn: 66, volumeL: 32, rocker: "low", isFavorite: false, sortOrder: 1, photoUrl: "/landing/stitch-barrel.jpg" }),
 ];
 
-export const BOARD_PHOTO_CREDITS: { label: string; href: string }[] = [
-  { label: "Haydenshapes: Daniellecox, CC BY-SA 4.0", href: "https://commons.wikimedia.org/wiki/File:HSBOARDS00.jpg" },
-  { label: "Wavestorm: © AGNA Corp", href: "https://shop.agit-global.com/surfboards-longboards/Wavestorm/8ft-Classic-Surfboard/starburst/WS22SF2STA/" },
-];
+export const BOARD_PHOTO_CREDITS: { label: string; href: string }[] = [];
 
 // Spot + days-ago for the history behind the calendar and spots table.
 const HISTORY: [string, number][] = [
-  ["jialeshui", 2], ["jialeshui", 4], ["waiao", 5], ["jialeshui", 8],
-  ["waiao", 11], ["waiao", 12], ["jialeshui", 15], ["jialeshui", 19],
-  ["jialeshui", 22], ["waiao", 26], ["jialeshui", 30], ["waiao", 34],
-  ["jialeshui", 37], ["waiao", 41],
+  ["jialeshui", 2], ["jialeshui", 4], ["fulong", 5], ["jialeshui", 8],
+  ["fulong", 11], ["jialeshui", 15], ["jialeshui", 19],
+  ["jialeshui", 22], ["jialeshui", 26], ["jialeshui", 30], ["fulong", 34],
+  ["jialeshui", 37], ["fulong", 41],
 ];
 
 export function demoSessions(
@@ -70,9 +67,9 @@ export function demoSessions(
       tideEvents: tide,
     }),
     condCwaTide: fakeCondCwaTide({ events: tide, time: tide[2].time, tideType: "low", tideM: 0.3 }),
-    boardId: "demo-board-1",
+    boardId: "demo-board-3",
     goalText: copy.goal,
-    goalPointsMet: [true, false],
+    goalPointsMet: [true, false, true],
     goalMet: false,
   });
 
@@ -85,8 +82,8 @@ export function demoSessions(
       condOpenMeteo: fakeCondOpenMeteo({ tideEvents: tideDay(day) }),
       condCwaTide: fakeCondCwaTide({ events: tideDay(day) }),
       goalText: copy.goal,
-      // A believable mix: the first point gets ticked more often.
-      goalPointsMet: [i % 3 !== 1, i % 4 === 0],
+      // A believable mix: the first point gets ticked most often.
+      goalPointsMet: [i % 3 !== 1, i % 4 === 0, i % 2 === 0],
     });
   });
 

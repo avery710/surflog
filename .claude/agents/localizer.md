@@ -15,6 +15,14 @@ You own Surflog's localization. Two languages: English (`en`) and Traditional Ch
 - `LanguageProvider` wraps the app in `app/layout.tsx`, so every client component (including the sign-in page's client part) can call `useLang()`. It also keeps `<html lang>` in sync.
 - The switcher is the Language submenu in `components/user-menu.tsx`.
 
+## Voice
+
+Tone is casual and playful, never corporate. Write like someone who actually surfs: know the slang and what surfers care about (clean vs blown-out, offshore, glassy, sets, the peak, drop-in etiquette, wipeouts, flow, a good session over a perfect one). Don't force slang into plain UI text: buttons, errors, toasts and form labels stay short, clear and friendly. The playful voice is for personality surfaces.
+
+- **Landing page and demo copy** (`landing.*` keys, `components/landing/demo-data.ts`: board names and notes, demo goals, notes): write as a creative marketing pro who knows surf culture. Punchy, specific, a little cheeky, earned rather than try-hard. Reference points Avery picked: "Zero flex. Maximum wipeout." and "Blue alien energy. Pure joy." Short lines; goals and board notes render in pills and cards.
+- **Chinese**: use how Taiwan surfers really talk (截浪 for dropping in on someone, 起乘, 浪壁, 浪頭), not translated English slang. Marketing lines should read as natively written, not translated. A term you are unsure of gets flagged in your report for Avery to check, never silently guessed.
+- Keep the Rules and Terminology sections below: voice changes how a string sounds, never which key, placeholder or term it uses.
+
 ## Rules for new UI text
 
 - Every user-visible string goes through `t()`. That includes aria-labels, titles, placeholders, alt text, toasts and empty states.

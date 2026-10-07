@@ -11,10 +11,13 @@ export function PatternsTable({
   sessions,
   spotNotes,
   onSaveSpotNote,
+  readOnly = false,
 }: {
   sessions: Session[];
   spotNotes: Record<string, string>;
   onSaveSpotNote: (spot: string, description: string) => Promise<boolean>;
+  /** Static display (landing demo): notes are plain text, no edit button. */
+  readOnly?: boolean;
 }) {
   const { lang, t } = useLang();
   const catalog = useSpotCatalog();
@@ -68,7 +71,7 @@ export function PatternsTable({
           {t("patterns.title")}
         </h2>
         <div className="flex-1 overflow-auto">
-          <table className="w-full min-w-[420px] border-separate [border-spacing:0_4px]">
+          <table className="w-full min-w-[420px] border-separate [border-spacing:0_2px]">
             <thead>
               <tr>
                 {[t("form.spot"), t("patterns.sessions"), t("patterns.description")].map((h) => (
@@ -87,14 +90,18 @@ export function PatternsTable({
                 const note = spotNotes[r.slug];
                 return (
                   <tr key={r.slug}>
-                    <td className="rounded-l-[var(--r-tile)] px-4 py-2.5 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
+                    <td className="rounded-l-[var(--r-tile)] px-4 py-1.5 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
                       {label}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 align-middle font-mono text-[13.5px] tabular-nums">
+                    <td className="whitespace-nowrap px-4 py-1.5 align-middle font-mono text-[13.5px] tabular-nums">
                       {r.n}
                     </td>
-                    <td className="w-full rounded-r-[var(--r-tile)] px-2 py-1.5 align-middle">
-                      {editing === r.slug ? (
+                    <td className="w-full rounded-r-[var(--r-tile)] px-2 py-0.5 align-middle">
+                      {readOnly ? (
+                        note ? (
+                          <p className="px-2 py-1 text-[14px] leading-snug whitespace-pre-wrap break-words">{note}</p>
+                        ) : null
+                      ) : editing === r.slug ? (
                         <input
                           autoFocus
                           value={draft}
