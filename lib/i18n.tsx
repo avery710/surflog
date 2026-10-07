@@ -510,6 +510,30 @@ const DICT = {
   // spot admin dashboard (/admin) — only ever rendered for SPOT_ADMIN_EMAILS
   "menu.spotAdmin": { en: "Spot admin", "zh-TW": "浪點管理" },
   "menu.apiTokens": { en: "API tokens", "zh-TW": "API 權杖" },
+  "oauth.title": { en: "Connect {name} to your journal?", "zh-TW": "要讓 {name} 連接你的日誌嗎？" },
+  "oauth.intro": {
+    en: "This app will be able to read, and if you allow it, change your own Surflog sessions and goal as you. Nobody else's data.",
+    "zh-TW": "此應用程式將能以你的身分讀取你自己的 Surflog 紀錄與目標，若你允許，也能修改。不會接觸他人的資料。",
+  },
+  "oauth.readHelp": { en: "List and view sessions, spots, boards and your goal.", "zh-TW": "列出並檢視紀錄、浪點、板子與目標。" },
+  "oauth.writeHelp": {
+    en: "Also create, edit and delete sessions, and set or clear your goal.",
+    "zh-TW": "另可新增、編輯、刪除紀錄，並設定或清除目標。",
+  },
+  "oauth.redirectNote": {
+    en: "After you choose, you'll be sent back to {host}. Only continue if you started this from an app you trust.",
+    "zh-TW": "選擇後將返回 {host}。僅在你從信任的應用程式發起時才繼續。",
+  },
+  "oauth.revokeNote": {
+    en: "You can revoke access any time under API tokens.",
+    "zh-TW": "你隨時可在「API 權杖」中撤銷存取。",
+  },
+  "oauth.allow": { en: "Allow", "zh-TW": "允許" },
+  "oauth.deny": { en: "Cancel", "zh-TW": "取消" },
+  "oauth.invalid": {
+    en: "This connection link isn't valid. Go back to the app and start the connection again.",
+    "zh-TW": "此連結無效。請回到應用程式重新發起連線。",
+  },
   "tokens.title": { en: "API tokens", "zh-TW": "API 權杖" },
   "tokens.back": { en: "Back to journal", "zh-TW": "回到日誌" },
   "tokens.intro": {

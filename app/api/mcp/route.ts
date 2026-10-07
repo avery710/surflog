@@ -1,5 +1,6 @@
 import { createMcpHandler } from "mcp-handler";
 import { registerSurflogTools } from "@/lib/mcp-tools";
+import { originOf } from "@/lib/oauth";
 import { MCP_REQUESTS, rateLimit } from "@/lib/rate-limit";
 import { authenticateBearer } from "@/lib/token-auth";
 
@@ -7,8 +8,9 @@ import { authenticateBearer } from "@/lib/token-auth";
  * /api/mcp — remote MCP endpoint (Streamable HTTP, stateless) for a user's
  * own session log. See lib/mcp-tools.ts for the tools.
  *
- * Auth is a personal access token (`Authorization: Bearer sfl_…`, made at
- * /tokens), NOT the browser's Auth.js cookie: proxy.ts lets this one path
+ * Auth is a bearer token (`Authorization: Bearer sfl_…`) — a personal one
+ * made at /tokens, or one issued through OAuth (lib/oauth.ts) to a connector
+ * such as claude.ai — NOT the browser's Auth.js cookie: proxy.ts lets this one path
  * through its cookie gate, so the check below is the only thing protecting
  * it. The server is built per request around the verified token, so tools
  * can only ever see that token's owner.
@@ -18,7 +20,15 @@ async function handle(req: Request): Promise<Response> {
   if (!auth) {
     return Response.json(
       { error: "unauthorized" },
-      { status: 401, headers: { "WWW-Authenticate": 'Bearer realm="surflog"' } }
+      {
+        status: 401,
+        headers: {
+          // resource_metadata (RFC 9728) is how an OAuth-capable client such as
+          // a claude.ai connector finds where to sign in; a client holding a
+          // personal token ignores it.
+          "WWW-Authenticate": `Bearer realm="surflog", resource_metadata="${originOf(req)}/.well-known/oauth-protected-resource"`,
+        },
+      }
     );
   }
 

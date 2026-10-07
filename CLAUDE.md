@@ -559,10 +559,46 @@ session logs from an MCP client. Built in three steps the same day.
   applied to the live project 2026-10-06; RLS on / no policies). Scope is
   `read` or `write`; revoking sets `revoked_at` (the row stays); 10
   active tokens per owner (the agent's number). `lib/token-auth.ts`.
-  **Consequence: claude.ai's "custom connector" flow won't work** — it
-  needs OAuth. Offered as a later step, not built. Works with clients
-  that take a header (Claude Code `--header`, Cursor, Claude Desktop via
-  config).
+  Works with clients that take a header (Claude Code `--header`, Cursor,
+  Claude Desktop via config). claude.ai's "custom connector" flow (web
+  and the mobile app) can't send a header and needs OAuth — added
+  2026-10-07, next bullet.
+- **OAuth for connectors (added 2026-10-07, on request, so the Claude
+  mobile app can connect; uncommitted at time of writing).**
+  `lib/oauth.ts`, migration `20261007000000_add_oauth.sql` (applied to
+  the live project 2026-10-07): authorization code + PKCE (S256 only),
+  public clients, open dynamic registration. Flow: `/api/mcp` 401 carries
+  `resource_metadata` → `/.well-known/oauth-protected-resource` and
+  `/.well-known/oauth-authorization-server` → `POST /api/oauth/register`
+  → `/oauth/authorize` (consent card, `components/oauth-consent.tsx`;
+  cookie session, so a signed-out visitor goes through `/signin` and
+  back — `proxy.ts` now keeps the query string in `callbackUrl`) →
+  `POST /api/oauth/token`. **An OAuth access token is an ordinary
+  `api_tokens` row** (`sfl_`, plus `client_id`, `expires_at`,
+  `refresh_hash`, `refresh_expires_at`), so `authenticateBearer` has one
+  code path and the grant is listed and revocable on `/tokens` under the
+  client's name. Refresh (`sflr_`) rotates both tokens in place; the old
+  pair stops working at once. `proxy.ts` lets `/.well-known/oauth-*`,
+  `/api/oauth/register` and `/api/oauth/token` through unsigned;
+  `/oauth/authorize` stays gated. **The agent's choices**: access token
+  1 h, refresh 60 days (sliding), code 10 min single use; the consent
+  card preselects "Read and write" unless the client asked for `read`
+  only; grants don't count against the 10-token cap; registration is
+  rate limited per IP (20/h, in memory) and stores only a name and up to
+  5 redirect URIs (https, loopback http, or an app scheme; exact match
+  at authorize). Not built: client secrets, token revocation endpoint,
+  cleanup of old `oauth_codes` / unused `oauth_clients` rows, any "this
+  is a connector" label on `/tokens` (a grant looks like a token named
+  after the client). **Checked 2026-10-07 on the local dev server**:
+  by script with a fake owner (discovery, register, bad redirect
+  refused, wrong verifier burns the code, code replay, exchange,
+  `tools/list`, refresh rotation, old access/refresh refused, wrong
+  client refused, expired and revoked → 401), and once through the real
+  consent page in cmux as Avery (Read only → Allow → code → 5 tools);
+  every row removed after. **Never tried**: claude.ai or the mobile app
+  as the client (needs staging), the zh-TW consent strings in a browser,
+  the Cancel button, a phone-width consent card, a custom-scheme
+  redirect.
 - **Token management is cookie-session only** (`/tokens` page,
   `components/api-tokens.tsx`, `GET`/`POST /api/tokens`,
   `DELETE /api/tokens/:id`, avatar menu → API tokens): a leaked token

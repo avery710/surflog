@@ -84,7 +84,7 @@ const NOT_AVAILABLE = [
   "Rich text in notes — notes go in and come out as plain text; bullets and bold written in the app are flattened on read, and lost if the note is rewritten through MCP.",
   "Hand-entered conditions, raw condition blobs (secondary swell, wind waves, full tide curve, grid node) and “Refresh conditions”.",
   "Other people's data — every tool is bound to the token's owner; a foreign id answers “not found”.",
-  "Token management — a token can't create, list or revoke tokens (browser sign-in only, at /tokens).",
+  "Token management — a token can't create, list or revoke tokens, or approve a connector (browser sign-in only, at /tokens and the consent page).",
 ];
 
 const RULES = [
@@ -154,7 +154,7 @@ export default function McpDocPage() {
             <tbody>
               {[
                 ["Endpoint", "POST /api/mcp — Streamable HTTP, stateless"],
-                ["Auth", "Authorization: Bearer sfl_… (personal token from /tokens). No OAuth, so claude.ai custom connectors don't work."],
+                ["Auth", "Authorization: Bearer sfl_… — a personal token from /tokens, or one issued by OAuth sign-in (claude.ai connectors, web and mobile: 1-hour access token, refreshed automatically)."],
                 ["Scopes", `read → ${readTools.length} tools · write → ${allTools.length} tools`],
                 ["Tokens", `Shown once, stored as a hash, revocable; up to ${MAX_ACTIVE_TOKENS} active per person`],
                 ["Request limit", `${MCP_REQUESTS.limit} requests per ${MCP_REQUESTS.windowMs / 1000} s per person (429 + Retry-After)`],

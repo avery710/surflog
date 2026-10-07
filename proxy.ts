@@ -23,6 +23,19 @@ export default auth((req) => {
   // and 401s without a valid token. Exactly this path, nothing under it.
   if (pathname === "/api/mcp") return;
 
+  // OAuth for MCP connectors (lib/oauth.ts): the metadata documents and the
+  // two endpoints a connector calls before any user is involved. Each is its
+  // own credential check (registration is rate limited, the token endpoint
+  // wants a code or refresh token). /oauth/authorize is NOT here — it needs
+  // the cookie session, which is the whole point of the consent page.
+  if (
+    pathname.startsWith("/.well-known/oauth-") ||
+    pathname === "/api/oauth/register" ||
+    pathname === "/api/oauth/token"
+  ) {
+    return;
+  }
+
   // /dev is the local-only component showcase (synthetic data, no
   // Supabase/API calls) — see CLAUDE.md "Project agents" (storybook) and
   // app/dev/layout.tsx, which 404s it outright in production. Letting it
@@ -36,7 +49,8 @@ export default auth((req) => {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const signInUrl = new URL("/signin", req.nextUrl.origin);
-    signInUrl.searchParams.set("callbackUrl", pathname);
+    // Keep the query: /oauth/authorize is meaningless without its parameters.
+    signInUrl.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
     return NextResponse.redirect(signInUrl);
   }
 });

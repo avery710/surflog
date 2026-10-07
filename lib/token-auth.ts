@@ -17,7 +17,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { getSupabase } from "./supabase";
 
 const TABLE = "api_tokens";
-const PREFIX = "sfl_";
+export const PREFIX = "sfl_";
 export const MAX_ACTIVE_TOKENS = 10;
 /** Only touch `last_used_at` when it is older than this — not on every call. */
 const LAST_USED_REFRESH_MS = 60_000;
@@ -33,6 +33,10 @@ interface TokenRow {
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
+  /** Set for OAuth grants (lib/oauth.ts); null for personal tokens. */
+  client_id: string | null;
+  /** OAuth access tokens expire; personal tokens never do. */
+  expires_at: string | null;
 }
 
 /** What the app shows and returns — never the hash. */
@@ -87,6 +91,7 @@ export async function createApiToken(ownerId: string, name: string, scope: Token
     .from(TABLE)
     .select("id", { count: "exact", head: true })
     .eq("owner_id", ownerId)
+    .is("client_id", null) // connector (OAuth) grants don't use up the personal-token allowance
     .is("revoked_at", null);
   if (countError) throw new Error(`Supabase createApiToken: ${countError.message}`);
   if ((count ?? 0) >= MAX_ACTIVE_TOKENS) {
@@ -150,6 +155,7 @@ export async function authenticateBearer(authorization: string | null | undefine
   if (error) throw new Error(`Supabase authenticateBearer: ${error.message}`);
   if (!data) return null;
   const row = data as TokenRow;
+  if (row.expires_at && Date.parse(row.expires_at) <= Date.now()) return null;
 
   const last = row.last_used_at ? Date.parse(row.last_used_at) : 0;
   if (Date.now() - last > LAST_USED_REFRESH_MS) {
