@@ -19,7 +19,7 @@ Two implementations exist:
    conditions are filled in manually via Claude (see "The automation problem").
 2. **This repo** — the self-hosted rewrite, so conditions fill in automatically.
    Next.js + shadcn/ui, built out 2026-09-18: log form, session list, inline
-   edit, photo/video upload, CSV export, spot-fit description chips, patterns
+   edit, photo/video upload, CSV export (removed 2026-10-07), spot-fit description chips, patterns
    table, Google sign-in. Storage moved to Supabase the same day (Postgres
    for `sessions`, Storage for photos — see `lib/db.ts`/`lib/blob.ts` and
    `supabase/migrations/`); the original `data/sessions.json` +
@@ -53,7 +53,7 @@ Two implementations exist:
    - **Bilingual UI** (English / 繁體中文) — see "Localization".
    - UI flow: logging a session is a `+` button in the top-right, beside
      the avatar, that opens a modal (`components/ui/dialog.tsx`); the avatar
-     opens a menu with Export CSV, a Language submenu, and Sign out; an
+     opens a menu with a Language submenu and Sign out (it had Export CSV until 2026-10-07; see the note under "As of 2026-10-06"); an
      activity calendar (`components/activity-calendar.tsx`) and a
      spot/session-count table sit below the header; sessions list newest
      first. The "Elsewhere" (overseas) group was removed from the spot
@@ -433,6 +433,16 @@ Two implementations exist:
      (weekdays down the left, weeks as columns). The session card is the
      original single white card with one `border-card-border` outline.
 
+**As of 2026-10-07** (uncommitted at time of writing): **CSV export was
+removed** on request — `lib/csv.ts`, the avatar-menu item, its handler in
+`components/journal.tsx` and the `action.exportCsv` / `toast.nothingToExport`
+strings are gone; it was client-side only, so no API route or DB change.
+Older mentions of "the CSV" in this file (goal columns, `cond` fields kept
+"in the CSV", the schema comment on `notes`) describe the removed export and
+are history, not a feature. Nothing else exports sessions; the MCP tools are
+the only programmatic read path. Not checked in a browser beyond type-check
+and lint.
+
 `BACKLOG.md` (added 2026-09-29) is Avery's list of future features and
 chores — **local only, gitignored** (not in the public repo, so it won't
 exist on a fresh clone or in cloud sessions). The project skill `add-ticket` (`.claude/skills/add-ticket/`, renamed from `backlog` 2026-09-30) handles "add X to
@@ -607,7 +617,15 @@ session logs from an MCP client. Built in three steps the same day.
   a real session id of Avery's → "not found", row intact; the 121st
   request in a minute → 429. Token create/revoke/cap/hash were checked
   against the live table by script.
-- **Never tried**: a real MCP client (only raw JSON-RPC over curl), the
+- **Checked with a real client 2026-10-07**: the official MCP SDK
+  (`@modelcontextprotocol/sdk` 1.30 `Client` + Streamable HTTP) against the
+  local dev server, fake owner, rows and tokens deleted after. Handshake
+  and `instructions` fine; a read token lists 4 tools, a write token 7;
+  `list_spots` returns all 76; create (conditions filled), list, update,
+  delete, a not-on-the-grid `when` (refused by the schema) and `get` after
+  delete ("not found") all behaved. Not a product client (Claude Code,
+  Cursor, Claude Desktop) yet.
+- **Never tried**: Claude Code / Cursor / Claude Desktop as the client, the
   `/tokens` page in a browser, a real token on staging, the zh-TW token
   strings (written by the agent, unreviewed). On staging only the
   signed-out behaviour was checked (2026-10-06): `POST /api/mcp` without

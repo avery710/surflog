@@ -56,12 +56,17 @@ export function sanitizeNotesHtml(html: string): string {
 /** Plain-text mirror of sanitized notesHtml, for CSV export and search. */
 export function htmlToPlainText(html: string): string {
   if (!html) return "";
+  // A block boundary (open or close) is one line break however many tags
+  // meet there: `text<ul><li>` must break before the bullet (it didn't until
+  // 2026-10-07, gluing "…。- next" together), and `</div><div>` must not
+  // become a blank line. Only <br> adds a break of its own.
+  const BOUNDARY = "\u0000";
   const withBreaks = html
-    .replace(/<li[^>]*>/gi, "- ")
-    .replace(/<\/li>/gi, "\n")
+    .replace(/<li[^>]*>/gi, `${BOUNDARY}- `)
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(div|p|ul|ol)>/gi, "\n")
-    .replace(/<[^>]+>/g, "");
+    .replace(/<\/?(div|p|ul|ol|li)[^>]*>/gi, BOUNDARY)
+    .replace(/<[^>]+>/g, "")
+    .replace(/\u0000+/g, "\n");
   return withBreaks
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")

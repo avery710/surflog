@@ -32,3 +32,20 @@ describe("plain text round trip (the MCP notes path)", () => {
     expect(htmlToPlainText(sanitizeNotesHtml(plainTextToHtml(text)))).toBe(text);
   });
 });
+
+describe("htmlToPlainText", () => {
+  // Regression, 2026-10-07: text right before a list ran into its first
+  // bullet ("…不錯的。- 追浪時…") because only closing tags broke the line.
+  it("starts a list on its own line", () => {
+    expect(htmlToPlainText("今天浪很美。<ul><li>追浪時</li><li>划水</li></ul>")).toBe("今天浪很美。\n- 追浪時\n- 划水");
+  });
+
+  it("keeps one line per div and one blank line for an empty div", () => {
+    expect(htmlToPlainText("<div>a</div><div>b</div>")).toBe("a\nb");
+    expect(htmlToPlainText("<div>a</div><div><br></div><ul><li>b</li></ul>")).toBe("a\n\n- b");
+  });
+
+  it("keeps text after a list on a new line", () => {
+    expect(htmlToPlainText("<ul><li>a</li></ul>after<br>next")).toBe("- a\nafter\nnext");
+  });
+});

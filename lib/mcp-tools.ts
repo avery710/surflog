@@ -17,7 +17,7 @@ import { z } from "zod";
 import { getSession, listBoards, listSessions } from "@/lib/db";
 import { boardLabel, sortBoards } from "@/lib/boards";
 import { MCP_WRITES, rateLimit } from "@/lib/rate-limit";
-import { plainTextToHtml } from "@/lib/rich-text";
+import { htmlToPlainText, plainTextToHtml } from "@/lib/rich-text";
 import { createSessionFor, deleteSessionFor, updateSessionFor, type ServiceResult } from "@/lib/session-service";
 import { listSpots } from "@/lib/spot-store";
 import type { Spot } from "@/lib/spots";
@@ -82,7 +82,9 @@ function compact(s: Session, spots: Map<string, Spot>, boards: Map<string, Board
     spotName: spot?.name ?? (s.spot.startsWith("custom:") ? s.spot.slice(7) : s.spot),
     when: s.when,
     timezone: spot?.timezone ?? null,
-    notes: s.notes,
+    // From the HTML, not the stored `notes` mirror: the mirror was written by
+    // whatever htmlToPlainText was at save time (see its 2026-10-07 fix).
+    notes: s.notesHtml ? htmlToPlainText(s.notesHtml) : s.notes,
     board: board ? { id: board.id, name: boardLabel(board) } : null,
     conditions: conditions(s),
     tide: tideSummary(s),
