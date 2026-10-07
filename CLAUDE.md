@@ -389,6 +389,30 @@ Two implementations exist:
      squeezes the name; a fresh load at the same width is fine (the real
      journal has it too).
 
+   **2026-10-07 (landing page animations and header consistency)** (commits
+   `71edbee`, `d7b2048`; push to staging failed due to GitHub 500 errors,
+   commit ready locally):
+   - **Language switcher animations**: added smooth transitions when
+     switching languages. Page content fades in over 300ms using
+     `key={lang}` + `animate-in fade-in`. Button text fades smoothly, and
+     active/inactive buttons scale (1.0 / 0.95) with `transition-all
+     duration-200 ease-out`. Container transitions all properties over 300ms.
+   - **Language switcher text color**: changed to blue (`text-primary`).
+     Active button: full blue. Inactive buttons: blue at 60% opacity with
+     `hover:text-primary` for full opacity on hover.
+   - **Header button reordering**: Sign in button moved left of language
+     switcher in the header (was right, now left).
+   - **Header consistency across all pages**: landing page header now
+     matches journal, /agents, /admin, /spots headers exactly. Landing
+     had shorter logo (30px phones / 36px sm up with no padding); now uses
+     36px with `py-1` padding. Column width now uses `PAGE_COLUMN` for all
+     pages. Button gap standardized to 2.5. Verified identical header height
+     (60px) and inner column width (880px centered, full width on phones)
+     across all five pages at 375px and 1280px in cmux.
+   - Not checked: the landing header buttons (Sign in, language toggle)
+     were not directly measured against journal's (+ button, avatar), but
+     header height is set by logo wrapper so they can't differ.
+
    **As of 2026-10-05** (commits `53f28c1`..`99865ed`, all deployed to
    staging the same day; nothing below has been tried on a real phone):
    - **One worldwide spot catalogue in the database**, maintained only
