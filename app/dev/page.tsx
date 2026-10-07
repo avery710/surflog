@@ -44,6 +44,12 @@ const PAGES = [
       "components/signin-card.tsx as a new visitor sees it, plus each OAuth error banner.",
   },
   {
+    href: "/dev/mcp",
+    title: "MCP tools — scope",
+    description:
+      "What an MCP client can and can't do through /api/mcp. The tool list (names, descriptions, parameters, read vs write token) is read from lib/mcp-tools.ts at render, so it can't drift; limits and the out-of-scope list are hand-written.",
+  },
+  {
     href: "/dev/color-preview",
     title: "Main colour",
     description: "Candidate accent colours side by side on mock header/card/tile pieces.",

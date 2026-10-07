@@ -589,6 +589,19 @@ session logs from an MCP client. Built in three steps the same day.
   card shows: headline conditions, tide trend + next turning point, CWA
   first like the card), not the stored blobs. A foreign id is "not
   found", same as the routes.
+  **Goal tools added 2026-10-07** (on request, "CRUD for goals"):
+  `get_goal` (read; points with how many sessions ticked each),
+  `set_goal` (write; `points` is the whole new list, 200 chars in total,
+  optional `renames` to keep a reworded point's history, same as
+  `PUT /api/goal`) and `clear_goal` (write). So a read token now gets 5
+  tools, a write token 10; goal changes count against the write limit.
+  A session's `goal` field became `goalsAchieved` (the ticked points, via
+  `sessionAchieved()`). **Ticking points on a session is still not over
+  MCP** (not asked for; `session-service` already takes `goalAchieved`).
+  Checked with the SDK client against the local dev server and the live
+  `goals` table, fake owner, cleaned up. `/dev/mcp` is a scope doc whose
+  tool list is read from `lib/mcp-tools.ts` at render. Not on staging yet
+  at time of writing.
 - **The agent's choices, not Avery's — change if they bite**: `when`
   must be on the 2-hour grid (even hour, `:00`) so MCP-made sessions
   edit cleanly in the UI; `notes` is plain text and `update_session`

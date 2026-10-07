@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { Session } from "@/lib/types";
 
-vi.mock("@/lib/db", () => ({ getSession: vi.fn(), listSessions: vi.fn(), listBoards: vi.fn(async () => []) }));
+vi.mock("@/lib/db", () => ({
+  getSession: vi.fn(),
+  listSessions: vi.fn(async () => []),
+  listBoards: vi.fn(async () => []),
+  getGoal: vi.fn(async () => null),
+  setGoal: vi.fn(async () => undefined),
+  renameGoalPointsInSessions: vi.fn(async () => []),
+}));
 vi.mock("@/lib/spot-store", () => ({
   listSpots: vi.fn(async () => [
     { slug: "waiao", name: "Wai'ao", nameZh: "外澳", country: "Taiwan", area: "Northeast", timezone: "Asia/Taipei" },
@@ -15,7 +22,7 @@ vi.mock("@/lib/session-service", () => ({
   deleteSessionFor: vi.fn(),
 }));
 
-import { getSession, listSessions } from "@/lib/db";
+import { getGoal, getSession, listSessions, renameGoalPointsInSessions, setGoal } from "@/lib/db";
 import { createSessionFor, deleteSessionFor, updateSessionFor } from "@/lib/session-service";
 import { registerSurflogTools } from "@/lib/mcp-tools";
 import { MCP_WRITES, resetRateLimits } from "@/lib/rate-limit";
@@ -58,13 +65,13 @@ beforeEach(() => {
 
 describe("which tools a token gets", () => {
   it("read-only: no write tools at all", () => {
-    expect([...tools("read").keys()]).toEqual(["list_sessions", "get_session", "list_spots", "list_boards"]);
+    expect([...tools("read").keys()]).toEqual(["list_sessions", "get_session", "list_spots", "list_boards", "get_goal"]);
   });
 
   it("write: read tools plus create/update/delete", () => {
     expect([...tools("write").keys()]).toEqual([
-      "list_sessions", "get_session", "list_spots", "list_boards",
-      "create_session", "update_session", "delete_session",
+      "list_sessions", "get_session", "list_spots", "list_boards", "get_goal",
+      "create_session", "update_session", "set_goal", "clear_goal", "delete_session",
     ]);
   });
 
@@ -172,5 +179,74 @@ describe("write rate limit", () => {
 
     expect((await mine.get("list_sessions")!.cb({})).isError).toBeUndefined();
     expect((await tools("write", "other").get("delete_session")!.cb({ id: "x" })).isError).toBeUndefined();
+  });
+});
+
+describe("goal tools", () => {
+  it("get_goal: the owner's points with how often each was achieved", async () => {
+    vi.mocked(getGoal).mockResolvedValue("看浪頭\n挺胸划水");
+    vi.mocked(listSessions).mockResolvedValue([
+      session({ goalText: "看浪頭", goalMet: true, goalPointsMet: [true] }),
+      session({ id: "s2", goalText: "看浪頭\n已移除", goalMet: true, goalPointsMet: [true, true] }),
+    ]);
+    const out = body(await tools("read", "me").get("get_goal")!.cb({}));
+    expect(getGoal).toHaveBeenCalledWith("me");
+    expect(out.points).toEqual([
+      { text: "看浪頭", achievedInSessions: 2 },
+      { text: "挺胸划水", achievedInSessions: 0 },
+    ]);
+  });
+
+  it("get_goal: no goal is an empty list", async () => {
+    vi.mocked(getGoal).mockResolvedValue(null);
+    vi.mocked(listSessions).mockResolvedValue([]);
+    expect(body(await tools("read").get("get_goal")!.cb({}))).toEqual({ points: [] });
+  });
+
+  it("set_goal: saves the trimmed, de-duplicated list for the token owner", async () => {
+    const out = body(await tools("write", "me").get("set_goal")!.cb({ points: [" a ", "b", "a"] }));
+    expect(setGoal).toHaveBeenCalledWith("me", "a\nb");
+    expect(out.points).toEqual(["a", "b"]);
+  });
+
+  it("set_goal: carries renames into past sessions", async () => {
+    vi.mocked(renameGoalPointsInSessions).mockResolvedValue([{ id: "s1", goalText: "new" }]);
+    const renames = [{ from: "old", to: "new" }];
+    const out = body(await tools("write", "me").get("set_goal")!.cb({ points: ["new"], renames }));
+    expect(renameGoalPointsInSessions).toHaveBeenCalledWith("me", renames);
+    expect(out.sessionsReworded).toBe(1);
+  });
+
+  it("set_goal: without renames, no past session is reworded", async () => {
+    vi.mocked(renameGoalPointsInSessions).mockResolvedValue([]);
+    await tools("write", "me").get("set_goal")!.cb({ points: ["a"] });
+    expect(renameGoalPointsInSessions).toHaveBeenCalledWith("me", []);
+  });
+
+  it("set_goal: refuses a goal over the total limit, or a rename to a point that isn't kept", async () => {
+    const set = tools("write").get("set_goal")!;
+    expect((await set.cb({ points: ["x".repeat(150), "y".repeat(150)] })).isError).toBe(true);
+    expect((await set.cb({ points: ["a"], renames: [{ from: "b", to: "c" }] })).isError).toBe(true);
+    expect(setGoal).not.toHaveBeenCalled();
+  });
+
+  it("set_goal input: at least one single-line point", () => {
+    const parse = (v: unknown) => tools("write").get("set_goal")!.config.inputSchema.safeParse(v).success;
+    expect(parse({ points: ["a"] })).toBe(true);
+    expect(parse({ points: [] })).toBe(false);
+    expect(parse({ points: ["a\nb"] })).toBe(false);
+    expect(parse({ points: ["  "] })).toBe(false);
+  });
+
+  it("clear_goal: deletes the owner's goal", async () => {
+    expect(body(await tools("write", "me").get("clear_goal")!.cb({}))).toEqual({ cleared: true });
+    expect(setGoal).toHaveBeenCalledWith("me", "");
+  });
+
+  it("goal changes count against the write limit", async () => {
+    const set = tools("write").get("set_goal")!;
+    for (let i = 0; i < MCP_WRITES.limit; i++) await set.cb({ points: ["a"] });
+    expect((await set.cb({ points: ["a"] })).isError).toBe(true);
+    expect(setGoal).toHaveBeenCalledTimes(MCP_WRITES.limit);
   });
 });
