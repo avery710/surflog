@@ -56,6 +56,12 @@ export function boardLabel(board: Pick<Board, "brand" | "lengthIn">): string {
   return [board.brand.trim(), formatLength(board.lengthIn)].filter(Boolean).join(" ");
 }
 
+/** Where a board's picture loads from, or null when it has none. */
+export function boardPhotoSrc(board: Pick<Board, "photoId" | "photoUrl">): string | null {
+  if (board.photoUrl) return board.photoUrl;
+  return board.photoId ? `/api/blob/${board.photoId}` : null;
+}
+
 /** 常用 boards first, otherwise the rack's own order (stable) — used by the
  *  board rack and the board picker. The incoming order is whatever
  *  `boards` is already in (DB order by sort_order, added 2026-09-30 for

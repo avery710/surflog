@@ -24,9 +24,18 @@ function daysBefore(ymd: string, n: number): string {
   return new Date(Date.UTC(y, m - 1, d - n)).toISOString().slice(0, 10);
 }
 
+// Two real stock models with their makers' published sizes. The pictures are
+// files in public/landing/ (let through by proxy.ts); their sources and
+// licences are in BOARD_PHOTO_CREDITS, which the page must keep showing —
+// the Haydenshapes photo is CC BY-SA and needs its credit.
 export const DEMO_BOARDS: Board[] = [
-  fakeBoard({ id: "demo-board-1", brand: "Pyzel Ghost", lengthIn: 74, volumeL: 29.5, rocker: "medium", isFavorite: true, sortOrder: 0 }),
-  fakeBoard({ id: "demo-board-2", brand: "Log", lengthIn: 110, volumeL: 68, rocker: "low", sortOrder: 1 }),
+  fakeBoard({ id: "demo-board-1", brand: "Hypto Krypto", note: "Haydenshapes FutureFlex", lengthIn: 70, volumeL: 33.73, rocker: "low", isFavorite: true, sortOrder: 0, photoUrl: "/landing/haydenshapes-futureflex.jpg" }),
+  fakeBoard({ id: "demo-board-2", brand: "Wavestorm Classic", lengthIn: 96, volumeL: 81, rocker: null, sortOrder: 1, photoUrl: "/landing/wavestorm-8ft-classic.jpg" }),
+];
+
+export const BOARD_PHOTO_CREDITS: { label: string; href: string }[] = [
+  { label: "Haydenshapes: Daniellecox, CC BY-SA 4.0", href: "https://commons.wikimedia.org/wiki/File:HSBOARDS00.jpg" },
+  { label: "Wavestorm: © AGNA Corp", href: "https://shop.agit-global.com/surfboards-longboards/Wavestorm/8ft-Classic-Surfboard/starburst/WS22SF2STA/" },
 ];
 
 // Spot + days-ago for the history behind the calendar and spots table.

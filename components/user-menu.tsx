@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Globe, KeyRound, LogOut, MapPin } from "lucide-react";
+import { Globe, KeyRound, LogOut, MapPin, Waves } from "lucide-react";
 import { googleSignOut } from "@/app/actions";
 import {
   DropdownMenu,
@@ -75,6 +75,13 @@ export function UserMenu({
           <Link href="/agents">
             <KeyRound />
             {t("menu.apiTokens")}
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild>
+          <Link href="/spots">
+            <Waves />
+            {t("menu.spots")}
           </Link>
         </DropdownMenuItem>
 

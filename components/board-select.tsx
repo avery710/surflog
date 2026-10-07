@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { boardLabel, formatLength, formatVolume, sortBoards } from "@/lib/boards";
+import { boardLabel, boardPhotoSrc, formatLength, formatVolume, sortBoards } from "@/lib/boards";
 import { useLang } from "@/lib/i18n";
 import type { Board } from "@/lib/types";
 
@@ -30,13 +30,14 @@ function BoardThumb({ board, small = false }: { board: Board; small?: boolean })
   const { t } = useLang();
   const size = small ? "size-5" : "size-9";
   const radius = small ? "rounded-[6px]" : "rounded-[10px]";
-  if (!board.photoId) {
+  const src = boardPhotoSrc(board);
+  if (!src) {
     return <span className={`${size} shrink-0 ${radius} bg-secondary`} aria-hidden />;
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/api/blob/${board.photoId}`}
+      src={src}
       alt={t("board.photoAlt", { name: boardLabel(board) })}
       loading="lazy"
       className={`${size} shrink-0 ${radius} object-cover`}

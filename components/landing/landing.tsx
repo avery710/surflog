@@ -12,7 +12,8 @@ import { useLang, type Lang } from "@/lib/i18n";
 import type { LandingSpot } from "@/lib/landing-spots";
 import { cn } from "cn";
 import { BoardRack } from "@/components/board-rack";
-import { DEMO_BOARDS, demoSessions } from "./demo-data";
+import { BOARD_PHOTO_CREDITS, DEMO_BOARDS, demoSessions } from "./demo-data";
+import { ShareShowcase } from "./share-showcase";
 import { noop } from "@/app/dev/fixtures";
 
 /**
@@ -167,16 +168,67 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
           <div inert>
             <BoardRack boards={DEMO_BOARDS} onSaved={noop} onDeleted={noop} onRackChanged={noop} />
           </div>
+          <p className="px-1 text-[11.5px] leading-relaxed text-muted-foreground">
+            {t("landing.dash.photoCredits")}
+            {BOARD_PHOTO_CREDITS.map((c) => (
+              <span key={c.href}>
+                {" · "}
+                <a href={c.href} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                  {c.label}
+                </a>
+              </span>
+            ))}
+          </p>
         </div>
       </Section>
 
-      {/* ③ The shared spot list — read-only, from the catalogue (see
+      {/* ③ Your own AI agent (MCP, see /agents). One card: a static mock
+          conversation, nothing here calls the API. The agents are named in
+          the description only (Claude, ChatGPT, Gemini — the ones seen to
+          connect); the bullet list and "Works with" row were removed on
+          request 2026-10-07. */}
+      <Section
+        n="3"
+        title={t("landing.agent.title")}
+        body={t("landing.agent.body")}
+      >
+        <div>
+          <Panel className="flex flex-col gap-2.5">
+            <p className="ml-auto max-w-[85%] rounded-[18px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
+              {t("landing.agent.ask")}
+            </p>
+            <p className="max-w-[85%] self-start rounded-full bg-secondary px-3 py-1 font-mono text-[11.5px] text-muted-foreground">
+              create_session · jialeshui · 06:00
+            </p>
+            <p className="max-w-[85%] self-start rounded-[18px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
+              {t("landing.agent.reply")}
+            </p>
+            {/* Second exchange: reading the journal back for patterns and advice. */}
+            <p className="mt-2 ml-auto max-w-[85%] rounded-[18px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
+              {t("landing.agent.ask2")}
+            </p>
+            <p className="max-w-[85%] self-start rounded-full bg-secondary px-3 py-1 font-mono text-[11.5px] text-muted-foreground">
+              list_sessions · get_goal
+            </p>
+            <p className="max-w-[92%] self-start whitespace-pre-line rounded-[18px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
+              {t("landing.agent.reply2")}
+            </p>
+          </Panel>
+        </div>
+      </Section>
+
+      {/* ④ The shared spot list — read-only, from the catalogue (see
           lib/landing-spots.ts); hidden when it couldn't be loaded. */}
       {spots && spots.length > 0 && (
-        <Section n="3" title={t("landing.spots.title")} body={`${t("landing.spots.body", { n: String(spots.length), c: String(new Set(spots.map((s) => s.country)).size) })} ${t("landing.spots.request")}`}>
+        <Section n="4" title={t("landing.spots.title")} body={`${t("landing.spots.body", { n: String(spots.length), c: String(new Set(spots.map((s) => s.country)).size) })} ${t("landing.spots.request")}`}>
           <SpotsList spots={spots} />
         </Section>
       )}
+
+      {/* ⑤ Sharing: the two generated images and the public link's preview. */}
+      <Section n="5" title={t("landing.share.title")} body={t("landing.share.body")}>
+        <ShareShowcase session={hero} boards={DEMO_BOARDS} />
+      </Section>
 
       {/* Closing CTA */}
       <section className="mt-16 rounded-[var(--r-card)] bg-primary px-6 py-12 text-center text-primary-foreground">
@@ -194,7 +246,7 @@ function Section({ n, title, body, children }: { n: string; title: string; body:
     <section className="mt-16 sm:mt-20">
       <p className="font-mono text-[13px] font-bold text-primary">0{n}</p>
       <h2 className="mt-1 text-[26px] font-extrabold tracking-[-0.025em] sm:text-[30px]">{title}</h2>
-      <p className="mt-2 mb-6 max-w-[60ch] text-[15.5px] leading-relaxed text-muted-foreground">{body}</p>
+      <p className="mt-2 mb-6 text-[15.5px] leading-relaxed text-muted-foreground">{body}</p>
       {children}
     </section>
   );

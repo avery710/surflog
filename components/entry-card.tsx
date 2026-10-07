@@ -32,7 +32,7 @@ import { GoalSection } from "@/components/goal";
 import { TileGroup } from "@/components/tile-group";
 import { PillNeck } from "@/components/pill-neck";
 import { sessionAchieved } from "@/lib/goal";
-import { boardLabel } from "@/lib/boards";
+import { boardLabel, boardPhotoSrc } from "@/lib/boards";
 import type { Board, Session } from "@/lib/types";
 
 export function EntryCard({
@@ -506,7 +506,8 @@ function BoardChip({ board, className }: { board: Board; className?: string }) {
       <span className="relative min-w-0 truncate text-[13.5px] font-medium leading-none tracking-[-0.01em]">{name}</span>
     </>
   );
-  if (!board.photoId) {
+  const photoSrc = boardPhotoSrc(board);
+  if (!photoSrc) {
     return (
       <span className={cn("mt-1 inline-flex h-7 max-w-full min-w-0 items-center rounded-full bg-secondary px-3 align-top", className)}>
         {label}
@@ -523,7 +524,7 @@ function BoardChip({ board, className }: { board: Board; className?: string }) {
       <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-secondary">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/api/blob/${board.photoId}`}
+          src={photoSrc}
           alt={t("board.photoAlt", { name })}
           loading="lazy"
           className="relative size-[22px] rounded-full object-cover"

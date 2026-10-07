@@ -311,7 +311,9 @@ Two implementations exist:
    from `components/landing/demo-data.ts` (built on `app/dev/fixtures.ts`,
    dated relative to today) — never `lib/db.ts`, never the API; goal and
    spot-note edits live in local state only. `BoardRack` fetches by
-   itself, so the quiver section is a plain list. Copy only claims what
+   itself, so the quiver section is a plain list (stale: since `e9fd295`
+   section 02 renders the real `BoardRack` wrapped in `inert`; see "As of
+   2026-10-07 (landing page)" below). Copy only claims what
    exists: custom/overseas spots get **no** conditions (no coordinates),
    so nothing says "works worldwide" (stale since 2026-10-05: catalogue
    spots outside Taiwan do get conditions now; the landing copy and its
@@ -322,8 +324,70 @@ Two implementations exist:
    undefined — seen on every `/dev` page 2026-10-02, cause unknown), so
    anything interactive there (language toggle, calendar landing on the
    current month) looks broken in cmux only; the same page in Chrome
-   hydrates fine. Not checked: signed-out `/` in a real browser (both
+   hydrates fine (`/dev/landing` did hydrate in cmux 2026-10-07, so this
+   is not constant — check `window.next` before trusting or blaming a
+   `/dev` tab). Not checked: signed-out `/` in a real browser (both
    browsers are signed in), the Google button end to end.
+
+   **As of 2026-10-07 (landing page)** (uncommitted at time of writing;
+   sections are now 01 conditions, 02 dashboard, 03 AI agent, 04 spot
+   list, 05 sharing):
+   - **Section descriptions are full width** (on request): the shared
+     `Section` paragraph lost its `max-w-[60ch]`, so lines run up to
+     ~840 px on wide screens. A mid-width cap was offered, not asked for.
+   - **Section 04 zh-TW title** is "和浪友一起蒐集世界浪點地圖" (Avery's
+     wording; English title unchanged).
+   - **Demo boards are two real models with photos** (on request: "2
+     most used / popular boards with its information and image"; they
+     replaced placeholder SVG illustrations made earlier the same day).
+     `Board` has an optional `photoUrl`, and `boardPhotoSrc(board)`
+     (`lib/boards.ts`) returns it, else `/api/blob/<photoId>`, else null —
+     used by the board chip, the rack card and the board picker thumb.
+     `lib/db.ts` never sets `photoUrl`, so real boards are unchanged.
+     `demo-board-1` (go-to, the hero session's board) is the Haydenshapes
+     Hypto Krypto 5'10", 33.73 L (maker's own variant list), rocker "low"
+     (the agent's reading of a retailer summary); `demo-board-2` is the
+     Wavestorm 8ft Classic, 81 L (maker's page; Costco says 86 L), no
+     rocker. Chosen on Stab's "one of the best-selling board models of
+     all time" and Fortune's "bestselling board in the U.S.".
+     **Photos are files in `public/landing/`, let through signed out by
+     one exact rule in `proxy.ts`** (`/^\/landing\/[a-z0-9-]+\.jpg$/`;
+     everything else in `public/` except the logo still redirects to
+     sign-in — checked with curl, incl. an encoded `../`).
+     **Licence, NOT settled — decide before committing (public repo):**
+     the Haydenshapes picture is a Wikimedia Commons CC BY-SA 4.0 photo
+     of a rack of FutureFlex noses, not a whole Hypto Krypto (their own
+     product photos are barred by their terms); the Wavestorm picture is
+     the maker's product image, "© AGNA Corp All Rights Reserved", no
+     licence. A credit line under the rack (`landing.dash.photoCredits`,
+     `BOARD_PHOTO_CREDITS` in `demo-data.ts`) was added by the agent, not
+     asked for; CC BY-SA needs the attribution.
+     Avery also asked to "replace the second log": **the page has only one
+     session card** (the hero in section 01), so nothing was replaced;
+     that card shows the board chip with the photo. A second, different
+     card was offered, not decided.
+   - **Section 05, sharing** (on request; title, copy and layout are the
+     agent's, zh-TW unreviewed): `components/landing/share-showcase.tsx`
+     shows the Sticker on a CSS-gradient stand-in photo, the Card, and a
+     "Share link" panel with the landscape `og` image as a chat-style
+     link preview (a made-up address line under it was removed on request). All three are the **real share
+     element** built from the demo hero session and put straight into the
+     DOM — no image route, no API. For that the pure builder moved out of
+     `lib/share-image.tsx` into **`lib/share-element.tsx`** (`layoutShare`,
+     `shareElement`, `textOf`, `isShareVariant`, `ShareVariant`; nothing
+     server-only, so it bundles for the browser); `share-image.tsx` keeps
+     only `renderShareImage`. `shareElement` takes an optional font-family
+     pair because next/font's families have generated names in the DOM;
+     satori's defaults are unchanged. Scaling is an SVG `viewBox` +
+     `foreignObject`. Checked in cmux (hydrated) at 854 and 375 px, zh-TW
+     and English: sizes right, no horizontal overflow, no errors. Not
+     checked: Chrome/Firefox (foreignObject rendering differs by engine),
+     signed-out `/`, and the PNG routes after the split beyond type-check
+     and the 222 unit tests.
+   - **Known existing quirk, left alone**: the board card between `sm`
+     and `lg`, when resized up from phone width, keeps a 96 px photo and
+     squeezes the name; a fresh load at the same width is fine (the real
+     journal has it too).
 
    **As of 2026-10-05** (commits `53f28c1`..`99865ed`, all deployed to
    staging the same day; nothing below has been tried on a real phone):
@@ -638,6 +702,37 @@ send short states, so they never hit it. `state` now goes back untouched
 truncate, trim or re-encode a value that belongs to the other side of a
 protocol.** The redirect_uri/JSON tolerance above stays but was not the
 cause. Still unconfirmed with Gemini until it is deployed and retried.
+**Codex tile (same day, on request; uncommitted at time of writing):**
+after Claude Code. OAuth: `codex mcp add surflog --url <url>` then `codex
+mcp login surflog` (both commands from OpenAI's Codex MCP docs, fetched
+2026-10-07; no feature flag needed). **Never run against Surflog** —
+Codex isn't installed here. The tile's ✓ assumes Codex registers under a
+name containing "codex", which is a guess until someone connects it.
+**Tiles in two groups (same day, on request):** "Chat apps" (Claude,
+ChatGPT, Gemini) and "Coding tools" (Claude Code, Codex, Cursor), each a
+labelled row, with "Others" alone on a third, unlabelled row (`GROUPS` in
+`components/connect-agent.tsx`; zh-TW 聊天應用 / 開發工具 by the agent).
+Chat apps come first because most users aren't developers. Avery was
+advised not to add more tiles until the existing ones are confirmed
+(candidates named: VS Code Copilot, Gemini CLI, Le Chat).
+**Gemini connected (2026-10-07, after `57615c7` reached staging):** a
+"Google" grant appeared on Avery's `/agents` list and the Gemini tile got
+its ✓ — seen in cmux, not reported by Avery in words; what Gemini does
+with the tools was not looked at. The `state` fix was the cause. Its row
+showed three `oauth-redirect*.googleusercontent.com` hosts and pushed the
+access level out of view, so several hosts under one domain now collapse
+to the domain (`hostLabel()` in `lib/token-auth.ts`, label only).
+**Landing page section (same day, on request; uncommitted at time of
+writing):** "Bring your own AI agent" / 「接上你自己的 AI Agent」, section 03 of
+`components/landing/landing.tsx`, before the spot list (04; the two were
+swapped on request the same day). **One card only**: a static mock conversation (no
+API call) — Avery's own casual sentence about a Jialeshui session →
+`create_session` → reply, then "what should I work on next?" →
+`list_sessions · get_goal` → three goals condensed from advice a real
+agent gave Avery. The description names Claude, ChatGPT, Gemini "and
+more". A second card (control bullets + a "Works with" pill row) was
+built and **removed on request** — don't bring it back unasked. Avery
+edited the wording of both exchanges line by line; keep their phrasing.
 **Already-connected state (same day, after Avery's screenshot from
 staging):** picking a tile for an agent that was connected earlier showed
 "Waiting for your agent to connect…", which read as "not connected". Now
@@ -871,7 +966,8 @@ project and nothing was tried in a browser or on a phone.
   where `navigator.canShare({files})` accepts the PNG; Copy image only
   with `ClipboardItem` (its blob is a Promise handed over synchronously in
   the click, for iOS Safari); Save is a plain download.
-- **Images** (`lib/share-image.tsx`, next/og/satori; numbers from
+- **Images** (element and layout in `lib/share-element.tsx` since
+  2026-10-07, drawn to PNG by `lib/share-image.tsx`, next/og/satori; numbers from
   `lib/share-card-data.ts`, which reuses the card's own rules: CWA-first
   tide via `lib/tide-display.ts` — extracted from `entry-card.tsx`, whose
   look is unchanged —, wind label, shore word, compass, formatters). Both
@@ -1738,6 +1834,26 @@ static import.
   location" in the **request** form is different from "Near me": those
   coordinates are sent and stored with the request (admin-visible) —
   a one-line notice under it was suggested 2026-10-05, not built.
+- **Overview page `/spots`** (added 2026-10-07, on request: "a full
+  version of the drop down menu"; uncommitted at time of writing):
+  `app/spots/page.tsx` + `components/spots-overview.tsx`, signed-in only
+  (no `proxy.ts` change), linked from the avatar menu as "Surf spots" /
+  浪點總覽. Same search and group order as the picker, whose search and
+  grouping helpers moved to `lib/spot-browse.ts` (shared, 12 unit tests);
+  Recent / Near / keyboard handling stayed in the picker. A row shows
+  both names and, where the spot has them, facing, best swell, best wind
+  and best tide; headings carry counts. One button at the top opens the
+  existing `AddSpotDialog` for an admin and `RequestSpotDialog` for
+  everyone else, prefilled with the search text; editing and deleting
+  stay on `/admin`. **The agent's choices, unconfirmed**: no per-spot
+  session counts, search results stay grouped (the picker's is a flat
+  list), five new keys translating the best-tide text, all zh-TW wording.
+  Checked in cmux as Avery (admin) at 375 and 1280 px: 76 spots in the
+  right groups, search ("bali", "外澳", "cloud9"), the add dialog opened
+  and closed without submitting, the menu link. **Not checked**: the
+  non-admin view and its request dialog, a real add or request showing up
+  in the list, real IME typing, and the picker in the log form after the
+  helper move (unit tests only).
 - **Checked 2026-10-05 in cmux**: picker with all 76 spots, search
   ("bali", "外澳"), keyboard, 375 and 1280 px; picking Uluwatu shows the
   local-time note; `/api/conditions` returns full data for Uluwatu and
@@ -1823,6 +1939,14 @@ type-checking (Avery's standing instruction, 2026-09-30):
   behave the same, untested. `cmux browser … console list` reads the
   page console; `network requests` is not supported on WKWebView.
   A test file can be served to the page from `public/` (delete it after).
+- **Agents running at the same time share the browser tabs** (seen
+  2026-10-07: a second agent re-navigated and re-sized the tab mid-check).
+  Open a tab of your own with `cmux browser open <url>` and use the
+  surface it prints. The language choice is localStorage, shared by every
+  tab of the origin: switch it back after testing the other language.
+- `npm run lint` also scans `.claude/worktrees/` and `.claude/skills/` and
+  reports hundreds of unrelated errors; use `npx eslint app components
+  lib tests`.
 - Commands here run under zsh: `set -- $var` doesn't word-split, and an
   unquoted `--include=*.ts` glob errors.
 
@@ -1919,6 +2043,12 @@ type-checking (Avery's standing instruction, 2026-09-30):
   `lib/rich-text.ts`, regression test in `tests/rich-text.test.ts`).
   **Notes saved before the fix that contain those characters are still
   stored double-escaped** — not searched for, not repaired.
+- **`scale: tan(atan2(100cqw, 1080px))` draws at the wrong size in
+  WebKit** (hit 2026-10-07, landing section 05). The CSS-only way to
+  divide two lengths came out as 0.158 instead of 0.344, and negative for
+  another box: the numbers match `atan2` answering in degrees and `tan`
+  reading radians. Don't use it; scale fixed-pixel content with an SVG
+  `viewBox` + `foreignObject`, or measure in JS.
 - **Dev server down mid-refactor** (2026-10-05): two agents editing the
   tree while `npm run dev` served it left every route 500ing for a few
   minutes (a deleted module still imported). When moving or renaming a

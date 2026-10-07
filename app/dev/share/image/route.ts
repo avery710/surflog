@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { shareCaseData } from "@/app/dev/share/cases";
-import { isShareVariant, renderShareImage } from "@/lib/share-image";
+import { isShareVariant } from "@/lib/share-element";
+import { renderShareImage } from "@/lib/share-image";
 import { isShareLang } from "@/lib/share-strings";
 
 /**

@@ -12,7 +12,7 @@
  */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { getSupabase } from "./supabase";
-import { hashToken, PREFIX, redirectHosts, type TokenScope } from "./token-auth";
+import { hashToken, hostLabel, PREFIX, type TokenScope } from "./token-auth";
 
 export const ACCESS_TOKEN_TTL_S = 60 * 60;
 const REFRESH_TOKEN_TTL_MS = 60 * 24 * 60 * 60 * 1000;
@@ -288,7 +288,7 @@ export async function listConnectedServices(): Promise<ConnectedService[]> {
   }[]) {
     const app = row.client_id != null;
     const name = app ? (row.oauth_clients?.client_name ?? "MCP client") : "";
-    const host = app ? redirectHosts(row.oauth_clients?.redirect_uris).join(", ") || null : null;
+    const host = app ? hostLabel(row.oauth_clients?.redirect_uris) : null;
     // An app registers anew each time someone adds it, so group by what it
     // says it is and where it lives, not by client id.
     const key = app ? `app\u0000${name}\u0000${host}` : "personal";

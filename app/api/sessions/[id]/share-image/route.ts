@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ownedShareCard } from "@/lib/session-share";
-import { isShareVariant, renderShareImage } from "@/lib/share-image";
+import { isShareVariant } from "@/lib/share-element";
+import { renderShareImage } from "@/lib/share-image";
 import { isShareLang } from "@/lib/share-strings";
 
 type Params = { params: Promise<{ id: string }> };

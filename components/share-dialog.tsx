@@ -8,7 +8,7 @@ import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLang, type Lang } from "@/lib/i18n";
-import type { ShareVariant } from "@/lib/share-image";
+import type { ShareVariant } from "@/lib/share-element";
 
 /**
  * The Share dialog behind the session card's ⋯ → Share: a preview of the

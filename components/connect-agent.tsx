@@ -18,15 +18,27 @@ import type { ApiToken, TokenScope } from "@/lib/token-auth";
  * Menu names inside other vendors' apps are written from their public docs and
  * drift; keep the steps short so there is less to go stale.
  */
-export type AgentId = "claude" | "chatgpt" | "gemini" | "claude-code" | "cursor" | "other";
+export type AgentId = "claude" | "chatgpt" | "gemini" | "claude-code" | "codex" | "cursor" | "other";
 
-const AGENTS: { id: AgentId; label: string; auth: "oauth" | "token" | "either" }[] = [
-  { id: "claude", label: "Claude", auth: "oauth" },
-  { id: "chatgpt", label: "ChatGPT", auth: "oauth" },
-  { id: "gemini", label: "Gemini", auth: "oauth" },
-  { id: "claude-code", label: "Claude Code", auth: "oauth" },
-  { id: "cursor", label: "Cursor", auth: "token" },
-  { id: "other", label: "", auth: "either" },
+type AgentGroup = "chat" | "coding" | "other";
+
+const AGENTS: { id: AgentId; label: string; auth: "oauth" | "token" | "either"; group: AgentGroup }[] = [
+  { id: "claude", label: "Claude", auth: "oauth", group: "chat" },
+  { id: "chatgpt", label: "ChatGPT", auth: "oauth", group: "chat" },
+  { id: "gemini", label: "Gemini", auth: "oauth", group: "chat" },
+  { id: "claude-code", label: "Claude Code", auth: "oauth", group: "coding" },
+  { id: "codex", label: "Codex", auth: "oauth", group: "coding" },
+  { id: "cursor", label: "Cursor", auth: "token", group: "coding" },
+  { id: "other", label: "", auth: "either", group: "other" },
+];
+
+/** Chat apps (paste the URL in the app, works on a phone) first: most users
+ *  are surfers, not developers. Coding tools run a command or edit a config
+ *  on a computer. "Others" stands alone, unlabelled. */
+const GROUPS: { id: AgentGroup; label: TKey | null }[] = [
+  { id: "chat", label: "connect.group.chat" },
+  { id: "coding", label: "connect.group.coding" },
+  { id: "other", label: null },
 ];
 
 const TOKEN_PLACEHOLDER = "sfl_…";
@@ -57,6 +69,8 @@ export function connectionMatches(agent: AgentId, tk: ApiToken): boolean {
       return tk.kind === "app" && (host.includes("googleusercontent.com") || name.includes("gemini"));
     case "claude-code":
       return tk.kind === "app" && name.startsWith("claude code");
+    case "codex":
+      return tk.kind === "app" && name.includes("codex");
     case "cursor":
       return name.includes("cursor");
     default:
@@ -188,6 +202,7 @@ export function ConnectAgent({
     2
   );
   const claudeCodeCommand = `claude mcp add --transport http surflog ${mcpUrl}`;
+  const codexCommand = `codex mcp add surflog --url ${mcpUrl}`;
 
   const code = (text: string, secret = false) => (
     <Code text={text} label={t("tokens.copy")} disabled={secret && !fresh} onCopy={copy} />
@@ -266,6 +281,18 @@ export function ConnectAgent({
         <Step n={2}>{t("connect.claudeCode.2")}</Step>
       </>
     ),
+    codex: (
+      <>
+        <Step n={1}>
+          {t("connect.runCommand")}
+          {code(codexCommand)}
+        </Step>
+        <Step n={2}>
+          {t("connect.codex.2")}
+          {code("codex mcp login surflog")}
+        </Step>
+      </>
+    ),
     cursor: (
       <>
         <Step n={1}>
@@ -304,18 +331,33 @@ export function ConnectAgent({
       <h2 className="text-base font-bold">{t("connect.title")}</h2>
       <p className="mt-1 max-w-prose text-[13px] text-muted-foreground">{t("connect.intro")}</p>
 
-      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("connect.title")}>
-        {AGENTS.map((a) => (
-          <Button
-            key={a.id}
-            type="button"
-            variant={agent === a.id ? "default" : "outline"}
-            aria-pressed={agent === a.id}
-            onClick={() => pick(a.id)}
-          >
-            {tokens.some((tk) => connectionMatches(a.id, tk)) && <Check aria-hidden />}
-            {a.label || t("connect.other")}
-          </Button>
+      <div className="mt-3 flex flex-col gap-2.5">
+        {GROUPS.map((g) => (
+          <div key={g.id} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+            {/* The label column keeps its width when empty, so the "Others"
+                tile lines up under the two rows above it. */}
+            <div className="text-[12.5px] font-semibold text-muted-foreground sm:w-24 sm:shrink-0">
+              {g.label ? t(g.label) : null}
+            </div>
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label={g.label ? t(g.label) : t("connect.other")}
+            >
+              {AGENTS.filter((a) => a.group === g.id).map((a) => (
+                <Button
+                  key={a.id}
+                  type="button"
+                  variant={agent === a.id ? "default" : "outline"}
+                  aria-pressed={agent === a.id}
+                  onClick={() => pick(a.id)}
+                >
+                  {tokens.some((tk) => connectionMatches(a.id, tk)) && <Check aria-hidden />}
+                  {a.label || t("connect.other")}
+                </Button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 

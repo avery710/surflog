@@ -77,6 +77,19 @@ export function redirectHosts(uris: unknown): string[] {
   return [...new Set(hosts)];
 }
 
+/** One short label for where an app's sign-in returns to. A single host is
+ *  shown whole (`claude.ai`, `localhost:55490`). Several hosts under one
+ *  domain collapse to that domain — Gemini registers three
+ *  `oauth-redirect*.googleusercontent.com` hosts, which filled the row and
+ *  pushed the access level out of sight. Naive "last two labels", which is
+ *  enough for a label (it is never used for a security decision). */
+export function hostLabel(uris: unknown): string | null {
+  const hosts = redirectHosts(uris);
+  if (hosts.length <= 1) return hosts[0] ?? null;
+  const domains = [...new Set(hosts.map((h) => h.split(":")[0].split(".").slice(-2).join(".")))];
+  return domains.join(", ");
+}
+
 function rowToToken(row: TokenRow): ApiToken {
   return {
     id: row.id,
@@ -86,7 +99,7 @@ function rowToToken(row: TokenRow): ApiToken {
     lastUsedAt: row.last_used_at,
     revokedAt: row.revoked_at,
     kind: row.client_id ? "app" : "personal",
-    host: redirectHosts(row.oauth_clients?.redirect_uris).join(", ") || null,
+    host: hostLabel(row.oauth_clients?.redirect_uris),
   };
 }
 

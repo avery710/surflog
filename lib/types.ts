@@ -139,6 +139,10 @@ export interface Board {
   note: string;
   /** photo_blobs id, served by /api/blob/:id (owner-checked); images only. */
   photoId: string | null;
+  /** A ready-made image URL that wins over `photoId` — never stored or read
+   *  from the database. Only synthetic boards set it (the signed-out landing
+   *  page's illustrations), since /api/blob/:id needs a signed-in owner. */
+  photoUrl?: string;
   /** Marked 常用 / "go-to" — any number per owner. Listed first in the rack
    *  and the board picker (sortBoards() in lib/boards.ts). Not what the log
    *  form pre-selects: that's the most recently used board. */

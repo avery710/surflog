@@ -49,6 +49,7 @@ import {
   MAX_BRAND,
   ROCKERS,
   boardLabel,
+  boardPhotoSrc,
   formatLength,
   formatVolume,
   joinLength,
@@ -362,6 +363,7 @@ function SortableBoardCard({
   });
   const reducedMotion = usePrefersReducedMotion();
   const name = boardLabel(b);
+  const photoSrc = boardPhotoSrc(b);
   const specs = [
     formatLength(b.lengthIn),
     formatVolume(b.volumeL),
@@ -470,13 +472,13 @@ function SortableBoardCard({
         <div
           className={
             "relative w-full overflow-hidden rounded-[12px] bg-background sm:aspect-square sm:h-full sm:max-h-24 sm:min-h-16 sm:min-w-16 sm:max-w-24 sm:w-auto" +
-            (b.photoId ? "" : " hidden sm:block")
+            (photoSrc ? "" : " hidden sm:block")
           }
         >
-          {b.photoId && (
+          {photoSrc && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`/api/blob/${b.photoId}`}
+              src={photoSrc}
               alt={t("board.photoAlt", { name })}
               loading="lazy"
               className="block h-auto w-full sm:absolute sm:inset-0 sm:size-full sm:object-cover"

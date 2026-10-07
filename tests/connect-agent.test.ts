@@ -36,6 +36,10 @@ describe("connectionMatches", () => {
     expect(connectionMatches("chatgpt", tk({ name: "ChatGPT", host: "chatgpt.com" }))).toBe(true);
     expect(connectionMatches("gemini", tk({ name: "whatever", host: "oauth-redirect.googleusercontent.com" }))).toBe(true);
   });
+  it("matches Codex by its registered name", () => {
+    expect(connectionMatches("codex", tk({ name: "Codex", host: "localhost:1455" }))).toBe(true);
+    expect(connectionMatches("codex", tk({ name: "Claude Code (surflog)", host: "localhost:55490" }))).toBe(false);
+  });
   it("never matches a revoked connection or the catch-all tile", () => {
     expect(connectionMatches("claude", { ...claude, revokedAt: "2026-10-07T01:00:00Z" })).toBe(false);
     expect(connectionMatches("other", claude)).toBe(false);

@@ -217,7 +217,8 @@ const DICT = {
     en: "Set a few things to work on and tick them off each session. See every day you surfed, month by month, and where you go most — with your own notes on each spot. Try editing it!",
     "zh-TW": "設定幾個想練的重點，每次衝完勾選做到的項目；逐月看你哪幾天下水、最常去哪裡，每個浪點還能留下自己的筆記。試著編輯看看！",
   },
-  "landing.spots.title": { en: "A spot list surfers grow", "zh-TW": "浪友一起蒐集的浪點地圖" },
+  "landing.dash.photoCredits": { en: "Board photos", "zh-TW": "板子照片來源" },
+  "landing.spots.title": { en: "A spot list surfers grow", "zh-TW": "和浪友一起蒐集世界浪點地圖" },
   "landing.spots.body": {
     en: "{n} spots across {c} countries, from Taiwan to Siargao to Bali, and growing. Pick one when you log a session and its conditions come with it.",
     "zh-TW": "橫跨 {c} 個國家、共 {n} 個浪點，從台灣、錫亞高到峇里島，持續增加。記錄時選一個，浪況就會自動帶入。",
@@ -225,6 +226,38 @@ const DICT = {
   "landing.spots.request": {
     en: "Missing yours? Sign in, request it, and start logging there right away.",
     "zh-TW": "找不到你的浪點？登入後申請新增，馬上就能開始記錄。",
+  },
+  "landing.share.title": { en: "Share a session your way", "zh-TW": "把這次衝浪分享出去" },
+  "landing.share.body": {
+    en: "Turn any session into an image, a transparent sticker for your story or a finished card, or switch on a link anyone can open. A session stays private until you share it.",
+    "zh-TW": "把任何一筆紀錄變成圖片：可以貼在限時動態上的透明貼圖，或是一張完成的卡片；也可以開啟任何人都能打開的連結。在你分享之前，紀錄只有你看得到。",
+  },
+  "landing.share.linkBody": {
+    en: "Anyone with the link sees the conditions, your notes, photos and videos, with no sign-in. Turn it off and the link stops working.",
+    "zh-TW": "拿到連結的人不用登入，就能看到浪況、你的筆記、照片與影片。關閉後連結就會失效。",
+  },
+  "landing.agent.title": { en: "Bring your own AI agent", "zh-TW": "接上你自己的 AI Agent" },
+  "landing.agent.body": {
+    en: "Connect the AI you already use: Claude, ChatGPT, Gemini and more. Log a session by just saying so, then have it analyse your journal and give you advice. Conditions fill in the same way as when you log by hand.",
+    "zh-TW": "連結你平常在用的 AI：Claude、ChatGPT、Gemini 等等。用一句話就能記錄一次下水，再請它分析你的日誌、給你建議。浪況會和手動記錄時一樣自動帶入。",
+  },
+  "landing.agent.ask": {
+    en: "Surfed Jialeshui at 6 this morning. Really clean, not crowded, great for practising. I looked where I wanted to go on the take-off.",
+    "zh-TW": "我今天早上六點在佳樂水衝浪，很乾淨，人不多很好練習。起乘時有看向要去的地方了。",
+  },
+  "landing.agent.reply": {
+    en: "Logged. Swell 1.1 m from the east at 8 s, light offshore wind, tide rising.",
+    "zh-TW": "記好了。湧浪 1.1 m、東向、週期 8 s，微弱離岸風，漲潮中。",
+  },
+  "landing.agent.ask2": {
+    en: "Looking at my last ten sessions, what should I work on next?",
+    "zh-TW": "看我最近十次的紀錄，接下來該練什麼？",
+  },
+  // Condensed from advice a real agent gave Avery on their own journal
+  // (2026-10-07). The line breaks render: the bubble is whitespace-pre-line.
+  "landing.agent.reply2": {
+    en: "For your next sessions, keep it to three simple goals:\n1. Position: stay in a deliberate spot instead of chasing every wave.\n2. Take-off: chest up, don't lie too far forward.\n3. Eyes: pick your direction before take-off, then look down the line.",
+    "zh-TW": "接下來幾次下水，目標簡單就好，只要三個：\n1. 位置：待在選好的位置，不要一直追浪。\n2. 起乘：挺胸，不要趴太前面。\n3. 視線：起乘前先決定方向，站起來就看向要去的地方。",
   },
   "landing.cta.title": { en: "Ready for your next session?", "zh-TW": "準備好下一次下水了嗎？" },
   "landing.cta.body": {
@@ -563,6 +596,24 @@ const DICT = {
   // spot admin dashboard (/admin) — only ever rendered for SPOT_ADMIN_EMAILS
   "menu.spotAdmin": { en: "Spot admin", "zh-TW": "浪點管理" },
   "menu.apiTokens": { en: "Connect an agent", "zh-TW": "連結 Agent" },
+  // /spots — the whole catalogue as a page
+  "menu.spots": { en: "Surf spots", "zh-TW": "浪點總覽" },
+  "spots.title": { en: "Surf spots", "zh-TW": "浪點總覽" },
+  "spots.intro": {
+    en: "Every break you can log a session at, shared by everyone on Surflog.",
+    "zh-TW": "所有可以記錄的浪點，由 Surflog 的所有使用者共用。",
+  },
+  "spots.count": { en: "{count} spots", "zh-TW": "{count} 個浪點" },
+  "spots.matchCount": { en: "{shown} of {count} spots", "zh-TW": "{count} 個浪點中符合 {shown} 個" },
+  "spots.faces": { en: "Faces", "zh-TW": "朝向" },
+  "spots.bestSwell": { en: "Best swell", "zh-TW": "最佳湧浪" },
+  "spots.bestWind": { en: "Best wind", "zh-TW": "最佳風向" },
+  "spots.bestTide": { en: "Best tide", "zh-TW": "最佳潮位" },
+  "spots.tide.all": { en: "All tides", "zh-TW": "各種潮位皆可" },
+  "spots.tide.lowMid": { en: "Low to mid", "zh-TW": "乾潮到中潮" },
+  "spots.tide.mid": { en: "Mid", "zh-TW": "中潮" },
+  "spots.tide.midHigh": { en: "Mid to high", "zh-TW": "中潮到滿潮" },
+  "spots.tide.midLow": { en: "Mid to low", "zh-TW": "中潮到乾潮" },
   "oauth.title": { en: "Connect {name} to your journal?", "zh-TW": "要讓 {name} 連接你的日誌嗎？" },
   "oauth.intro": {
     en: "This app will be able to read, and if you allow it, change your own Surflog sessions and goal as you. Nobody else's data.",
@@ -616,6 +667,8 @@ const DICT = {
   "tokens.couldntCreate": { en: "Couldn't create the token", "zh-TW": "無法建立權杖" },
   "connect.title": { en: "Connect an agent", "zh-TW": "連結 Agent" },
   "connect.intro": { en: "Which one do you use?", "zh-TW": "你使用哪一個？" },
+  "connect.group.chat": { en: "Chat apps", "zh-TW": "聊天應用" },
+  "connect.group.coding": { en: "Coding tools", "zh-TW": "開發工具" },
   "connect.other": { en: "Others", "zh-TW": "其他" },
   "connect.otherTokenName": { en: "My agent", "zh-TW": "我的 Agent" },
   "connect.pasteUrl": { en: "Name it Surflog and paste this URL:", "zh-TW": "名稱填 Surflog，並貼上此網址：" },
@@ -660,6 +713,10 @@ const DICT = {
   "connect.claudeCode.2": {
     en: "In Claude Code run /mcp, pick surflog, choose Authenticate, then press Allow in the browser.",
     "zh-TW": "在 Claude Code 執行 /mcp，選擇 surflog 並點選 Authenticate，然後在瀏覽器按「允許」。",
+  },
+  "connect.codex.2": {
+    en: "Then sign in with this command, and press Allow in the browser:",
+    "zh-TW": "接著執行此指令登入，並在瀏覽器按「允許」：",
   },
   "connect.cursor.2": {
     en: "Put this in ~/.cursor/mcp.json (or .cursor/mcp.json in a project):",

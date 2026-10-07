@@ -9,7 +9,8 @@ import { useLang, type Lang, type TKey } from "@/lib/i18n";
 import { requestSlug, useSpotCatalog } from "@/lib/spot-catalog";
 import { distanceM, type LatLng } from "@/lib/spot-geo";
 import { geoFailureKey, locateOnce } from "@/lib/geolocation";
-import type { Region, Spot } from "@/lib/spots";
+import { browseGroups, nameMatches, searchSpots, searchTokens } from "@/lib/spot-browse";
+import type { Spot } from "@/lib/spots";
 import { useBrowserTimeZone } from "@/lib/use-browser-timezone";
 
 /**
@@ -23,10 +24,6 @@ import { useBrowserTimeZone } from "@/lib/use-browser-timezone";
  * Enter all work without tabbing into the list.
  */
 
-const REGIONS: Region[] = ["Northeast", "North", "East", "South", "West"];
-/** Areas outside Taiwan that lead the Browse list, in this order (Avery's
- *  call); every other area follows alphabetically by "country · area". */
-const AREA_PRIORITY = ["Siargao", "Bali"];
 const RECENT_MAX = 4;
 const NEARBY_MAX = 5;
 /** "Near <your last spot>" only lists real neighbours; "near me" has no cap,
@@ -79,15 +76,6 @@ interface Section {
   key: string;
   title: string | null;
   rows: Row[];
-}
-
-/** Case, accents and apostrophes don't matter: "waiao" finds Wai'ao. */
-function fold(s: string): string {
-  return s
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[’'`´]/g, "");
 }
 
 function fmtDistance(m: number): string {
@@ -375,32 +363,9 @@ function PickerBody({
 
     const q = query.trim();
     if (q) {
-      const tokens = fold(q).split(/\s+/).filter(Boolean);
-      const first = tokens[0] ?? "";
-      const hits = spots
-        .map((s) => {
-          const name = fold(`${s.name} ${s.nameZh ?? ""}`);
-          const hay = fold(
-            [
-              s.name,
-              s.nameZh,
-              s.slug,
-              s.area,
-              s.country,
-              // search aliases, never shown: Taiwan spots carry no country field
-              ...(s.region ? [s.region, t(`region.${s.region}`), "Taiwan 台灣 臺灣"] : []),
-            ]
-              .filter(Boolean)
-              .join(" ")
-          );
-          const tight = hay.replace(/\s+/g, ""); // "cloud9" finds "Cloud 9"
-          const match = tokens.every((tok) => hay.includes(tok) || tight.includes(tok));
-          return match ? { s, starts: name.split(" ").some((w) => w.startsWith(first)) } : null;
-        })
-        .filter((h) => h != null)
-        // names that start with the query before area/country matches
-        .sort((a, b) => Number(b.starts) - Number(a.starts));
-      const requested = pending.filter((p) => tokens.every((tok) => fold(p.name).includes(tok)));
+      const tokens = searchTokens(q);
+      const hits = searchSpots(spots, q, (region) => t(`region.${region}`));
+      const requested = pending.filter((p) => nameMatches(p.name, tokens));
       push(
         "pending",
         requested.length ? t("picker.pending") : null,
@@ -409,7 +374,7 @@ function PickerBody({
       push(
         "results",
         null,
-        hits.map((h) => spotRow(h.s, true))
+        hits.map((s) => spotRow(s, true))
       );
       if (canAdd) out.push({ key: "add", title: null, rows: [{ kind: "add", index: index++ }] });
     } else {
@@ -448,24 +413,10 @@ function PickerBody({
       }
 
       // Browse: Taiwan by region, then every other country → area.
-      const groups: { key: string; title: string; list: Spot[] }[] = REGIONS.map((region) => ({
-        key: `tw-${region}`,
-        title: place({ region } as Spot) ?? region,
-        list: spots.filter((s) => s.region === region),
-      }));
-      const abroad = new Map<string, Spot[]>();
-      for (const s of spots) {
-        if (s.region) continue;
-        const title = [s.country, s.area].filter(Boolean).join(" · ") || t("picker.elsewhere");
-        abroad.set(title, [...(abroad.get(title) ?? []), s]);
-      }
-      const rank = (title: string) => {
-        const i = AREA_PRIORITY.indexOf(abroad.get(title)![0].area);
-        return i === -1 ? AREA_PRIORITY.length : i;
-      };
-      for (const title of [...abroad.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))) {
-        groups.push({ key: `w-${title}`, title, list: abroad.get(title)! });
-      }
+      const groups = browseGroups(spots, {
+        regionTitle: (region) => place({ region } as Spot) ?? region,
+        elsewhere: t("picker.elsewhere"),
+      });
       // No history yet: lead with wherever the browser's clock says they are.
       if (known.length === 0 && browserTz) {
         const local = (g: { list: Spot[] }) => g.list.some((s) => s.timezone === browserTz);

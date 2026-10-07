@@ -36,3 +36,20 @@ describe("parseTokenScope", () => {
     expect(parseTokenScope(undefined)).toBeNull();
   });
 });
+
+describe("hostLabel", () => {
+  it("shows one host whole and collapses several under one domain", async () => {
+    const { hostLabel } = await import("@/lib/token-auth");
+    expect(hostLabel(["https://claude.ai/api/mcp/auth_callback"])).toBe("claude.ai");
+    expect(hostLabel(["http://localhost:55490/callback"])).toBe("localhost:55490");
+    expect(
+      hostLabel([
+        "https://oauth-redirect.googleusercontent.com/r/a",
+        "https://oauth-redirect-test.googleusercontent.com/r/a",
+        "https://oauth-redirect-sandbox.googleusercontent.com/r/a",
+      ])
+    ).toBe("googleusercontent.com");
+    expect(hostLabel(["https://a.example/cb", "https://b.other/cb"])).toBe("a.example, b.other");
+    expect(hostLabel([])).toBeNull();
+  });
+});
