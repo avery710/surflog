@@ -565,19 +565,25 @@ against the 10-token cap. zh-TW by the agent, unreviewed. The agent's own
 SDK client check of the morning had NOT cleaned up as recorded below: two
 `client-check` tokens and one session under a fake owner (`mcp-client-c…`)
 were found and deleted.
+**The page is `/agents` since 2026-10-07 (on request; uncommitted at
+time of writing):** `app/agents/page.tsx`; `/tokens` is a redirect to it,
+and the API routes keep their names (`/api/tokens`, `/api/tokens/:id`).
+Where this file says "`/tokens` page" for anything written earlier, read
+`/agents`. The last tile is "Others" (was "Something else", renamed the
+same day on request).
 **"Connect an agent" (same day, on request: "a streamlined flow of
 connecting to their different agents"; uncommitted at time of writing).**
 `components/connect-agent.tsx`, the top card of `/tokens` (page title
 "Agents" / "AI 代理", avatar-menu item "Connect an agent" / "連結 AI 代理";
 the standalone token form is gone, tokens are made inside this card).
-Pick a tile — Claude, ChatGPT, Claude Code, Cursor, Something else — and
+Pick a tile — Claude, ChatGPT, Claude Code, Cursor, Others — and
 see only that agent's steps with the server URL / `claude mcp add`
 command / Cursor `mcp.json` prefilled and a Copy button. **The user
 never chooses OAuth vs token; the tile does**: Claude, ChatGPT and
 Claude Code sign in (OAuth); Cursor gets a personal token created by one
-button and dropped into the snippet; "Something else" shows the URL,
+button and dropped into the snippet; "Others" shows the URL,
 then OAuth if the agent can, else a token + header. The URL is this
-deployment's own (`app/tokens/page.tsx` reads host/proto from the
+deployment's own (`app/agents/page.tsx` reads host/proto from the
 request), never hard-coded. A status line says "Waiting for your agent to
 connect…" and flips to "Connected: …" when a new OAuth grant appears or
 the just-made token is first used — `components/api-tokens.tsx` re-reads
@@ -590,7 +596,7 @@ tried in Cursor), and the step wording for claude.ai / ChatGPT menus
 Checked in cmux on the dev server at the pane width and 375 px: Claude,
 Claude Code and Cursor tiles; Cursor's token created (Read only), shown
 in the snippet, then used once → "Connected: Cursor"; test token deleted.
-Not checked: ChatGPT and Something else tiles, the OAuth "Connected"
+Not checked: ChatGPT and Others tiles, the OAuth "Connected"
 path live (needs an app connecting while the page is open), zh-TW
 (the agent's wording, unreviewed).
 **Gemini (same day):** adding Surflog as a custom app in Gemini failed

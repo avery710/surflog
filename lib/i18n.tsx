@@ -616,7 +616,7 @@ const DICT = {
   "tokens.couldntCreate": { en: "Couldn't create the token", "zh-TW": "無法建立權杖" },
   "connect.title": { en: "Connect an agent", "zh-TW": "連結 AI 代理" },
   "connect.intro": { en: "Which one do you use?", "zh-TW": "你使用哪一個？" },
-  "connect.other": { en: "Something else", "zh-TW": "其他" },
+  "connect.other": { en: "Others", "zh-TW": "其他" },
   "connect.otherTokenName": { en: "My agent", "zh-TW": "我的代理" },
   "connect.pasteUrl": { en: "Name it Surflog and paste this URL:", "zh-TW": "名稱填 Surflog，並貼上此網址：" },
   "connect.allow": {
