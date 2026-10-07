@@ -562,7 +562,7 @@ const DICT = {
   },
   // spot admin dashboard (/admin) — only ever rendered for SPOT_ADMIN_EMAILS
   "menu.spotAdmin": { en: "Spot admin", "zh-TW": "浪點管理" },
-  "menu.apiTokens": { en: "Connect an agent", "zh-TW": "連結 AI 代理" },
+  "menu.apiTokens": { en: "Connect an agent", "zh-TW": "連結 Agent" },
   "oauth.title": { en: "Connect {name} to your journal?", "zh-TW": "要讓 {name} 連接你的日誌嗎？" },
   "oauth.intro": {
     en: "This app will be able to read, and if you allow it, change your own Surflog sessions and goal as you. Nobody else's data.",
@@ -579,7 +579,7 @@ const DICT = {
   },
   "oauth.revokeNote": {
     en: "You can revoke access any time under Connect an agent.",
-    "zh-TW": "你隨時可在「連結 AI 代理」中撤銷存取。",
+    "zh-TW": "你隨時可在「連結 Agent」中撤銷存取。",
   },
   "oauth.allow": { en: "Allow", "zh-TW": "允許" },
   "oauth.deny": { en: "Cancel", "zh-TW": "取消" },
@@ -587,11 +587,11 @@ const DICT = {
     en: "This connection link isn't valid. Go back to the app and start the connection again.",
     "zh-TW": "此連結無效。請回到應用程式重新發起連線。",
   },
-  "tokens.title": { en: "Agents", "zh-TW": "AI 代理" },
+  "tokens.title": { en: "Agents", "zh-TW": "Agents" },
   "tokens.back": { en: "Back to journal", "zh-TW": "回到日誌" },
   "tokens.intro": {
     en: "Let your own AI agent read and log your surf sessions. It acts as you, on your journal only, and you can cut it off here at any time.",
-    "zh-TW": "讓你自己的 AI 代理讀取並記錄你的衝浪紀錄。它以你的身分操作，只限你的日誌，你隨時可在此中斷存取。",
+    "zh-TW": "讓你自己的 AI Agent 讀取並記錄你的衝浪紀錄。它以你的身分操作，只限你的日誌，你隨時可在此中斷存取。",
   },
   "tokens.scopeLabel": { en: "Access", "zh-TW": "權限" },
   "tokens.scopeRead": { en: "Read only", "zh-TW": "僅讀取" },
@@ -599,7 +599,7 @@ const DICT = {
   "tokens.active": { en: "Connected", "zh-TW": "已連結" },
   "tokens.none": {
     en: "Nothing connected yet. Pick your agent above to connect it.",
-    "zh-TW": "尚未連結任何項目。請在上方選擇你的代理程式來連結。",
+    "zh-TW": "尚未連結任何項目。請在上方選擇你的 Agent 來連結。",
   },
   "tokens.createdOn": { en: "Created {date}", "zh-TW": "建立於 {date}" },
   "tokens.lastUsed": { en: "Last used {date}", "zh-TW": "上次使用 {date}" },
@@ -614,10 +614,10 @@ const DICT = {
   "tokens.copied": { en: "Copied", "zh-TW": "已複製" },
   "tokens.dismiss": { en: "I've saved it", "zh-TW": "我已儲存" },
   "tokens.couldntCreate": { en: "Couldn't create the token", "zh-TW": "無法建立權杖" },
-  "connect.title": { en: "Connect an agent", "zh-TW": "連結 AI 代理" },
+  "connect.title": { en: "Connect an agent", "zh-TW": "連結 Agent" },
   "connect.intro": { en: "Which one do you use?", "zh-TW": "你使用哪一個？" },
   "connect.other": { en: "Others", "zh-TW": "其他" },
-  "connect.otherTokenName": { en: "My agent", "zh-TW": "我的代理" },
+  "connect.otherTokenName": { en: "My agent", "zh-TW": "我的 Agent" },
   "connect.pasteUrl": { en: "Name it Surflog and paste this URL:", "zh-TW": "名稱填 Surflog，並貼上此網址：" },
   "connect.allow": {
     en: "Sign in to Surflog if asked, choose what it may do, and press Allow.",
@@ -649,6 +649,14 @@ const DICT = {
     en: "Custom connectors in ChatGPT need a paid plan. Menu names may differ slightly.",
     "zh-TW": "ChatGPT 的自訂連接器需要付費方案。選單名稱可能略有不同。",
   },
+  "connect.gemini.1": {
+    en: "In Gemini on the web, open Settings and add a custom app (an MCP server).",
+    "zh-TW": "在 Gemini 網頁版開啟設定，新增自訂應用程式（MCP 伺服器）。",
+  },
+  "connect.gemini.note": {
+    en: "Custom apps in Gemini are new and may not be available on every account. If Gemini asks for a client ID and secret, the connection was refused: tell us what it said.",
+    "zh-TW": "Gemini 的自訂應用程式功能較新，並非所有帳戶都能使用。若 Gemini 要求輸入用戶端 ID 與密鑰，表示連線遭拒，請告訴我們它顯示的訊息。",
+  },
   "connect.claudeCode.2": {
     en: "In Claude Code run /mcp, pick surflog, choose Authenticate, then press Allow in the browser.",
     "zh-TW": "在 Claude Code 執行 /mcp，選擇 surflog 並點選 Authenticate，然後在瀏覽器按「允許」。",
@@ -660,7 +668,7 @@ const DICT = {
   "connect.cursor.3": { en: "Restart Cursor.", "zh-TW": "重新啟動 Cursor。" },
   "connect.other.1": {
     en: "Point your agent at this MCP server (Streamable HTTP):",
-    "zh-TW": "將你的代理程式指向此 MCP 伺服器（Streamable HTTP）：",
+    "zh-TW": "將你的 Agent 指向此 MCP 伺服器（Streamable HTTP）：",
   },
   "connect.other.2": {
     en: "If it can sign in with OAuth, that's all: sign in and press Allow.",
@@ -670,7 +678,11 @@ const DICT = {
     en: "If not, create a token and send it as this header:",
     "zh-TW": "若不支援，請建立權杖並以此標頭傳送：",
   },
-  "connect.waiting": { en: "Waiting for your agent to connect…", "zh-TW": "等待你的代理程式連線…" },
+  "connect.waiting": { en: "Waiting for your agent to connect…", "zh-TW": "等待你的 Agent 連線…" },
+  "connect.already": {
+    en: "Already connected: {name}. Follow the steps only to connect another device.",
+    "zh-TW": "已連結：{name}。只有要連結其他裝置時才需要依步驟操作。",
+  },
   "connect.connected": { en: "Connected: {name}", "zh-TW": "已連結：{name}" },
   "tokens.personal": { en: "Personal token", "zh-TW": "個人權杖" },
   "admin.services": { en: "Connected services", "zh-TW": "已連結的服務" },

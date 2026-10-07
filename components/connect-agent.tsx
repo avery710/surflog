@@ -17,11 +17,12 @@ import type { ApiToken, TokenScope } from "@/lib/token-auth";
  * Menu names inside other vendors' apps are written from their public docs and
  * drift; keep the steps short so there is less to go stale.
  */
-type AgentId = "claude" | "chatgpt" | "claude-code" | "cursor" | "other";
+export type AgentId = "claude" | "chatgpt" | "gemini" | "claude-code" | "cursor" | "other";
 
 const AGENTS: { id: AgentId; label: string; auth: "oauth" | "token" | "either" }[] = [
   { id: "claude", label: "Claude", auth: "oauth" },
   { id: "chatgpt", label: "ChatGPT", auth: "oauth" },
+  { id: "gemini", label: "Gemini", auth: "oauth" },
   { id: "claude-code", label: "Claude Code", auth: "oauth" },
   { id: "cursor", label: "Cursor", auth: "token" },
   { id: "other", label: "", auth: "either" },
@@ -29,13 +30,37 @@ const AGENTS: { id: AgentId; label: string; auth: "oauth" | "token" | "either" }
 
 const TOKEN_PLACEHOLDER = "sfl_…";
 
+/** Does this live connection belong to that tile? By where the app's sign-in
+ *  returns to when that is distinctive (claude.ai, chatgpt.com, Google's
+ *  relay), else by the name it registered with. "other" never matches: we
+ *  can't know what it is. */
+export function connectionMatches(agent: AgentId, tk: ApiToken): boolean {
+  if (tk.revokedAt) return false;
+  const host = (tk.host ?? "").toLowerCase();
+  const name = tk.name.toLowerCase();
+  switch (agent) {
+    case "claude":
+      return tk.kind === "app" && host.includes("claude.ai");
+    case "chatgpt":
+      return tk.kind === "app" && (host.includes("chatgpt.com") || host.includes("openai.com"));
+    case "gemini":
+      return tk.kind === "app" && (host.includes("googleusercontent.com") || name.includes("gemini"));
+    case "claude-code":
+      return tk.kind === "app" && name.startsWith("claude code");
+    case "cursor":
+      return name.includes("cursor");
+    default:
+      return false;
+  }
+}
+
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <li className="flex gap-3">
       <span className="mt-px flex size-5.5 shrink-0 items-center justify-center rounded-full bg-secondary font-mono text-[12px] font-bold">
         {n}
       </span>
-      <div className="min-w-0 flex-1 text-[13.5px]">{children}</div>
+      <div className="min-w-0 max-w-prose flex-1 text-[13.5px]">{children}</div>
     </li>
   );
 }
@@ -128,6 +153,11 @@ export function ConnectAgent({
   const freshUsed = fresh ? tokens.find((tk) => tk.id === fresh.id)?.lastUsedAt : null;
   const connectedName = newApp ? `${newApp.name}${newApp.host ? ` · ${newApp.host}` : ""}` : freshUsed ? selected?.label || t("connect.other") : null;
 
+  // Already connected before this visit: say so instead of "waiting", which
+  // read as "it isn't working" to someone who had connected it earlier.
+  const existing = selected ? tokens.find((tk) => baseline.has(tk.id) && connectionMatches(selected.id, tk)) : undefined;
+  const existingName = existing ? `${existing.name}${existing.host ? ` · ${existing.host}` : ""}` : null;
+
   const token = fresh?.token ?? TOKEN_PLACEHOLDER;
   const cursorConfig = JSON.stringify(
     { mcpServers: { surflog: { url: mcpUrl, headers: { Authorization: `Bearer ${token}` } } } },
@@ -183,6 +213,16 @@ export function ConnectAgent({
         <Step n={3}>{t("connect.allow")}</Step>
       </>
     ),
+    gemini: (
+      <>
+        <Step n={1}>{t("connect.gemini.1")}</Step>
+        <Step n={2}>
+          {t("connect.pasteUrl")}
+          {code(mcpUrl)}
+        </Step>
+        <Step n={3}>{t("connect.allow")}</Step>
+      </>
+    ),
     "claude-code": (
       <>
         <Step n={1}>
@@ -223,12 +263,12 @@ export function ConnectAgent({
     ),
   };
 
-  const NOTE: Partial<Record<AgentId, TKey>> = { chatgpt: "connect.chatgpt.note", claude: "connect.menuNote" };
+  const NOTE: Partial<Record<AgentId, TKey>> = { chatgpt: "connect.chatgpt.note", claude: "connect.menuNote", gemini: "connect.gemini.note" };
 
   return (
     <section className="mt-5 rounded-[var(--r-card)] border bg-card p-4">
       <h2 className="text-base font-bold">{t("connect.title")}</h2>
-      <p className="mt-1 text-[13px] text-muted-foreground">{t("connect.intro")}</p>
+      <p className="mt-1 max-w-prose text-[13px] text-muted-foreground">{t("connect.intro")}</p>
 
       <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={t("connect.title")}>
         {AGENTS.map((a) => (
@@ -239,6 +279,7 @@ export function ConnectAgent({
             aria-pressed={agent === a.id}
             onClick={() => pick(a.id)}
           >
+            {tokens.some((tk) => connectionMatches(a.id, tk)) && <Check aria-hidden />}
             {a.label || t("connect.other")}
           </Button>
         ))}
@@ -247,7 +288,7 @@ export function ConnectAgent({
       {selected && (
         <>
           <ol className="mt-4 flex flex-col gap-3.5">{steps[selected.id]}</ol>
-          {NOTE[selected.id] && <p className="mt-3 text-[12.5px] text-muted-foreground">{t(NOTE[selected.id]!)}</p>}
+          {NOTE[selected.id] && <p className="mt-3 max-w-prose text-[12.5px] text-muted-foreground">{t(NOTE[selected.id]!)}</p>}
 
           <div
             role="status"
@@ -255,8 +296,16 @@ export function ConnectAgent({
               connectedName ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
             }`}
           >
-            {connectedName ? <Check className="size-4" aria-hidden /> : <Loader2 className="size-4 animate-spin" aria-hidden />}
-            {connectedName ? t("connect.connected", { name: connectedName }) : t("connect.waiting")}
+            {connectedName || existingName ? (
+              <Check className="size-4 shrink-0" aria-hidden />
+            ) : (
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+            )}
+            {connectedName
+              ? t("connect.connected", { name: connectedName })
+              : existingName
+                ? t("connect.already", { name: existingName })
+                : t("connect.waiting")}
           </div>
         </>
       )}

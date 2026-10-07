@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fmtDate } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
+import { PAGE_COLUMN } from "@/lib/layout";
 import { SpotCatalogProvider } from "@/lib/spot-catalog";
 import { normalizeName } from "@/lib/spot-geo";
 import type { Spot } from "@/lib/spots";
@@ -122,7 +123,7 @@ export function SpotsAdmin({
       onRemove={removeSpot}
       onRequestChanged={noop}
     >
-      <div className="mx-auto w-full min-w-0 max-w-[880px] flex-1 px-4.5 pb-18 pt-6">
+      <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18 pt-6`}>
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground"

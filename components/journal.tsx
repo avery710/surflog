@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
@@ -22,6 +22,7 @@ import { SpotCatalogProvider, type OwnRequest } from "@/lib/spot-catalog";
 import type { Spot } from "@/lib/spots";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
+import { PAGE_COLUMN } from "@/lib/layout";
 import type { Board, Session } from "@/lib/types";
 
 interface JournalUser {
@@ -41,6 +42,7 @@ export function Journal({
   canManageSpots = false,
   pendingSpotRequests = 0,
   user,
+  openLogForm = false,
 }: {
   initialSessions: Session[];
   initialSpotNotes: Record<string, string>;
@@ -55,6 +57,8 @@ export function Journal({
   /** Admin only: how many spot requests are waiting (badge on the menu link). */
   pendingSpotRequests?: number;
   user: JournalUser;
+  /** Arrived via the "+" on a sub page (`/?log=1`): start with the log form open. */
+  openLogForm?: boolean;
 }) {
   const { t } = useLang();
   const [sessions, setSessions] = useState(initialSessions);
@@ -66,7 +70,12 @@ export function Journal({
   // "Request a spot" dialog (any user); `name` pre-fills it from the picker's search text.
   const [requestDialog, setRequestDialog] = useState<{ name: string } | null>(null);
   const openRequestDialog = useCallback((name: string) => setRequestDialog({ name }), []);
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(openLogForm);
+  // Drop the ?log=1 that opened it, so a reload or the back button doesn't
+  // pop the form open again. No state involved, just the address bar.
+  useEffect(() => {
+    if (openLogForm) window.history.replaceState(null, "", "/");
+  }, [openLogForm]);
   // True while the log form is saving/uploading — see the Dialog below.
   const [formBusy, setFormBusy] = useState(false);
   // The log-session dialog opens from a plain button, not a Radix
@@ -219,7 +228,7 @@ export function Journal({
         ref={headerRef}
         className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
       >
-        <div className="mx-auto flex w-full max-w-[880px] flex-wrap items-center justify-between gap-4 px-4.5">
+        <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
           <h1 className="py-1">
             {/* Stays black even on the blue bar — asked for specifically
                 (2026-10-02): the earlier `brightness-0 invert` (white
@@ -283,7 +292,7 @@ export function Journal({
           viewport instead of staying capped at it, a real horizontal-
           scroll regression caught via `document.documentElement.scrollWidth`
           at 375px while verifying the header restyle, not by eye. */}
-      <div className="mx-auto w-full min-w-0 max-w-[880px] flex-1 px-4.5 pb-18">
+      <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18`}>
         {/* One shared panel for the four "about your surfing" sections —
             goal, activity calendar, spot table, board rack — on request, so
             they read as one dashboard group rather than four separate
@@ -396,7 +405,7 @@ export function Journal({
  * directly from the PNG's alpha channel: two rectangles, not a single
  * centred cross — the vertical bar is 80 wide, the horizontal 63 tall,
  * deliberately unequal (kept as drawn, not squared off to match). */
-function LogIcon({ className }: { className?: string }) {
+export function LogIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 300 257" fill="currentColor" aria-hidden className={className}>
       <rect x="110" y="0" width="80" height="257" />

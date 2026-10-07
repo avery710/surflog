@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { ConnectedServices } from "@/components/admin/connected-services";
 import { SpotsAdmin } from "@/components/admin/spots-admin";
+import { SiteHeader } from "@/components/site-header";
 import { listConnectedServices } from "@/lib/oauth";
 import { isSpotAdmin } from "@/lib/spot-admin";
 import { listAllRequests, rowToRequest } from "@/lib/spot-requests";
@@ -16,8 +17,15 @@ export default async function AdminPage() {
 
   const [spots, requestRows, services] = await Promise.all([listSpots(), listAllRequests(), listConnectedServices()]);
   return (
-    <SpotsAdmin initialSpots={spots} initialRequests={requestRows.map((r) => rowToRequest(r, true))}>
-      <ConnectedServices services={services} />
-    </SpotsAdmin>
+    <>
+      <SiteHeader
+        user={session.user}
+        canManageSpots
+        pendingSpotRequests={requestRows.filter((r) => r.status === "pending").length}
+      />
+      <SpotsAdmin initialSpots={spots} initialRequests={requestRows.map((r) => rowToRequest(r, true))}>
+        <ConnectedServices services={services} />
+      </SpotsAdmin>
+    </>
   );
 }

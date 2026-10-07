@@ -571,12 +571,45 @@ and the API routes keep their names (`/api/tokens`, `/api/tokens/:id`).
 Where this file says "`/tokens` page" for anything written earlier, read
 `/agents`. The last tile is "Others" (was "Something else", renamed the
 same day on request).
+**Sub pages have the header (same day, on request):**
+`components/site-header.tsx` on `/agents` and `/admin` — the journal's
+blue bar: wordmark (a link home), the white "+" and the avatar menu. The
+"+" there is a **link to `/?log=1`**, because the log form's dialog only
+exists in `components/journal.tsx`; `app/page.tsx` passes
+`openLogForm`, the journal opens the form and strips the query so a
+reload doesn't reopen it. **One width everywhere (Avery, later the same
+day):** every signed-in page — journal, `/agents`, `/admin` — uses
+`PAGE_COLUMN` (`lib/layout.ts`: `mx-auto w-full max-w-[880px] px-4.5`)
+for both the header's inner row and the content column, so the wordmark,
+"+"/avatar and content edges sit at the same x on every page. The old
+`width="narrow"` (640 px) prop is gone; change the width in that one
+constant only. On `/agents`, text blocks are capped with `max-w-prose`
+(intro, steps, notes) while cards, code boxes and rows stay full width.
+Sign-in, OAuth consent, dialogs, landing and `/s/` share pages keep their
+own widths. It duplicates the journal header's classes — keep the two in
+step. Checked in cmux at 761 and 375 px: alignment, the menu, "+" →
+journal with the form open → Escape → reload stays closed.
+**Already-connected state (same day, after Avery's screenshot from
+staging):** picking a tile for an agent that was connected earlier showed
+"Waiting for your agent to connect…", which read as "not connected". Now
+a tile with a live connection carries a ✓, and its status line says
+"Already connected: {name}. Follow the steps only to connect another
+device." Matching is `connectionMatches()` in
+`components/connect-agent.tsx` (by return host for claude.ai / ChatGPT /
+Gemini, by registered name for Claude Code and Cursor; "Others" never
+matches; tests in `tests/connect-agent.test.ts`). Checked in cmux against
+Avery's two real connections. That screenshot is also the first signed-in
+look at staging: staging URL in the command, zh-TW rendering and local
+timestamps were all right.
 **"Connect an agent" (same day, on request: "a streamlined flow of
 connecting to their different agents"; uncommitted at time of writing).**
 `components/connect-agent.tsx`, the top card of `/tokens` (page title
-"Agents" / "AI 代理", avatar-menu item "Connect an agent" / "連結 AI 代理";
+"Agents" / "Agents", avatar-menu item "Connect an agent" / "連結 Agent"
+(rule, 2026-10-07, on request: in zh-TW the word "agent" stays English,
+capitalised "Agent", no plural marker, never 代理 / 代理程式);
 the standalone token form is gone, tokens are made inside this card).
-Pick a tile — Claude, ChatGPT, Claude Code, Cursor, Others — and
+Pick a tile — Claude, ChatGPT, Gemini (added later the same day, on
+request), Claude Code, Cursor, Others — and
 see only that agent's steps with the server URL / `claude mcp add`
 command / Cursor `mcp.json` prefilled and a Copy button. **The user
 never chooses OAuth vs token; the tile does**: Claude, ChatGPT and
@@ -588,8 +621,10 @@ request), never hard-coded. A status line says "Waiting for your agent to
 connect…" and flips to "Connected: …" when a new OAuth grant appears or
 the just-made token is first used — `components/api-tokens.tsx` re-reads
 `GET /api/tokens` every 4 s while a tile is selected (visible tab only,
-10 min max). **The agent's choices**: which tiles (Gemini left out until
-it is confirmed working), "Read and write" preselected, the Cursor
+10 min max). **The agent's choices**: which tiles (Gemini was first left out as unconfirmed, then
+added on request with a note that it may not work; its step 1 is
+deliberately vague because the agent could not find the consumer Gemini
+app's exact menu path — ask Avery, who has been through it), "Read and write" preselected, the Cursor
 snippet shape (`url` + `headers`, from memory of Cursor's docs, not
 tried in Cursor), and the step wording for claude.ai / ChatGPT menus
 (third-party guides; ChatGPT's needs a paid plan and was never tried).

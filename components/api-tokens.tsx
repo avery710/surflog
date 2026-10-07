@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConnectAgent } from "@/components/connect-agent";
 import { useLang } from "@/lib/i18n";
+import { PAGE_COLUMN } from "@/lib/layout";
 import type { ApiToken } from "@/lib/token-auth";
 import { useLocalStamp } from "@/lib/use-local-stamp";
 
@@ -56,7 +57,7 @@ export function ApiTokens({ initialTokens, mcpUrl }: { initialTokens: ApiToken[]
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[640px] flex-1 px-4.5 pb-18 pt-6">
+    <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18 pt-6`}>
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground"
@@ -65,7 +66,7 @@ export function ApiTokens({ initialTokens, mcpUrl }: { initialTokens: ApiToken[]
         {t("tokens.back")}
       </Link>
       <h1 className="mt-3 text-2xl font-bold">{t("tokens.title")}</h1>
-      <p className="mt-2 text-[13.5px] text-muted-foreground">{t("tokens.intro")}</p>
+      <p className="mt-2 max-w-prose text-[13.5px] text-muted-foreground">{t("tokens.intro")}</p>
 
       <ConnectAgent
         mcpUrl={mcpUrl}
