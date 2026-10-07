@@ -250,3 +250,58 @@ describe("goal tools", () => {
     expect(setGoal).toHaveBeenCalledTimes(MCP_WRITES.limit);
   });
 });
+
+describe("ticking goal points on a session", () => {
+  const ok = () => ({ ok: true as const, data: session({}) });
+
+  it("create_session: passes points of the current goal to the service", async () => {
+    vi.mocked(getGoal).mockResolvedValue("看浪頭\n挺胸划水");
+    vi.mocked(createSessionFor).mockResolvedValue(ok());
+    await tools("write", "me").get("create_session")!.cb({ spot: "waiao", when: "2026-10-05T08:00", goalsAchieved: [" 看浪頭 "] });
+    expect(vi.mocked(createSessionFor).mock.calls[0][1]).toMatchObject({ goalAchieved: ["看浪頭"] });
+  });
+
+  it("create_session: refuses a point that isn't in the goal, without saving", async () => {
+    vi.mocked(getGoal).mockResolvedValue("看浪頭");
+    const r = await tools("write").get("create_session")!.cb({ spot: "waiao", when: "2026-10-05T08:00", goalsAchieved: ["看浪"] });
+    expect(r.isError).toBe(true);
+    expect(r.content[0].text).toContain("看浪頭");
+    expect(createSessionFor).not.toHaveBeenCalled();
+  });
+
+  it("create_session: no ticks sends no goal field", async () => {
+    vi.mocked(createSessionFor).mockResolvedValue(ok());
+    await tools("write").get("create_session")!.cb({ spot: "waiao", when: "2026-10-05T08:00" });
+    expect(vi.mocked(createSessionFor).mock.calls[0][1]).not.toHaveProperty("goalAchieved");
+  });
+
+  it("update_session: keeps a point the session already has even if it left the goal", async () => {
+    vi.mocked(getGoal).mockResolvedValue("新目標");
+    vi.mocked(getSession).mockResolvedValue(session({ goalText: "舊目標", goalMet: true, goalPointsMet: [true] }));
+    vi.mocked(updateSessionFor).mockResolvedValue(ok());
+    await tools("write", "me").get("update_session")!.cb({ id: "s1", goalsAchieved: ["舊目標", "新目標"] });
+    expect(updateSessionFor).toHaveBeenCalledWith("me", "s1", { goalAchieved: ["舊目標", "新目標"] });
+  });
+
+  it("update_session: an empty list unticks everything", async () => {
+    vi.mocked(getGoal).mockResolvedValue("a");
+    vi.mocked(getSession).mockResolvedValue(session({}));
+    vi.mocked(updateSessionFor).mockResolvedValue(ok());
+    await tools("write", "me").get("update_session")!.cb({ id: "s1", goalsAchieved: [] });
+    expect(updateSessionFor).toHaveBeenCalledWith("me", "s1", { goalAchieved: [] });
+  });
+
+  it("update_session: another owner's session is 'not found', nothing saved", async () => {
+    vi.mocked(getGoal).mockResolvedValue("a");
+    vi.mocked(getSession).mockResolvedValue(session({ ownerId: "someone-else" }));
+    const r = await tools("write", "me").get("update_session")!.cb({ id: "s1", goalsAchieved: ["a"] });
+    expect(r.content[0].text).toBe("not found");
+    expect(updateSessionFor).not.toHaveBeenCalled();
+  });
+
+  it("update_session: leaves ticks alone when goalsAchieved isn't given", async () => {
+    vi.mocked(updateSessionFor).mockResolvedValue(ok());
+    await tools("write", "me").get("update_session")!.cb({ id: "s1", notes: "x" });
+    expect(vi.mocked(updateSessionFor).mock.calls[0][2]).not.toHaveProperty("goalAchieved");
+  });
+});

@@ -79,7 +79,6 @@ function collectTools(scope: TokenScope): ToolDoc[] {
 
 const NOT_AVAILABLE = [
   "Photos and video — no upload, download or removal (a session only reports `mediaCount`).",
-  "Ticking goal points on a session — the goal itself can be read, set and removed, but which points a session achieved is read-only (`goalsAchieved`).",
   "Boards — read-only list. No adding, editing, deleting, reordering or go-to toggling.",
   "Spots — read-only catalogue. No adding spots, no spot requests, no per-spot notes.",
   "Rich text in notes — notes go in and come out as plain text; bullets and bold written in the app are flattened on read, and lost if the note is rewritten through MCP.",
@@ -94,6 +93,7 @@ const RULES = [
   "`boardId` must be one of the caller's own boards.",
   "Creating a session, or changing its spot or time, fetches swell / wind / temperature (Open-Meteo) and tide (CWA, Taiwan and forward dates only) for that moment.",
   "update_session replaces the whole note; delete_session also deletes the session's photos and videos and can't be undone.",
+  "`goalsAchieved` on create_session / update_session ticks goal points on that session. Each must match a point of the current goal word for word (or, on update, one the session already has ticked); on update the list replaces the session's existing ticks.",
   "The goal is one short list of points, 200 characters in total. set_goal replaces the whole list; a point's achieved count follows its exact wording, so rewording without `renames` starts that point from zero.",
 ];
 

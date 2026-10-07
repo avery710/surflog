@@ -596,12 +596,19 @@ session logs from an MCP client. Built in three steps the same day.
   `PUT /api/goal`) and `clear_goal` (write). So a read token now gets 5
   tools, a write token 10; goal changes count against the write limit.
   A session's `goal` field became `goalsAchieved` (the ticked points, via
-  `sessionAchieved()`). **Ticking points on a session is still not over
-  MCP** (not asked for; `session-service` already takes `goalAchieved`).
-  Checked with the SDK client against the local dev server and the live
-  `goals` table, fake owner, cleaned up. `/dev/mcp` is a scope doc whose
-  tool list is read from `lib/mcp-tools.ts` at render. Not on staging yet
-  at time of writing.
+  `sessionAchieved()`). **Ticking added the same day, on request**:
+  `create_session` / `update_session` take `goalsAchieved` (string[]),
+  passed to `session-service` as `goalAchieved`. On update it replaces the
+  session's whole tick list (`[]` unticks all; omitted leaves it alone).
+  Stricter than the web route by the agent's choice: each point must match
+  the current goal word for word, or (update) be one the session already
+  has ticked — a paraphrase would otherwise create a point belonging to no
+  goal. Checked with the SDK client against the local dev server and the
+  live tables, fake owner, cleaned up: goal set/read/reword/clear, tick on
+  create, typo refused, tick both, keep a point that left the goal, untick
+  all. `/dev/mcp` is a scope doc whose tool list is read from
+  `lib/mcp-tools.ts` at render. Goal tools reached staging in `435adf9`;
+  never called there (only locally).
 - **The agent's choices, not Avery's — change if they bite**: `when`
   must be on the 2-hour grid (even hour, `:00`) so MCP-made sessions
   edit cleanly in the UI; `notes` is plain text and `update_session`

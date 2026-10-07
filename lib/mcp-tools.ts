@@ -6,7 +6,8 @@
  * through lib/session-service.ts, which checks ownership per row again.
  *
  * Also the owner's "goal for next session" (get / set / clear, added
- * 2026-10-07). Ticking goal points on a session is NOT here.
+ * 2026-10-07), and which of its points a session achieved (`goalsAchieved`
+ * on create_session / update_session).
  *
  * Deliberately not here (v1): photos/video (bytes don't belong in a tool
  * call, and functions cap bodies at 4.5 MB), boards/spots admin, spot
@@ -18,7 +19,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { getGoal, getSession, listBoards, listSessions, renameGoalPointsInSessions, setGoal } from "@/lib/db";
-import { MAX_GOAL, achievedCounts, goalPoints, joinGoalPoints, sessionAchieved } from "@/lib/goal";
+import { MAX_GOAL, achievedCounts, goalOptions, goalPoints, joinGoalPoints, sessionAchieved } from "@/lib/goal";
 import { boardLabel, sortBoards } from "@/lib/boards";
 import { MCP_WRITES, rateLimit } from "@/lib/rate-limit";
 import { htmlToPlainText, plainTextToHtml } from "@/lib/rich-text";
@@ -44,6 +45,8 @@ const GOAL_POINT = z
   .min(1)
   .max(MAX_GOAL)
   .regex(/^[^\n]*$/, "one line per point");
+
+const GOALS_ACHIEVED = z.array(GOAL_POINT).max(20);
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -235,6 +238,24 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
   // A read-only token doesn't get the write tools at all.
   if (auth.scope !== "write") return;
 
+  // Ticks are matched by exact wording, so a typo or a paraphrase would
+  // silently create a point that belongs to no goal. Only the current goal's
+  // points are accepted, plus (on update) ones the session already has ticked
+  // that have since left the goal. Returns the trimmed list, or an error.
+  const checkAchieved = async (wanted: string[], alreadyTicked: string[] = []) => {
+    const allowed = goalOptions(await getGoal(ownerId), alreadyTicked);
+    const achieved = [...new Set(wanted.map((p) => p.trim()))];
+    const unknown = achieved.find((p) => !allowed.includes(p));
+    if (unknown === undefined) return { ok: true as const, achieved };
+    return {
+      ok: false as const,
+      result: error(
+        `"${unknown}" is not a point of the current goal — use the exact wording from get_goal` +
+          (allowed.length ? `: ${allowed.map((p) => `"${p}"`).join(", ")}` : " (no goal is set)")
+      ),
+    };
+  };
+
   // Checked at the top of each write tool; null = go ahead.
   const writeLimited = (): ToolResult | null => {
     const r = rateLimit(`mcp:write:${ownerId}`, MCP_WRITES.limit, MCP_WRITES.windowMs);
@@ -248,26 +269,33 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       description:
         "Log a new session in the user's journal. Swell, wind, tide and temperature for that spot and time are " +
         "filled in automatically — don't ask the user for them. Get `spot` from list_spots. " +
-        "`when` is local time at the spot, on a 2-hour grid; round to the nearest even hour.",
+        "`when` is local time at the spot, on a 2-hour grid; round to the nearest even hour. " +
+        "If the user says which goal points they achieved, pass them in `goalsAchieved` (exact wording from get_goal).",
       inputSchema: z.object({
         spot: z.string().min(1).describe("Spot slug from list_spots"),
         when: WHEN,
         notes: NOTES.optional().describe("Plain text; line breaks are kept"),
         boardId: z.string().optional().describe("Board id from list_boards"),
+        goalsAchieved: GOALS_ACHIEVED.optional().describe(
+          "Points of the current goal achieved in this session, exact wording from get_goal"
+        ),
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
-    async ({ spot, when, notes, boardId }) => {
+    async ({ spot, when, notes, boardId, goalsAchieved }) => {
       const limited = writeLimited();
       if (limited) return limited;
       // Catalogue spots only: `req:`/`custom:` are app-side concepts.
       const maps = await lookups(ownerId);
       if (!maps.spots.has(spot)) return error(`unknown spot "${spot}" — pick a slug from list_spots`);
+      const ticks = goalsAchieved?.length ? await checkAchieved(goalsAchieved) : null;
+      if (ticks && !ticks.ok) return ticks.result;
       const result = await createSessionFor(ownerId, {
         spot,
         when,
         notesHtml: plainTextToHtml(notes ?? ""),
         ...(boardId ? { boardId } : {}),
+        ...(ticks ? { goalAchieved: ticks.achieved } : {}),
       });
       if (!result.ok) return failed(result);
       return json(compact(result.data, maps.spots, maps.boards));
@@ -281,28 +309,42 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       description:
         "Change one of the user's own sessions. Only the fields given are changed. `notes` REPLACES the whole " +
         "note (formatting such as bullets is lost) — read the session first and send the full new text. " +
-        "Changing `spot` or `when` re-fetches the conditions.",
+        "Changing `spot` or `when` re-fetches the conditions. `goalsAchieved` REPLACES the session's whole list " +
+        "of ticked goal points (an empty list unticks all) — read the session first and send every point that " +
+        "should stay ticked.",
       inputSchema: z.object({
         id: z.string(),
         spot: z.string().min(1).optional().describe("Spot slug from list_spots"),
         when: WHEN.optional(),
         notes: NOTES.optional().describe("Plain text; replaces the existing notes entirely"),
         boardId: z.string().nullable().optional().describe("Board id from list_boards, or null for no board"),
+        goalsAchieved: GOALS_ACHIEVED.optional().describe(
+          "Every goal point achieved in this session, exact wording; replaces the existing ticks"
+        ),
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
-    async ({ id, spot, when, notes, boardId }) => {
+    async ({ id, spot, when, notes, boardId, goalsAchieved }) => {
       const limited = writeLimited();
       if (limited) return limited;
       const maps = await lookups(ownerId);
       if (spot !== undefined && !maps.spots.has(spot)) {
         return error(`unknown spot "${spot}" — pick a slug from list_spots`);
       }
+      let ticks: string[] | undefined;
+      if (goalsAchieved !== undefined) {
+        const existing = await getSession(id);
+        if (!existing || existing.ownerId !== ownerId) return error("not found");
+        const checked = await checkAchieved(goalsAchieved, sessionAchieved(existing));
+        if (!checked.ok) return checked.result;
+        ticks = checked.achieved;
+      }
       const result = await updateSessionFor(ownerId, id, {
         ...(spot !== undefined ? { spot } : {}),
         ...(when !== undefined ? { when } : {}),
         ...(notes !== undefined ? { notesHtml: plainTextToHtml(notes) } : {}),
         ...(boardId !== undefined ? { boardId } : {}),
+        ...(ticks !== undefined ? { goalAchieved: ticks } : {}),
       });
       if (!result.ok) return failed(result);
       if (!result.data) return error("not found");
