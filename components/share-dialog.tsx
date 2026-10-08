@@ -125,7 +125,6 @@ export function ShareDialog({
     let cancelled = false;
     const load = async (v: Variant) => {
       const p = fetch(`/api/sessions/${sessionId}/share-image?variant=${v}&lang=${settled.lang}&tone=${settled.tone}&parts=${settled.partsKey}`, {
-        cache: "no-store",
         signal: ac.signal,
       }).then(async (res) => {
         if (!res.ok) throw new Error("render failed");

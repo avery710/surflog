@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ownedShareCard } from "@/lib/session-share";
@@ -7,6 +8,11 @@ import { renderShareImage } from "@/lib/share-image";
 import { isShareLang } from "@/lib/share-strings";
 
 type Params = { params: Promise<{ id: string }> };
+
+// A deploy can change the layout without changing the data, so the build
+// is part of every image's fingerprint. Dev has no build id: never cached,
+// so layout edits show at once.
+const BUILD = process.env.VERCEL_GIT_COMMIT_SHA ?? null;
 
 /**
  * GET /api/sessions/:id/share-image?variant=strip|column|card&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
@@ -32,8 +38,20 @@ export async function GET(req: NextRequest, { params }: Params) {
   const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board });
   if (!card.ok) return NextResponse.json({ error: card.error }, { status: card.status });
 
+  // Fingerprint of everything the picture is drawn from. The browser keeps the
+  // PNG and asks "still this one?"; an unchanged image is a 304, never redrawn.
+  const etag = BUILD
+    ? `"${createHash("sha256").update(JSON.stringify([BUILD, variant, lang, toneQ, parts, card.data])).digest("base64url")}"`
+    : null;
+  const cacheControl = etag ? "private, no-cache" : "private, no-store";
+  if (etag && req.headers.get("if-none-match") === etag) {
+    return new NextResponse(null, { status: 304, headers: { ETag: etag, "Cache-Control": cacheControl } });
+  }
+
   try {
-    return await renderShareImage(card.data, variant, { cacheControl: "private, no-store", tone: toneQ, parts });
+    const res = await renderShareImage(card.data, variant, { cacheControl, tone: toneQ, parts });
+    if (etag) res.headers.set("ETag", etag);
+    return res;
   } catch (e) {
     console.error("[share-image]", e);
     return NextResponse.json({ error: "could not draw the image, try again" }, { status: 503 });
