@@ -2,6 +2,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { auth } from "@/auth";
 import { PublicShareView } from "@/components/share/public-share-view";
 import { loadPublicShare } from "@/lib/session-share";
 import { langFromAcceptLanguage } from "@/lib/share-lang";
@@ -69,5 +70,7 @@ export default async function SharedSessionPage({ params }: Props) {
     limitShareMiss(clientIp(h));
     notFound();
   }
-  return <PublicShareView share={share} mediaBase={`/api/share/${token}/media`} />;
+  // Only whether the visitor is signed in, for the header button; nothing of theirs is shown.
+  const viewer = await auth();
+  return <PublicShareView share={share} mediaBase={`/api/share/${token}/media`} signedIn={!!viewer?.user?.id} />;
 }

@@ -59,7 +59,10 @@ const S = {
   "share.page.conditions": { en: "Conditions", "zh-TW": "浪況" },
   "share.page.photoAlt": { en: "Photo from the session", "zh-TW": "衝浪紀錄的照片" },
   "share.page.cta": { en: "Keep your own surf journal", "zh-TW": "也來記錄你的衝浪日誌" },
-  "share.page.open": { en: "Open Surflog", "zh-TW": "開啟 Surflog" },
+  // Header / bottom buttons: a signed-in visitor gets their journal, anyone else sign in / sign up (one Google step either way).
+  "share.page.openJournal": { en: "Open my journal", "zh-TW": "打開我的日誌" },
+  "share.page.signIn": { en: "Sign in", "zh-TW": "登入" },
+  "share.page.signUp": { en: "Sign up free", "zh-TW": "免費加入" },
   "share.page.footer": {
     en: "Shared with Surflog. Conditions are model data for the nearest grid point.",
     "zh-TW": "由 Surflog 分享。浪況為最近網格點的模型資料。",
