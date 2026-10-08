@@ -296,33 +296,13 @@ export function Journal({
           scroll regression caught via `document.documentElement.scrollWidth`
           at 375px while verifying the header restyle, not by eye. */}
       <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18`}>
-        {/* One shared panel for the four "about your surfing" sections —
-            goal, activity calendar, spot table, board rack — on request, so
-            they read as one dashboard group rather than four separate
-            floating cards. Went through two blue phases the same day (a
-            pale wash of --primary, then — once the header above also went
-            solid blue — a solid fill of that same blue), then moved to a
-            light grey (`--panel`, token renamed from `--primary-soft` the
-            same session — see globals.css's own comment on both the value
-            and the rename) once the two solid-blue blocks stacked directly
-            on top of each other read as one fused shape rather than two
-            ("change the dashboard panel's background to light grey"); the
-            header above kept the blue (reads `bg-primary` directly now,
-            not this token). The panel itself has no border (removed
-            2026-10-01, on request — the tint alone is enough separation)
-            but each section keeps its own white bg-card surface (a
-            light-grey border, no shadow — see globals.css, 2026-10-01) so
-            it still reads as a distinct block sitting on the grey — the
-            calendar in particular has to stay a white card per its own
-            comment. Padding is tighter on phones (p-3) than sm+ (p-5), same
-            ratio as the cards inside it. Spacing between sections is this
-            wrapper's own gap-4, not each section's old mt-6.5. mt-8 (was
-            mt-6.5, from the white-header era): kept even now the header
-            above and this panel are different colours (blue vs grey) —
-            still a clean break between two differently-coloured blocks,
-            not a border; see the header's own comment for why this gap
-            mattered more while both were the same blue. */}
-        <div className="mt-8 flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
+        {/* The dashboard: goal + activity calendar, spot table, board rack.
+            2026-10-08, on request: no grey `--panel` wrapper any more (it
+            had been a tinted, padded group since 2026-09-29), so each
+            section's white card runs the full column width, the same edges
+            as the session cards below. Spacing between sections is this
+            wrapper's gap-4; mt-8 keeps the break under the blue header. */}
+        <div className="mt-8 flex flex-col gap-4">
           {/* Row 1, sm: up: goal (flexible width) beside the calendar
               (content-sized — see ActivityCalendar's own comment for
               the arithmetic). The calendar used to get a fixed 344px column

@@ -136,7 +136,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
 
       {/* ① The dashboard: goal + calendar + spots table in one panel, as in the journal */}
       <Section n="1" title={t("landing.dash.title")} body={t("landing.dash.body")}>
-        <div className="flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
             <div className="flex w-full min-w-0 flex-col sm:flex-1">
               <GoalCard

@@ -301,7 +301,7 @@ export function ShareDialog({
             role="radiogroup"
             aria-label={t("share.variant.label")}
             onKeyDown={onKey}
-            className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 py-1 pb-2 items-center [justify-content:safe_center] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 py-1 pb-2 [scrollbar-width:none] lg:overflow-visible [&::-webkit-scrollbar]:hidden"
           >
             {KINDS.map((v) => {
               const img = images[v];
@@ -309,7 +309,7 @@ export function ShareDialog({
               const stale = !nothing && !!img && img.key !== liveKey && !img.error;
               const loading = !nothing && (!img?.url ? !img?.error : stale);
               return (
-                <div key={v} className="shrink-0 snap-center">
+                <div key={v} className="min-w-0 shrink-0 basis-[74%] snap-center sm:basis-[46%] lg:flex-1 lg:basis-0">
                   <button
                     type="button"
                     id={`share-kind-${v}`}
@@ -322,11 +322,9 @@ export function ShareDialog({
                       document.getElementById(`share-kind-${v}`)?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
                     }}
                     className={cn(
-                      // Every tile is as wide as its image at one height (the stickers come
-                      // trimmed to their pixels), so the gaps between tiles are all equal.
-                      "relative flex items-center justify-center overflow-hidden rounded-[var(--r-tile)] bg-[length:32px_32px] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
-                      (nothing || !img?.url) && (v === "story" ? "h-60 aspect-[9/16]" : "h-60 w-48"),
-                      v === "story" ? "bg-primary" : tone === "light"
+                      "relative flex h-60 w-full items-center justify-center overflow-hidden rounded-[var(--r-tile)] bg-[length:64px_64px] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
+                      // Story: an opaque 9:16 image, so the tile is cut to its shape (no transparency grid at the sides)
+                      v === "story" ? "mx-auto aspect-[9/16] w-auto bg-primary" : tone === "light"
                         ? "[background-image:conic-gradient(#2a2d32_25%,#33373c_0_50%,#2a2d32_0_75%,#33373c_0)]"
                         : "[background-image:conic-gradient(#d5d9de_25%,#e6e9ed_0_50%,#d5d9de_0_75%,#e6e9ed_0)]",
                       isSel ? "ring-2 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"
@@ -335,12 +333,8 @@ export function ShareDialog({
                     {nothing ? (
                       <span className="p-4 text-sm text-muted-foreground">{t("share.parts.none")}</span>
                     ) : img?.url ? (
-                      // natural aspect, at most 240px tall, never wider than the dialog allows (a wide strip on a phone)
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={img.url}
-                        alt={t("share.preview.alt")}
-                        className={cn("block h-auto max-h-60 w-auto max-w-[78vw] transition-opacity lg:max-w-[440px]", stale && "opacity-60")} />
+                      <img src={img.url} alt={t("share.preview.alt")} className={cn(v === "story" ? "size-full object-cover" : "max-h-full max-w-full object-contain", "transition-opacity", stale && "opacity-60")} />
                     ) : null}
                     {loading && (
                       <span role="status" className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-center text-xs font-medium text-white">

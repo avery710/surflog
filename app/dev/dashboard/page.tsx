@@ -71,7 +71,7 @@ function DashboardPanel({
     // blue 2026-10-02, once the header above took the solid blue instead;
     // no border since 2026-10-01) while each section keeps a white
     // bg-card surface.
-    <div className="mt-6.5 flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
+    <div className="mt-6.5 flex flex-col gap-4">
       {/* Row 1, sm: up — goal (flexible) beside the calendar (content-sized,
           fit-content), sm:items-stretch (2026-10-01). See journal.tsx for
           why: the calendar's own content is only ~200px wide, so pairing it
