@@ -537,7 +537,8 @@ export function shareElement(data: ShareCardData, variant: ShareVariant, layout:
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {layout.tiles.map((t) => (
             <div key={t.key} style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", fontSize: m.label, lineHeight: `${lh(m.label)}px`, fontWeight: 500, color: c.muted }}>{t.label}</div>
+              {/* dark tone: the labels in full near-black, like the figures (on request, 2026-10-08) */}
+              <div style={{ display: "flex", fontSize: m.label, lineHeight: `${lh(m.label)}px`, fontWeight: 500, color: tone === "dark" ? "#0b0d12" : c.muted }}>{t.label}</div>
               {t.key === "tide" ? (
                 layout.curve && data.tideCurve && m.curve ? (
                   <div style={{ display: "flex", flexDirection: "column", marginTop: 2, width: m.curve.w }}>

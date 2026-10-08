@@ -15,7 +15,7 @@ type Params = { params: Promise<{ id: string }> };
 const BUILD = process.env.VERCEL_GIT_COMMIT_SHA ?? null;
 
 /**
- * GET /api/sessions/:id/share-image?variant=strip|column|card&bg=photo&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
+ * GET /api/sessions/:id/share-image?variant=strip|column|card&bg=photo&size=preview&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
  * the owner's preview/download of the two share images. Cookie session and
  * ownership checked; the public counterpart (token-checked, card only) is
  * app/share/[token]/card.png. Same renderer, lib/share-image.tsx.
@@ -35,6 +35,8 @@ export async function GET(req: NextRequest, { params }: Params) {
   const parts = parseShareParts(req.nextUrl.searchParams.get("parts"));
   // Every owner image is an Instagram-story-sized frame; bg=photo puts the session's first image behind it.
   const photoBg = req.nextUrl.searchParams.get("bg") === "photo";
+  // size=preview: the dialog's small WebP preview; the full PNG is fetched only for the one in use.
+  const preview = req.nextUrl.searchParams.get("size") === "preview";
 
   const { id } = await params;
   const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board, coverPhoto: photoBg });
@@ -43,7 +45,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   // Fingerprint of everything the picture is drawn from. The browser keeps the
   // PNG and asks "still this one?"; an unchanged image is a 304, never redrawn.
   const etag = BUILD
-    ? `"${createHash("sha256").update(JSON.stringify([BUILD, variant, lang, toneQ, parts, photoBg, card.data])).digest("base64url")}"`
+    ? `"${createHash("sha256").update(JSON.stringify([BUILD, variant, lang, toneQ, parts, photoBg, preview, card.data])).digest("base64url")}"`
     : null;
   const cacheControl = etag ? "private, no-cache" : "private, no-store";
   if (etag && req.headers.get("if-none-match") === etag) {
@@ -51,7 +53,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   try {
-    const res = await renderShareImage(card.data, variant, { cacheControl, tone: toneQ, parts, storyFrame: true });
+    const res = await renderShareImage(card.data, variant, { cacheControl, tone: toneQ, parts, storyFrame: true, preview });
     if (etag) res.headers.set("ETag", etag);
     return res;
   } catch (e) {

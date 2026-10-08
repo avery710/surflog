@@ -5,7 +5,8 @@
  * What a web page can and can't do (see the share dialog's header comment):
  * - Files reach other apps only through the OS share sheet (Web Share API)
  *   or the clipboard. There is no web way to hand an image to WhatsApp / LINE.
- * - Their URL schemes and web intents carry TEXT or a LINK only.
+ * - Their URL schemes and web intents carry TEXT or a LINK only, so the dialog
+ *   doesn't use them: "More" sends image + text + link through the share sheet.
  * - Instagram Stories accept images from native apps only (pasteboard +
  *   `instagram-stories://share`). The web's best effort is: put the image on
  *   the clipboard, open the story camera, let the user tap "Add sticker".
@@ -29,26 +30,25 @@ export function canInstagramStory(os: MobileOS | null, clipboardImage: boolean):
   return os !== null && clipboardImage;
 }
 
-export function whatsappUrl(link: string, text?: string): string {
-  const body = text ? `${text} ${link}` : link;
-  return `https://wa.me/?text=${encodeURIComponent(body)}`;
-}
-
-export function lineUrl(link: string, text?: string): string {
-  const body = text ? `${text}\n${link}` : link;
-  return `https://line.me/R/msg/text/?${encodeURIComponent(body)}`;
-}
-
-export type MoreShareKind = "file" | "link" | null;
-
 /**
- * What the "More" button hands to navigator.share: the image when the browser
- * accepts it as a file, else the public link when it is on, else nothing
- * (button hidden).
+ * What the "More" button hands to navigator.share: the image together with the
+ * invite text and the link, so a chat app (WhatsApp, LINE, Messages, …) gets
+ * all three in one message. Browsers and target apps differ in what they take
+ * with a file, so this steps down until `canShare` accepts: image + text + link,
+ * image + text, image alone, then text + link without the image. Null = nothing
+ * shareable (the button is hidden).
  */
-export function moreShareKind(input: { hasShare: boolean; canShareFile: boolean; link: string | null }): MoreShareKind {
+export function sharePayload(input: {
+  hasShare: boolean;
+  file: File | null;
+  text: string;
+  url: string;
+  canShare: (data: ShareData) => boolean;
+}): ShareData | null {
   if (!input.hasShare) return null;
-  if (input.canShareFile) return "file";
-  if (input.link) return "link";
-  return null;
+  const { file, text, url, canShare } = input;
+  const tries: ShareData[] = file
+    ? [{ files: [file], text, url }, { files: [file], text: `${text} ${url}` }, { files: [file] }, { text, url }]
+    : [{ text, url }];
+  return tries.find((d) => canShare(d)) ?? null;
 }

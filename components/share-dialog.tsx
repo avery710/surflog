@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Switch } from "radix-ui";
 import { Copy, Download, Link, Link2, Share2 } from "lucide-react";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLang, type Lang } from "@/lib/i18n";
 import type { ShareTone, ShareVariant } from "@/lib/share-element";
-import { INSTAGRAM_STORY_URL, canInstagramStory, detectMobileOS, lineUrl, moreShareKind, whatsappUrl } from "@/lib/share-targets";
+import { INSTAGRAM_STORY_URL, canInstagramStory, detectMobileOS, sharePayload } from "@/lib/share-targets";
 import { ALL_PARTS, SHARE_PARTS, noParts, serializeShareParts, type ShareParts } from "@/lib/share-parts";
 
 /**
@@ -43,13 +43,19 @@ interface ShareState {
   path: string;
 }
 
+/** A small WebP preview on screen (size=preview), per style. */
 interface ImageState {
   key: string;
-  blob?: Blob;
   url?: string;
   error?: boolean;
-  /** navigator.canShare accepted this file. */
-  canShare?: boolean;
+}
+
+/** The full-size PNG of one style, fetched only for the style in use (Save,
+ *  Copy, Share act on it). */
+interface FullState {
+  key: string;
+  blob?: Blob;
+  error?: boolean;
 }
 
 const noopSubscribe = () => () => {};
@@ -109,11 +115,15 @@ export function ShareDialog({
 
   const [images, setImages] = useState<Partial<Record<Variant, ImageState>>>({});
   const imagesRef = useRef(images);
-  const promises = useRef<Partial<Record<Variant, Promise<Blob>>>>({});
+  const [full, setFull] = useState<Partial<Record<Variant, FullState>>>({});
+  // The full PNG requests by style, with the settings they were made for.
+  const promises = useRef<Partial<Record<Variant, { key: string; promise: Promise<Blob> }>>>({});
   const selectedRef = useRef(selected);
+  const settledRef = useRef(settled);
   useEffect(() => {
     selectedRef.current = selected;
-  }, [selected]);
+    settledRef.current = settled;
+  }, [selected, settled]);
   const [attempt, setAttempt] = useState(0);
 
   const canCopyImage = useSyncExternalStore(noopSubscribe, clipboardImageSupported, () => false);
@@ -123,31 +133,56 @@ export function ShareDialog({
   // The public link, once it is on (owned by LinkSection, which does the switching).
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
 
-  // Render the three PNGs for the settled controls: the selected one first,
-  // the others once it is in. A newer settle aborts the older requests. The
-  // previous image of each kind stays on screen until its replacement arrives.
+  const imageUrl = useCallback(
+    (v: Variant, s: typeof settled, preview: boolean) =>
+      `/api/sessions/${sessionId}/share-image?variant=${v}&lang=${s.lang}&tone=${s.tone}&parts=${s.partsKey}${s.photoBg ? "&bg=photo" : ""}${preview ? "&size=preview" : ""}`,
+    [sessionId]
+  );
+
+  // The full PNG of one style for the settled controls, requested once per
+  // settings key and reused (Copy hands the promise to the clipboard at once).
+  const ensureFull = useCallback(
+    (v: Variant): Promise<Blob> | null => {
+      const s = settledRef.current;
+      if (!s.partsKey) return null;
+      const have = promises.current[v];
+      if (have && have.key === s.key) return have.promise;
+      const promise = fetch(imageUrl(v, s, false)).then(async (res) => {
+        if (!res.ok) throw new Error("render failed");
+        const blob = await res.blob();
+        return blob.type === "image/png" ? blob : new Blob([blob], { type: "image/png" });
+      });
+      promises.current[v] = { key: s.key, promise };
+      promise.then(
+        (blob) => promises.current[v]?.promise === promise && setFull((f) => ({ ...f, [v]: { key: s.key, blob } })),
+        () => {
+          if (promises.current[v]?.promise !== promise) return;
+          delete promises.current[v]; // a later tap tries again
+          setFull((f) => ({ ...f, [v]: { key: s.key, error: true } }));
+        }
+      );
+      return promise;
+    },
+    [imageUrl]
+  );
+
+  // Previews: the three small WebPs for the settled controls, the selected one
+  // first. A newer settle aborts the older requests; the previous preview of
+  // each kind stays on screen until its replacement arrives.
   useEffect(() => {
     if (!open || !settled.partsKey) return;
     const ac = new AbortController();
     let cancelled = false;
     const load = async (v: Variant) => {
-      const p = fetch(`/api/sessions/${sessionId}/share-image?variant=${v}&lang=${settled.lang}&tone=${settled.tone}&parts=${settled.partsKey}${settled.photoBg ? "&bg=photo" : ""}`, {
-        signal: ac.signal,
-      }).then(async (res) => {
+      try {
+        const res = await fetch(imageUrl(v, settled, true), { signal: ac.signal });
         if (!res.ok) throw new Error("render failed");
         const blob = await res.blob();
-        return blob.type === "image/png" ? blob : new Blob([blob], { type: "image/png" });
-      });
-      promises.current[v] = p;
-      try {
-        const blob = await p;
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
-        const file = new File([blob], "surflog.png", { type: "image/png" });
-        const canShare = typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
         const old = imagesRef.current[v]?.url;
         if (old) setTimeout(() => URL.revokeObjectURL(old), 1500);
-        imagesRef.current = { ...imagesRef.current, [v]: { key: settled.key, blob, url, canShare } };
+        imagesRef.current = { ...imagesRef.current, [v]: { key: settled.key, url } };
         setImages(imagesRef.current);
       } catch {
         if (cancelled) return;
@@ -165,7 +200,14 @@ export function ShareDialog({
       cancelled = true;
       ac.abort();
     };
-  }, [open, sessionId, settled, attempt]);
+  }, [open, imageUrl, settled, attempt]);
+
+  // Then the full PNG of the style in use, in the background, so Save / Share
+  // are ready by the time they're tapped.
+  const selectedPreviewKey = images[selected]?.url ? images[selected]?.key : undefined;
+  useEffect(() => {
+    if (open && selectedPreviewKey === settled.key) void ensureFull(selected)?.catch(() => {});
+  }, [open, selected, selectedPreviewKey, settled.key, ensureFull]);
 
   // Free the blob URLs when the dialog goes away.
   useEffect(
@@ -176,13 +218,20 @@ export function ShareDialog({
   );
 
   const current = images[selected];
-  // Up to date = rendered for exactly what the controls show right now.
+  // Up to date = drawn for exactly what the controls show right now.
   const currentReady = !nothing && !!current?.url && current.key === liveKey && !current.error;
+  const currentFull = full[selected];
+  const fullBlob = !nothing && currentFull?.key === liveKey ? currentFull.blob : undefined;
   const fileName = `surflog-${selected}-${fileStem}.png`;
+  // The full image's object URL, for Save (a download link).
+  const fullUrl = useMemo(() => (fullBlob ? URL.createObjectURL(fullBlob) : null), [fullBlob]);
+  useEffect(() => () => {
+    if (fullUrl) URL.revokeObjectURL(fullUrl);
+  }, [fullUrl]);
 
   function copyImage() {
     // Synchronous ClipboardItem with a Promise value: required by iOS Safari.
-    const p = promises.current[selected];
+    const p = ensureFull(selected);
     if (!p) return;
     navigator.clipboard
       .write([new ClipboardItem({ "image/png": p })])
@@ -203,7 +252,7 @@ export function ShareDialog({
   // Instagram's web hand-off: copy the sticker, then open the story camera. The
   // user taps "Add sticker" there. Instagram can't be sent an image from the web.
   function sendToInstagramStory() {
-    const p = promises.current[selected];
+    const p = ensureFull(selected);
     if (!p) return;
     navigator.clipboard
       .write([new ClipboardItem({ "image/png": p })])
@@ -214,19 +263,21 @@ export function ShareDialog({
       .catch(() => toast.error(t("share.toast.copyFailed")));
   }
 
-  function openIntent(url: string) {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
-  const moreKind = moreShareKind({ hasShare: canWebShare, canShareFile: !!current?.canShare, link: linkUrl });
+  // "More": the image with an invite and a link (the public link when it's on,
+  // else Surflog itself) through the OS share sheet, to any chat app.
+  const shareFile = useMemo(() => (fullBlob ? new File([fullBlob], fileName, { type: "image/png" }) : null), [fullBlob, fileName]);
+  const payload = sharePayload({
+    hasShare: canWebShare,
+    file: shareFile,
+    text: t("share.more.text"),
+    url: linkUrl ?? (typeof window === "undefined" ? "" : window.location.origin),
+    canShare: (d) => typeof navigator !== "undefined" && typeof navigator.canShare === "function" && navigator.canShare(d),
+  });
 
   async function shareMore() {
+    if (!payload) return;
     try {
-      if (moreKind === "file" && current?.blob) {
-        await navigator.share({ files: [new File([current.blob], fileName, { type: "image/png" })] });
-      } else if (moreKind === "link" && linkUrl) {
-        await navigator.share({ url: linkUrl });
-      }
+      await navigator.share(payload);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return; // user closed the sheet
       toast.error(t("share.toast.shareFailed"));
@@ -234,9 +285,9 @@ export function ShareDialog({
   }
 
   function saveImage() {
-    if (!current?.url) return;
+    if (!fullUrl) return;
     const a = document.createElement("a");
-    a.href = current.url;
+    a.href = fullUrl;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
@@ -263,7 +314,7 @@ export function ShareDialog({
           <DialogDescription>{t("share.description")}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 lg:justify-center">
           <Segmented
             label={t("share.lang.label")}
             value={imageLang}
@@ -282,7 +333,10 @@ export function ShareDialog({
               { value: "dark", label: t("share.tone.dark") },
             ]}
           />
-          {hasPhoto && (
+        </div>
+
+        {hasPhoto && (
+          <div className="flex lg:justify-center">
             <label className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold">
               <Switch.Root
                 checked={photoChoice}
@@ -293,10 +347,10 @@ export function ShareDialog({
               </Switch.Root>
               {t("share.bg.photo")}
             </label>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div role="group" aria-label={t("share.parts.label")} className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div role="group" aria-label={t("share.parts.label")} className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:justify-center">
           <span className="text-[12.5px] font-semibold text-muted-foreground">{t("share.parts.label")}</span>
           {SHARE_PARTS.filter((k) => available[k]).map((k) => (
             <label key={k} className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold">
@@ -401,21 +455,15 @@ export function ShareDialog({
               {t("share.act.instagram")}
             </button>
           )}
-          <div className="flex flex-wrap justify-center gap-x-2 gap-y-3 sm:justify-start sm:gap-x-4">
+          <div className="flex flex-wrap justify-center gap-x-2 gap-y-3 sm:justify-start sm:gap-x-4 lg:justify-center">
             {canCopyImage && <ActionButton label={t("share.button.copyImage")} disabled={!currentReady} onClick={copyImage} icon={<Copy />} />}
-            <ActionButton label={t("share.button.saveImage")} disabled={!currentReady} onClick={saveImage} icon={<Download />} />
+            <ActionButton label={t("share.button.saveImage")} disabled={!fullUrl} onClick={saveImage} icon={<Download />} />
             <ActionButton label={t("share.button.copyLink")} disabled={!linkUrl} onClick={() => void copyLink()} icon={<Link />} />
-            {linkUrl && <ActionButton label={t("share.act.whatsapp")} onClick={() => openIntent(whatsappUrl(linkUrl))} icon={<ChatGlyph color="#25D366" />} bare />}
-            {linkUrl && <ActionButton label={t("share.act.line")} onClick={() => openIntent(lineUrl(linkUrl))} icon={<ChatGlyph color="#06C755" />} bare />}
-            {moreKind && <ActionButton label={t("share.act.more")} disabled={moreKind === "file" && !currentReady} onClick={() => void shareMore()} icon={<Share2 />} />}
+            {canWebShare && <ActionButton label={t("share.act.more")} disabled={!shareFile || !payload} onClick={() => void shareMore()} icon={<Share2 />} />}
           </div>
-          {!linkUrl ? (
-            <p className="text-[12.5px] text-muted-foreground">{t("share.act.linkOff")}</p>
-          ) : (
-            <p className="text-[12.5px] text-muted-foreground">{t("share.act.linkNote")}</p>
-          )}
+          <p className="text-[12.5px] text-muted-foreground lg:text-center">{t(linkUrl ? "share.act.linkNote" : "share.act.linkOff")}</p>
         </section>
-        {!canCopyImage && <p className="-mt-2 text-[12.5px] text-muted-foreground">{t("share.noClipboard")}</p>}
+        {!canCopyImage && <p className="-mt-2 text-[12.5px] text-muted-foreground lg:text-center">{t("share.noClipboard")}</p>}
 
         <LinkSection sessionId={sessionId} open={open} onUrl={setLinkUrl} />
       </DialogContent>
@@ -618,11 +666,3 @@ function InstagramGlyph() {
 }
 
 /** A coloured rounded square with a plain speech bubble (WhatsApp / LINE stand-in). */
-function ChatGlyph({ color }: { color: string }) {
-  return (
-    <svg viewBox="0 0 48 48" className="!size-12" aria-hidden>
-      <rect width="48" height="48" rx="24" fill={color} />
-      <path d="M24 13c-6.1 0-11 4.1-11 9.2 0 2.6 1.3 4.9 3.4 6.600L15.600 34l5-2.200c1.100.3 2.200.4 3.400.4 6.100 0 11-4.100 11-9.200S30.100 13 24 13Z" fill="#fff" />
-    </svg>
-  );
-}

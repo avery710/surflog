@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     data.coverPhoto = `data:image/jpeg;base64,${jpg.toString("base64")}`;
   }
   try {
-    return await renderShareImage(data, variant, { cacheControl: "no-store", tone, parts: parseShareParts(p.get("parts")), skipStencil: p.get("raw") === "1", storyFrame: p.get("frame") === "1" });
+    return await renderShareImage(data, variant, { cacheControl: "no-store", tone, parts: parseShareParts(p.get("parts")), skipStencil: p.get("raw") === "1", storyFrame: p.get("frame") === "1", preview: p.get("size") === "preview" });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "render failed" }, { status: 503 });
   }

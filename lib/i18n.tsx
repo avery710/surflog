@@ -461,13 +461,15 @@ const DICT = {
   "share.act.label": { en: "Send it", "zh-TW": "傳送" },
   "share.act.instagram": { en: "Instagram Story", "zh-TW": "Instagram 限時動態" },
   "share.act.more": { en: "More", "zh-TW": "更多" },
-  "share.act.whatsapp": { en: "WhatsApp", "zh-TW": "WhatsApp" },
-  "share.act.line": { en: "LINE", "zh-TW": "LINE" },
+  "share.more.text": { en: "Come join me on Surflog 🏄", "zh-TW": "一起來用 Surflog 記錄衝浪吧 🏄" },
   "share.act.linkOff": {
     en: "Turn on Share link below to copy or send a link.",
     "zh-TW": "要複製或傳送連結，請先開啟下方的分享連結。",
   },
-  "share.act.linkNote": { en: "WhatsApp and LINE send the public link, not the image.", "zh-TW": "WhatsApp 和 LINE 傳的是公開連結，不是圖片。" },
+  "share.act.linkNote": {
+    en: "More sends the image with this link to any chat app.",
+    "zh-TW": "「更多」會把圖片連同這個連結傳到任何聊天 App。",
+  },
   "share.toast.storyCopied": {
     en: "Sticker copied. In your story, tap Add sticker to paste it.",
     "zh-TW": "貼圖已複製，到限時動態點「新增貼圖」就能貼上。",

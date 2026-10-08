@@ -1,4 +1,5 @@
 import { SharedEntryCard } from "@/components/share/shared-entry-card";
+import { PAGE_COLUMN } from "@/lib/layout";
 import type { PublicShare } from "@/lib/share-public";
 import { shareT } from "@/lib/share-strings";
 
@@ -26,7 +27,7 @@ export function PublicShareView({
   return (
     <div lang={lang} className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="bg-primary">
-        <div className="mx-auto flex max-w-[680px] items-center justify-between px-4.5 py-3">
+        <div className={`${PAGE_COLUMN} flex items-center justify-between py-3`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/surflog-logo.png" alt="Surflog" className="h-5 w-auto brightness-0 invert" />
           <a
@@ -38,7 +39,9 @@ export function PublicShareView({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[680px] flex-1 px-4.5 pt-6 pb-10">
+      {/* Same column as the journal (PAGE_COLUMN); a flex column so the call to
+          action sits at the bottom of the screen even under a short session. */}
+      <main className={`${PAGE_COLUMN} flex flex-1 flex-col pt-6 pb-10`}>
         <h1 className="sr-only">{share.spotName}</h1>
         {/* The session card itself, the same component as the journal's,
             borderless here, with "Surfed by …" under the spot name. */}
@@ -66,16 +69,18 @@ export function PublicShareView({
           }
         />
 
-        <section className="mt-6 rounded-[var(--r-card)] border border-card-border bg-card px-6 py-5 text-center">
-          <p className="text-[15px] font-semibold">{t("share.page.cta")}</p>
-          <a
-            href={homeHref}
-            className="mt-3 inline-block rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground outline-none hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            {t("share.page.open")}
-          </a>
-        </section>
-        <p className="mt-4 text-center text-[12px] text-muted-foreground">{t("share.page.footer")}</p>
+        <div className="mt-auto pt-10">
+          <section className="rounded-[var(--r-card)] border border-card-border bg-card px-6 py-5 text-center">
+            <p className="text-[15px] font-semibold">{t("share.page.cta")}</p>
+            <a
+              href={homeHref}
+              className="mt-3 inline-block rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground outline-none hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              {t("share.page.open")}
+            </a>
+          </section>
+          <p className="mt-4 text-center text-[12px] text-muted-foreground">{t("share.page.footer")}</p>
+        </div>
       </main>
     </div>
   );
