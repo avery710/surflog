@@ -635,7 +635,7 @@ const DICT = {
     "zh-TW": "時間為{place}當地時間（{tz}）。",
   },
   // spot admin dashboard (/admin) — only ever rendered for SPOT_ADMIN_EMAILS
-  "menu.spotAdmin": { en: "Spot admin", "zh-TW": "浪點管理" },
+  "menu.spotAdmin": { en: "Admin page", "zh-TW": "管理頁面" },
   "menu.apiTokens": { en: "Connect an AI app", "zh-TW": "連結 AI App" },
   // /spots — the whole catalogue as a page
   "menu.spots": { en: "Surf spots", "zh-TW": "浪點總覽" },
@@ -797,7 +797,7 @@ const DICT = {
   "tokens.revoked": { en: "Access revoked", "zh-TW": "已撤銷存取" },
   "tokens.revokedList": { en: "Revoked ({count})", "zh-TW": "已撤銷（{count}）" },
   "tokens.couldntRevoke": { en: "Couldn't revoke access", "zh-TW": "無法撤銷存取" },
-  "admin.title": { en: "Spot admin", "zh-TW": "浪點管理" },
+  "admin.title": { en: "Admin page", "zh-TW": "管理頁面" },
   "admin.back": { en: "Back to journal", "zh-TW": "回到日誌" },
   "admin.requests": { en: "Requests", "zh-TW": "待處理的申請" },
   "admin.noRequests": { en: "No requests waiting.", "zh-TW": "目前沒有待處理的申請。" },

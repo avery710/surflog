@@ -197,7 +197,7 @@ export async function softly<T>(read: () => Promise<T>, fallback: T): Promise<T>
   }
 }
 
-/** The number on the avatar menu's "Spot admin" badge: pending new-spot
+/** The number on the avatar menu's "Admin page" badge: pending new-spot
  *  requests plus pending edit suggestions. A missing edit table counts as 0. */
 export async function pendingAdminWork(pendingSpotRequests: number): Promise<number> {
   return pendingSpotRequests + (await softly(countPending, 0));
