@@ -58,34 +58,45 @@ export async function renderShareImage(
   if (opts.filename) headers["Content-Disposition"] = `attachment; filename="${opts.filename}"`;
   const tone = opts.tone ?? "light";
   const stencil = variant === "strip" || variant === "column";
+  // og is opaque; the stickers (strip, column, card) are cropped to their visible pixels.
+  const sticker = stencil || variant === "card";
   const res = new ImageResponse(shareElement(data, variant, layout, { tone, logos, knockout: stencil }), {
     width: layout.width,
     height: layout.height,
     fonts,
   });
-  // og is opaque; the stickers (strip, column, card) are cropped to their visible pixels.
-  const sticker = stencil || variant === "card";
   if (opts.skipStencil || !sticker) return new Response(res.body, { headers });
-  const png = Buffer.from(await res.arrayBuffer());
-  const drawn = await trimTransparent(stencil ? await stencilPng(png, tone, data.boardPhoto, layout.shapeBands) : png);
-  const scale = opts.preview ? PREVIEW_SCALE : 1;
-  const out = opts.storyFrame ? await storyFrame(drawn, data.coverPhoto ?? null, scale) : drawn;
+  // Previews: shrink to a third right after rasterising (native, fast), so the
+  // per-pixel stencil and trim, the framing and the encoding all handle a ninth
+  // of the pixels. Shrinking only blends flag colour into shape colour along the
+  // line the stencil solves for, so it stays exact.
+  const r = opts.preview ? PREVIEW_SCALE : 1;
+  const full = Buffer.from(await res.arrayBuffer());
+  const png = r === 1 ? full : await shrinkPng(full, Math.round(layout.width * r));
+  const bands = layout.shapeBands.map(([a, b]) => [Math.floor(a * r), Math.ceil(b * r)] as [number, number]);
+  const drawn = await trimTransparent(stencil ? await stencilPng(png, tone, data.boardPhoto, bands) : png);
+  const out = opts.storyFrame ? await storyFrame(drawn, data.coverPhoto ?? null, r) : drawn;
   if (!opts.preview) return new Response(new Uint8Array(out), { headers });
   const { default: sharp } = await import("sharp");
-  const small = opts.storyFrame ? sharp(out) : sharp(out).resize({ width: Math.round(((await sharp(out).metadata()).width ?? 1080) * scale) });
-  const webp = await small.webp({ quality: 72, alphaQuality: 80, effort: 2 }).toBuffer();
+  const webp = await sharp(out).webp({ quality: 72, alphaQuality: 80, effort: 1 }).toBuffer();
   return new Response(new Uint8Array(webp), { headers: { ...headers, "Content-Type": "image/webp" } });
 }
 
 /** Previews are drawn at a third of the size (360x640 for a story frame). */
-const PREVIEW_SCALE = 1 / 3;
+export const PREVIEW_SCALE = 1 / 3;
+
+async function shrinkPng(png: Buffer, width: number): Promise<Buffer> {
+  const { default: sharp } = await import("sharp");
+  return sharp(png).resize({ width }).png({ compressionLevel: 0 }).toBuffer();
+}
 
 /** Instagram story canvas and the area kept clear of its top bar (progress,
  *  name) and bottom bar (reply box). */
 export const STORY = { w: 1080, h: 1920, side: 60, top: 250, bottom: 300 } as const;
 
 /** The trimmed sticker, centred in the story's safe area (scaled down only if
- *  it doesn't fit; never up, which would blur it), on the photo or on transparent. */
+ *  it doesn't fit; never up, which would blur it), on the photo or on transparent.
+ *  `out` is the frame's scale; the sticker already comes drawn at that scale. */
 async function storyFrame(sticker: Buffer, cover: string | null, out = 1): Promise<Buffer> {
   const { default: sharp } = await import("sharp");
   // composed straight at the output scale, so a preview never builds the full frame
@@ -94,7 +105,7 @@ async function storyFrame(sticker: Buffer, cover: string | null, out = 1): Promi
   const maxW = (STORY.w - 2 * STORY.side) * out;
   const maxH = (STORY.h - STORY.top - STORY.bottom) * out;
   const meta = await sharp(sticker).metadata();
-  const scale = Math.min(out, maxW / (meta.width ?? maxW), maxH / (meta.height ?? maxH));
+  const scale = Math.min(1, maxW / (meta.width ?? maxW), maxH / (meta.height ?? maxH));
   const w = Math.max(1, Math.round((meta.width ?? maxW) * scale));
   const h = Math.max(1, Math.round((meta.height ?? maxH) * scale));
   const fitted = w !== meta.width ? await sharp(sticker).resize(w, h).png().toBuffer() : sticker;

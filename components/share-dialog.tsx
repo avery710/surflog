@@ -102,7 +102,7 @@ export function ShareDialog({
   const partsKey = serializeShareParts(parts);
   const nothing = noParts(parts);
   // Every image is an Instagram-story frame (1080x1920); this puts the session's first image behind it.
-  const [photoChoice, setPhotoChoice] = useState(true);
+  const [photoChoice, setPhotoChoice] = useState(false);
   const photoBg = hasPhoto && photoChoice;
   const liveKey = `${imageLang}|${tone}|${partsKey}|${photoBg ? "photo" : "clear"}`;
 
@@ -115,6 +115,8 @@ export function ShareDialog({
 
   const [images, setImages] = useState<Partial<Record<Variant, ImageState>>>({});
   const imagesRef = useRef(images);
+  // Every preview drawn while the dialog is open, by style + settings (small WebPs).
+  const seen = useRef(new Map<string, string>());
   const [full, setFull] = useState<Partial<Record<Variant, FullState>>>({});
   // The full PNG requests by style, with the settings they were made for.
   const promises = useRef<Partial<Record<Variant, { key: string; promise: Promise<Blob> }>>>({});
@@ -174,14 +176,21 @@ export function ShareDialog({
     const ac = new AbortController();
     let cancelled = false;
     const load = async (v: Variant) => {
+      // A preview already drawn for these exact settings (toggled back) shows at once.
+      const memo = `${v}|${settled.key}`;
+      const known = seen.current.get(memo);
+      if (known) {
+        imagesRef.current = { ...imagesRef.current, [v]: { key: settled.key, url: known } };
+        setImages(imagesRef.current);
+        return;
+      }
       try {
         const res = await fetch(imageUrl(v, settled, true), { signal: ac.signal });
         if (!res.ok) throw new Error("render failed");
         const blob = await res.blob();
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
-        const old = imagesRef.current[v]?.url;
-        if (old) setTimeout(() => URL.revokeObjectURL(old), 1500);
+        seen.current.set(memo, url);
         imagesRef.current = { ...imagesRef.current, [v]: { key: settled.key, url } };
         setImages(imagesRef.current);
       } catch {
@@ -212,7 +221,7 @@ export function ShareDialog({
   // Free the blob URLs when the dialog goes away.
   useEffect(
     () => () => {
-      for (const img of Object.values(imagesRef.current)) if (img?.url) URL.revokeObjectURL(img.url);
+      for (const url of seen.current.values()) URL.revokeObjectURL(url);
     },
     []
   );
@@ -461,7 +470,7 @@ export function ShareDialog({
             <ActionButton label={t("share.button.copyLink")} disabled={!linkUrl} onClick={() => void copyLink()} icon={<Link />} />
             {canWebShare && <ActionButton label={t("share.act.more")} disabled={!shareFile || !payload} onClick={() => void shareMore()} icon={<Share2 />} />}
           </div>
-          <p className="text-[12.5px] text-muted-foreground lg:text-center">{t(linkUrl ? "share.act.linkNote" : "share.act.linkOff")}</p>
+          {!linkUrl && <p className="text-[12.5px] text-muted-foreground lg:text-center">{t("share.act.linkOff")}</p>}
         </section>
         {!canCopyImage && <p className="-mt-2 text-[12.5px] text-muted-foreground lg:text-center">{t("share.noClipboard")}</p>}
 

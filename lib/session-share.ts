@@ -156,7 +156,7 @@ export async function ownedShareCard(
   ownerId: string,
   sessionId: string,
   lang: ShareLang,
-  opts: { boardPhoto?: boolean; coverPhoto?: boolean } = {}
+  opts: { boardPhoto?: boolean; coverPhoto?: boolean; coverScale?: number } = {}
 ): Promise<ServiceResult<ShareCardData>> {
   const session = await ownedSession(ownerId, sessionId);
   if (!session) return notFound;
@@ -164,7 +164,7 @@ export async function ownedShareCard(
   // The owner's own images may carry the board photo; public ones never do.
   if (opts.boardPhoto && data.boardName) data.boardPhoto = await boardPhotoDataUri(session.ownerId, session.boardId);
   // The Story image's background: the session's first image, else blue.
-  if (opts.coverPhoto) data.coverPhoto = await coverPhotoDataUri(session.ownerId, session.photos);
+  if (opts.coverPhoto) data.coverPhoto = await coverPhotoDataUri(session.ownerId, session.photos, opts.coverScale);
   return { ok: true, data };
 }
 

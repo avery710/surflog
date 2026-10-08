@@ -6,6 +6,10 @@
  */
 import { getBoard } from "./db";
 import { readBlob } from "./blob";
+import { ttlCache } from "./ttl-cache";
+
+// Shrunk once per board photo, not on every share-image request (see share-cover-photo.ts).
+const shrunk = ttlCache<string>(40, 10 * 60_000);
 
 const MAX_BYTES = 12 * 1024 * 1024;
 
@@ -14,11 +18,16 @@ export async function boardPhotoDataUri(ownerId: string, boardId: string | null 
   try {
     const board = await getBoard(boardId);
     if (!board || board.ownerId !== ownerId || !board.photoId) return null;
+    const key = `${ownerId}:${board.photoId}`;
+    const hit = shrunk.get(key);
+    if (hit) return hit;
     const blob = await readBlob(board.photoId);
     if (!blob || blob.ownerId !== ownerId || !blob.mimeType.startsWith("image/") || blob.bytes.length > MAX_BYTES) return null;
     const { default: sharp } = await import("sharp");
     const out = await sharp(blob.bytes).rotate().resize(160, 160, { fit: "cover" }).jpeg({ quality: 82 }).toBuffer();
-    return `data:image/jpeg;base64,${out.toString("base64")}`;
+    const uri = `data:image/jpeg;base64,${out.toString("base64")}`;
+    shrunk.set(key, uri);
+    return uri;
   } catch (e) {
     console.error("[share board photo]", e);
     return null; // the chip falls back to the name pill

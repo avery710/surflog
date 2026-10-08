@@ -466,10 +466,6 @@ const DICT = {
     en: "Turn on Share link below to copy or send a link.",
     "zh-TW": "要複製或傳送連結，請先開啟下方的分享連結。",
   },
-  "share.act.linkNote": {
-    en: "More sends the image with this link to any chat app.",
-    "zh-TW": "「更多」會把圖片連同這個連結傳到任何聊天 App。",
-  },
   "share.toast.storyCopied": {
     en: "Sticker copied. In your story, tap Add sticker to paste it.",
     "zh-TW": "貼圖已複製，到限時動態點「新增貼圖」就能貼上。",

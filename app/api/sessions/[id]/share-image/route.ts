@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { ownedShareCard } from "@/lib/session-share";
 import { parseShareParts } from "@/lib/share-parts";
 import { isShareTone, isShareVariant } from "@/lib/share-element";
-import { renderShareImage } from "@/lib/share-image";
+import { PREVIEW_SCALE, renderShareImage } from "@/lib/share-image";
 import { isShareLang } from "@/lib/share-strings";
 
 type Params = { params: Promise<{ id: string }> };
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const preview = req.nextUrl.searchParams.get("size") === "preview";
 
   const { id } = await params;
-  const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board, coverPhoto: photoBg });
+  const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board, coverPhoto: photoBg, coverScale: preview ? PREVIEW_SCALE : 1 });
   if (!card.ok) return NextResponse.json({ error: card.error }, { status: card.status });
 
   // Fingerprint of everything the picture is drawn from. The browser keeps the
