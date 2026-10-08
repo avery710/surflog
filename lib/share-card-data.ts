@@ -122,8 +122,9 @@ export interface ShareCardData {
   /** The board's photo as a data URI (or URL in the browser). Set only by the
    *  owner's own routes; never by anything public. */
   boardPhoto?: string | null;
-  /** The Story image's background (the session's first image, as a data URI);
-   *  null/absent = plain app blue. Owner routes only, like `boardPhoto`. */
+  /** The story frame's background: the session's first image as a 1080x1920
+   *  data URI (lib/share-cover-photo.ts); null/absent = transparent. Owner
+   *  routes only, like `boardPhoto`. */
   coverPhoto?: string | null;
 }
 

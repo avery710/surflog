@@ -15,7 +15,7 @@ type Params = { params: Promise<{ id: string }> };
 const BUILD = process.env.VERCEL_GIT_COMMIT_SHA ?? null;
 
 /**
- * GET /api/sessions/:id/share-image?variant=strip|column|card|story&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
+ * GET /api/sessions/:id/share-image?variant=strip|column|card&bg=photo&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
  * the owner's preview/download of the two share images. Cookie session and
  * ownership checked; the public counterpart (token-checked, card only) is
  * app/share/[token]/card.png. Same renderer, lib/share-image.tsx.
@@ -27,21 +27,23 @@ export async function GET(req: NextRequest, { params }: Params) {
   const variant = req.nextUrl.searchParams.get("variant") ?? "card";
   const lang = req.nextUrl.searchParams.get("lang") ?? "en";
   if (variant === "og" || !isShareVariant(variant) || !isShareLang(lang)) {
-    return NextResponse.json({ error: "variant must be strip, column, card or story, lang en or zh-TW" }, { status: 400 });
+    return NextResponse.json({ error: "variant must be strip, column or card, lang en or zh-TW" }, { status: 400 });
   }
 
   const toneQ = req.nextUrl.searchParams.get("tone") ?? "light";
   if (!isShareTone(toneQ)) return NextResponse.json({ error: "tone must be light or dark" }, { status: 400 });
   const parts = parseShareParts(req.nextUrl.searchParams.get("parts"));
+  // Every owner image is an Instagram-story-sized frame; bg=photo puts the session's first image behind it.
+  const photoBg = req.nextUrl.searchParams.get("bg") === "photo";
 
   const { id } = await params;
-  const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board, coverPhoto: variant === "story" });
+  const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board, coverPhoto: photoBg });
   if (!card.ok) return NextResponse.json({ error: card.error }, { status: card.status });
 
   // Fingerprint of everything the picture is drawn from. The browser keeps the
   // PNG and asks "still this one?"; an unchanged image is a 304, never redrawn.
   const etag = BUILD
-    ? `"${createHash("sha256").update(JSON.stringify([BUILD, variant, lang, toneQ, parts, card.data])).digest("base64url")}"`
+    ? `"${createHash("sha256").update(JSON.stringify([BUILD, variant, lang, toneQ, parts, photoBg, card.data])).digest("base64url")}"`
     : null;
   const cacheControl = etag ? "private, no-cache" : "private, no-store";
   if (etag && req.headers.get("if-none-match") === etag) {
@@ -49,7 +51,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   try {
-    const res = await renderShareImage(card.data, variant, { cacheControl, tone: toneQ, parts });
+    const res = await renderShareImage(card.data, variant, { cacheControl, tone: toneQ, parts, storyFrame: true });
     if (etag) res.headers.set("ETag", etag);
     return res;
   } catch (e) {

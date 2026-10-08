@@ -187,6 +187,7 @@ export function EntryCard({
             board: !!board,
             log: !!(session.notes?.trim() || session.notesHtml?.replace(/<[^>]*>|&nbsp;/g, "").trim()),
           }}
+          hasPhoto={session.photos.some((p) => p.type.startsWith("image/"))}
         />
       )}
 

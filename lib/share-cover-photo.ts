@@ -1,8 +1,8 @@
 /**
- * The Story image's background: the session's FIRST image (a video is skipped),
- * owner-checked, read from Storage and cropped to the story's 1080x1920 as a
- * JPEG data URI that satori can draw. Owner routes only — never the public link.
- * Null (no image, unreadable, too big) means the story is drawn on plain blue.
+ * The story frame's optional background: the session's FIRST image (a video
+ * is skipped), owner-checked, read from Storage and cropped to 1080x1920 as a
+ * JPEG data URI. Owner routes only — never the public link. Null (no image,
+ * unreadable, too big) means a transparent background.
  */
 import { readBlob } from "./blob";
 import type { Photo } from "./types";

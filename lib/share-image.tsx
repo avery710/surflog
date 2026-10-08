@@ -19,6 +19,9 @@ export interface RenderOptions {
   skipStencil?: boolean;
   /** Which parts to draw (default all). */
   parts?: ShareParts;
+  /** Stickers only: place the trimmed sticker on a 1080x1920 Instagram-story
+   *  canvas, over `data.coverPhoto` when set, else transparent. */
+  storyFrame?: boolean;
 }
 
 let logosCache: Promise<ShareLogos> | null = null;
@@ -57,12 +60,37 @@ export async function renderShareImage(
     height: layout.height,
     fonts,
   });
-  // Story and og are opaque; the stickers (strip, column, card) are cropped to their visible pixels.
+  // og is opaque; the stickers (strip, column, card) are cropped to their visible pixels.
   const sticker = stencil || variant === "card";
   if (opts.skipStencil || !sticker) return new Response(res.body, { headers });
   const png = Buffer.from(await res.arrayBuffer());
-  const drawn = stencil ? await stencilPng(png, tone, data.boardPhoto, layout.shapeBands) : png;
-  return new Response(new Uint8Array(await trimTransparent(drawn)), { headers });
+  const drawn = await trimTransparent(stencil ? await stencilPng(png, tone, data.boardPhoto, layout.shapeBands) : png);
+  const out = opts.storyFrame ? await storyFrame(drawn, data.coverPhoto ?? null) : drawn;
+  return new Response(new Uint8Array(out), { headers });
+}
+
+/** Instagram story canvas and the area kept clear of its top bar (progress,
+ *  name) and bottom bar (reply box). */
+export const STORY = { w: 1080, h: 1920, side: 60, top: 250, bottom: 300 } as const;
+
+/** The trimmed sticker, centred in the story's safe area (scaled down only if
+ *  it doesn't fit; never up, which would blur it), on the photo or on transparent. */
+async function storyFrame(sticker: Buffer, cover: string | null): Promise<Buffer> {
+  const { default: sharp } = await import("sharp");
+  const maxW = STORY.w - 2 * STORY.side;
+  const maxH = STORY.h - STORY.top - STORY.bottom;
+  const meta = await sharp(sticker).metadata();
+  const scale = Math.min(1, maxW / (meta.width ?? maxW), maxH / (meta.height ?? maxH));
+  const w = Math.round((meta.width ?? maxW) * scale);
+  const h = Math.round((meta.height ?? maxH) * scale);
+  const fitted = scale < 1 ? await sharp(sticker).resize(w, h).png().toBuffer() : sticker;
+  const m = cover?.match(/^data:image\/[a-z+.-]+;base64,(.+)$/);
+  const base = m
+    ? sharp(Buffer.from(m[1], "base64")).resize(STORY.w, STORY.h, { fit: "cover" }).ensureAlpha()
+    : sharp({ create: { width: STORY.w, height: STORY.h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } });
+  const left = Math.round((STORY.w - w) / 2);
+  const top = STORY.top + Math.round((maxH - h) / 2);
+  return base.composite([{ input: fitted, left, top }]).png().toBuffer();
 }
 
 /** Crop a sticker to the box of its non-transparent pixels, so it carries no

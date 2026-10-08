@@ -14,9 +14,10 @@ import { ALL_PARTS, SHARE_PARTS, noParts, serializeShareParts, type ShareParts }
 
 /**
  * The Share dialog behind the session card's ⋯ → Share: a gallery of ALL three
- * generated images (Strip / Column / Card; a snap scroller on phones, side by side
- * from lg) driven by shared controls (image language, color mode, four part
- * switches). Tapping a preview selects it; Share / Copy / Save act on the
+ * generated images (Strip / Column / Card), each an Instagram-story frame
+ * (1080x1920) with the style centred in it (a snap scroller on phones),
+ * driven by shared controls (image language, color mode, photo background
+ * when the session has an image, four part switches). Tapping a preview selects it; Share / Copy / Save act on the
  * selected one. Control changes are debounced and stale renders aborted.
  *
  * Sending, laid out like Strava's share sheet, all feature-detected (helpers in
@@ -58,7 +59,7 @@ const webShareSupported = () => typeof navigator !== "undefined" && typeof navig
 // "ios" | "android" | "" (desktop). A string so useSyncExternalStore's snapshot is stable.
 const mobileOS = () => (typeof navigator === "undefined" ? "" : (detectMobileOS(navigator.userAgent, navigator.maxTouchPoints ?? 0) ?? ""));
 
-const KINDS: Variant[] = ["strip", "column", "card", "story"];
+const KINDS: Variant[] = ["strip", "column", "card"];
 const DEBOUNCE_MS = 250;
 
 export function ShareDialog({
@@ -67,6 +68,7 @@ export function ShareDialog({
   sessionId,
   fileStem,
   available,
+  hasPhoto,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -75,6 +77,8 @@ export function ShareDialog({
   fileStem: string;
   /** Which parts the session has; a switch for a missing one is hidden. */
   available: ShareParts;
+  /** The session has an image to use as the background (the switch is hidden otherwise). */
+  hasPhoto: boolean;
 }) {
   const { lang: appLang, t } = useLang();
   const [selected, setSelected] = useState<Variant>("strip");
@@ -91,14 +95,17 @@ export function ShareDialog({
   };
   const partsKey = serializeShareParts(parts);
   const nothing = noParts(parts);
-  const liveKey = `${imageLang}|${tone}|${partsKey}`;
+  // Every image is an Instagram-story frame (1080x1920); this puts the session's first image behind it.
+  const [photoChoice, setPhotoChoice] = useState(true);
+  const photoBg = hasPhoto && photoChoice;
+  const liveKey = `${imageLang}|${tone}|${partsKey}|${photoBg ? "photo" : "clear"}`;
 
   // Control changes settle for 250 ms before three renders are requested.
-  const [settled, setSettled] = useState({ key: liveKey, lang: imageLang, tone, partsKey });
+  const [settled, setSettled] = useState({ key: liveKey, lang: imageLang, tone, partsKey, photoBg });
   useEffect(() => {
-    const id = setTimeout(() => setSettled({ key: liveKey, lang: imageLang, tone, partsKey }), DEBOUNCE_MS);
+    const id = setTimeout(() => setSettled({ key: liveKey, lang: imageLang, tone, partsKey, photoBg }), DEBOUNCE_MS);
     return () => clearTimeout(id);
-  }, [liveKey, imageLang, tone, partsKey]);
+  }, [liveKey, imageLang, tone, partsKey, photoBg]);
 
   const [images, setImages] = useState<Partial<Record<Variant, ImageState>>>({});
   const imagesRef = useRef(images);
@@ -112,8 +119,7 @@ export function ShareDialog({
   const canCopyImage = useSyncExternalStore(noopSubscribe, clipboardImageSupported, () => false);
   const canWebShare = useSyncExternalStore(noopSubscribe, webShareSupported, () => false);
   const os = useSyncExternalStore(noopSubscribe, mobileOS, () => "");
-  // Only the Story image goes to Instagram Stories; the stickers keep the usual actions.
-  const showStory = selected === "story" && canInstagramStory(os === "" ? null : (os as "ios" | "android"), canCopyImage);
+  const showStory = canInstagramStory(os === "" ? null : (os as "ios" | "android"), canCopyImage);
   // The public link, once it is on (owned by LinkSection, which does the switching).
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
 
@@ -125,7 +131,7 @@ export function ShareDialog({
     const ac = new AbortController();
     let cancelled = false;
     const load = async (v: Variant) => {
-      const p = fetch(`/api/sessions/${sessionId}/share-image?variant=${v}&lang=${settled.lang}&tone=${settled.tone}&parts=${settled.partsKey}`, {
+      const p = fetch(`/api/sessions/${sessionId}/share-image?variant=${v}&lang=${settled.lang}&tone=${settled.tone}&parts=${settled.partsKey}${settled.photoBg ? "&bg=photo" : ""}`, {
         signal: ac.signal,
       }).then(async (res) => {
         if (!res.ok) throw new Error("render failed");
@@ -276,6 +282,18 @@ export function ShareDialog({
               { value: "dark", label: t("share.tone.dark") },
             ]}
           />
+          {hasPhoto && (
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold">
+              <Switch.Root
+                checked={photoChoice}
+                onCheckedChange={setPhotoChoice}
+                className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#c9ced6] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=checked]:bg-primary"
+              >
+                <Switch.Thumb className="block size-4 translate-x-0.5 rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-[18px]" />
+              </Switch.Root>
+              {t("share.bg.photo")}
+            </label>
+          )}
         </div>
 
         <div role="group" aria-label={t("share.parts.label")} className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -294,14 +312,15 @@ export function ShareDialog({
           ))}
         </div>
 
-        {/* The gallery: all three styles at once. A snap scroller on phones (the
-            next preview peeks), side by side from lg. */}
+        {/* The gallery: all three styles at once, each an Instagram-story frame,
+            so every tile is the same fixed 9:16 box. A snap scroller on phones
+            (the next preview peeks), centred from lg. */}
         <div>
           <div
             role="radiogroup"
             aria-label={t("share.variant.label")}
             onKeyDown={onKey}
-            className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 py-1 pb-2 [scrollbar-width:none] lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+            className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 py-1 pb-2 [justify-content:safe_center] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {KINDS.map((v) => {
               const img = images[v];
@@ -309,8 +328,7 @@ export function ShareDialog({
               const stale = !nothing && !!img && img.key !== liveKey && !img.error;
               const loading = !nothing && (!img?.url ? !img?.error : stale);
               return (
-                // the Story cell is as wide as its 9:16 tile, so the gap before it matches the others
-                <div key={v} className={cn("min-w-0 shrink-0 snap-center", v === "story" ? "" : "basis-[74%] sm:basis-[46%] lg:flex-1 lg:basis-0")}>
+                <div key={v} className="shrink-0 snap-center">
                   <button
                     type="button"
                     id={`share-kind-${v}`}
@@ -323,9 +341,9 @@ export function ShareDialog({
                       document.getElementById(`share-kind-${v}`)?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
                     }}
                     className={cn(
-                      "relative flex h-60 w-full items-center justify-center overflow-hidden rounded-[var(--r-tile)] bg-[length:64px_64px] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
-                      // Story: an opaque 9:16 image, so the tile is cut to its shape (no transparency grid at the sides)
-                      v === "story" ? "aspect-[9/16] w-auto bg-primary" : tone === "light"
+                      // one fixed 9:16 box per style; the grid shows through wherever the frame is transparent
+                      "relative flex aspect-[9/16] h-80 items-center justify-center overflow-hidden rounded-[var(--r-tile)] bg-[length:32px_32px] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring lg:h-[400px]",
+                      tone === "light"
                         ? "[background-image:conic-gradient(#2a2d32_25%,#33373c_0_50%,#2a2d32_0_75%,#33373c_0)]"
                         : "[background-image:conic-gradient(#d5d9de_25%,#e6e9ed_0_50%,#d5d9de_0_75%,#e6e9ed_0)]",
                       isSel ? "ring-2 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"
@@ -335,7 +353,7 @@ export function ShareDialog({
                       <span className="p-4 text-sm text-muted-foreground">{t("share.parts.none")}</span>
                     ) : img?.url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={img.url} alt={t("share.preview.alt")} className={cn(v === "story" ? "size-full object-cover" : "max-h-full max-w-full object-contain", "transition-opacity", stale && "opacity-60")} />
+                      <img src={img.url} alt={t("share.preview.alt")} className={cn("size-full object-contain transition-opacity", stale && "opacity-60")} />
                     ) : null}
                     {loading && (
                       <span role="status" className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-center text-xs font-medium text-white">
