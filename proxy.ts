@@ -41,7 +41,7 @@ export default auth((req) => {
     return;
   }
 
-  // Public share links: exactly /s/<token>, /s/<token>/card.png and
+  // Public share links: exactly /share/<token>, /share/<token>/card.png and
   // /api/share/<token>/media/<id> (lib/share-paths.ts). Each handler does its
   // own token check; here only the per-IP request limit is applied.
   const shareKind = publicSharePath(pathname);

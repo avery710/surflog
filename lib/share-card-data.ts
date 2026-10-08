@@ -7,7 +7,7 @@
  *
  * Used by three consumers, so the numbers cannot drift between them: the
  * share dialog's preview (via the image route), the PNG renderer
- * (lib/share-image.tsx) and the public /s/<token> page. Pure — no Supabase,
+ * (lib/share-image.tsx) and the public /share/<token> page. Pure — no Supabase,
  * no React. It never carries ids, owner info, goal or raw condition blobs.
  */
 import { toCompass } from "./openmeteo";

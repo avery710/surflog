@@ -2,11 +2,11 @@
  * The only unauthenticated paths of the share feature. proxy.ts lets exactly
  * these through; each handler does its own token check. Token charset is
  * base64url, 20-128 chars (real ones are 43), blob ids are 32 hex like
- * lib/blob.ts's. Anything else under /s/ or /api/share/ stays behind sign-in.
+ * lib/blob.ts's. Anything else under /share/ or /api/share/ stays behind sign-in.
  */
 const TOKEN = "[A-Za-z0-9_-]{20,128}";
-const PAGE = new RegExp(`^/s/${TOKEN}$`);
-const IMAGE = new RegExp(`^/s/${TOKEN}/card\\.png$`);
+const PAGE = new RegExp(`^/share/${TOKEN}$`);
+const IMAGE = new RegExp(`^/share/${TOKEN}/card\\.png$`);
 const MEDIA = new RegExp(`^/api/share/${TOKEN}/media/[0-9a-f]{32}$`);
 const TOKEN_ONLY = new RegExp(`^${TOKEN}$`);
 

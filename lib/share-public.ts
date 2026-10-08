@@ -18,7 +18,7 @@ export const cleanName = (n: string | null | undefined) => n?.trim().slice(0, 10
 // Only an https avatar is ever stored (Google's are lh3.googleusercontent.com).
 export const cleanImage = (u: string | null | undefined) => (u && /^https:\/\/[^\s"'<>]+$/.test(u) && u.length <= 500 ? u : null);
 
-/** Everything a visitor of /s/<token> may see. Explicit allow-list: add a
+/** Everything a visitor of /share/<token> may see. Explicit allow-list: add a
  *  field here only if it is meant to be public. */
 export interface PublicShare {
   lang: ShareLang;

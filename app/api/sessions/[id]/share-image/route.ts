@@ -18,7 +18,7 @@ const BUILD = process.env.VERCEL_GIT_COMMIT_SHA ?? null;
  * GET /api/sessions/:id/share-image?variant=strip|column|card|story&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
  * the owner's preview/download of the two share images. Cookie session and
  * ownership checked; the public counterpart (token-checked, card only) is
- * app/s/[token]/card.png. Same renderer, lib/share-image.tsx.
+ * app/share/[token]/card.png. Same renderer, lib/share-image.tsx.
  */
 export async function GET(req: NextRequest, { params }: Params) {
   const session = await auth();

@@ -1,7 +1,7 @@
 /**
  * Strings for the places that render on the SERVER in a language chosen per
  * request, not per browser: the share images (next/og) and the public
- * /s/<token> page. lib/i18n.tsx is a "use client" module, so its DICT can't
+ * /share/<token> page. lib/i18n.tsx is a "use client" module, so its DICT can't
  * be called from a route handler — this is the pure counterpart for just
  * these surfaces.
  *

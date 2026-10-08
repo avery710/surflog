@@ -12,7 +12,7 @@ import { isShareLang, type ShareLang } from "@/lib/share-strings";
 type Params = { params: Promise<{ id: string }> };
 
 const body = (share: ShareStatus | null) => ({
-  share: share ? { token: share.token, path: `/s/${share.token}`, createdAt: share.createdAt } : null,
+  share: share ? { token: share.token, path: `/share/${share.token}`, createdAt: share.createdAt } : null,
 });
 
 const NO_STORE = { "Cache-Control": "private, no-store" };

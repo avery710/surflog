@@ -47,7 +47,7 @@ const PAGES = [
     href: "/dev/share",
     title: "Share images and public page",
     description:
-      "lib/share-image.tsx and components/share/public-share-view.tsx — the strip and column (transparent text, light/dark), card and link-preview images and the public /s/<token> page, for seven synthetic cases (long Chinese notes, no notes, missing period/temp/tide, no board, no conditions), en and zh-TW. Images come from /dev/share/image.",
+      "lib/share-image.tsx and components/share/public-share-view.tsx — the strip and column (transparent text, light/dark), card and link-preview images and the public /share/<token> page, for seven synthetic cases (long Chinese notes, no notes, missing period/temp/tide, no board, no conditions), en and zh-TW. Images come from /dev/share/image.",
   },
   {
     href: "/dev/mcp",

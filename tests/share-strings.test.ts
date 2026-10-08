@@ -41,21 +41,22 @@ describe("publicSharePath: the only unauthenticated paths", () => {
   const T = "A".repeat(43);
   const BLOB = "0123456789abcdef0123456789abcdef";
   it("accepts exactly the three shapes", () => {
-    expect(publicSharePath(`/s/${T}`)).toBe("page");
-    expect(publicSharePath(`/s/${T}/card.png`)).toBe("image");
+    expect(publicSharePath(`/share/${T}`)).toBe("page");
+    expect(publicSharePath(`/share/${T}/card.png`)).toBe("image");
     expect(publicSharePath(`/api/share/${T}/media/${BLOB}`)).toBe("media");
-    expect(publicSharePath(`/s/abc_-${"x".repeat(40)}`)).toBe("page");
+    expect(publicSharePath(`/share/abc_-${"x".repeat(40)}`)).toBe("page");
   });
   it.each([
-    "/s",
-    "/s/",
-    `/s/${T}/`,
-    `/s/${T}/other`,
-    `/s/${T}/card.png/extra`,
-    `/s/${T}/../api/sessions`,
-    "/s/short",
-    `/s/${"A".repeat(200)}`,
-    `/s/${T}%2Fx`,
+    "/share",
+    "/share/",
+    `/s/${T}`, // the old path: redirected by next.config.ts, never served
+    `/share/${T}/`,
+    `/share/${T}/other`,
+    `/share/${T}/card.png/extra`,
+    `/share/${T}/../api/sessions`,
+    "/share/short",
+    `/share/${"A".repeat(200)}`,
+    `/share/${T}%2Fx`,
     `/api/share/${T}`,
     `/api/share/${T}/media`,
     `/api/share/${T}/media/NOT-HEX-NOT-HEX-NOT-HEX-NOT-HEX1`,

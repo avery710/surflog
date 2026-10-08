@@ -9,7 +9,7 @@ import { clientIp, limitShareMiss } from "@/lib/share-limits";
 import { shareT } from "@/lib/share-strings";
 
 /**
- * The public page for a shared session. proxy.ts lets exactly /s/<token>
+ * The public page for a shared session. proxy.ts lets exactly /share/<token>
  * through without sign-in (and applies the per-IP request limit); the token
  * check is here. An unknown and a turned-off token are the same 404.
  * Rendered per request (it reads Accept-Language and the live share row),
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const vars = { spot: share.spotName, date, name: share.owner.name ?? "" };
   const title = t("share.page.title", vars);
   const description = share.owner.name ? t("share.page.description", vars) : t("share.page.descriptionAnon", vars);
-  const image = `/s/${token}/card.png?v=og&lang=${share.lang}`;
+  const image = `/share/${token}/card.png?v=og&lang=${share.lang}`;
 
   return {
     ...(base ? { metadataBase: new URL(base) } : {}),

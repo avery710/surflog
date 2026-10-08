@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 type Params = { params: Promise<{ token: string }> };
 
 /**
- * GET /s/<token>/card.png[?v=og|card&lang=en|zh-TW] — the solid card for
+ * GET /share/<token>/card.png[?v=og|card&lang=en|zh-TW] — the solid card for
  * link previews (og = 1200x630, card = 1080x1350). Public, token-checked;
  * proxy.ts only lets this exact path shape through and applies the per-IP
  * request limit. Language: the owner's choice, else ?lang=, else the

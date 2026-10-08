@@ -3,7 +3,7 @@ import type { PublicShare } from "@/lib/share-public";
 import { shareT } from "@/lib/share-strings";
 
 /**
- * The public /s/<token> page body. A server component with no hooks and no
+ * The public /share/<token> page body. A server component with no hooks and no
  * client provider: it renders only the whitelisted PublicShare, in the
  * language that object carries (lib/share-strings.ts), so a visitor with no
  * app state sees it the way the owner set it up. The card is the journal's
