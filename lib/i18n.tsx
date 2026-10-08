@@ -950,6 +950,24 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
 
+/** A fixed language for a subtree, ignoring the visitor's saved choice: the
+ *  public share page shows the session in the language the owner (or the
+ *  visitor's Accept-Language) set, rendered the same on server and client. */
+export function FixedLanguageProvider({ lang, children }: { lang: Lang; children: React.ReactNode }) {
+  const value = useMemo<LangContextValue>(
+    () => ({
+      lang,
+      setLang: () => {},
+      t: (key: TKey, vars?: Vars) => {
+        const s: string = DICT[key][lang];
+        return vars ? s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : s;
+      },
+    }),
+    [lang]
+  );
+  return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
+}
+
 export function useLang(): LangContextValue {
   const ctx = useContext(LangContext);
   if (!ctx) throw new Error("useLang must be used within a LanguageProvider");

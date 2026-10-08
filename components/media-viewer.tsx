@@ -20,12 +20,15 @@ export function MediaViewer({
   index,
   onIndexChange,
   alt,
+  mediaBase = "/api/blob",
 }: {
   photos: Photo[];
   index: number | null;
   onIndexChange: (index: number | null) => void;
   /** Alt text for a photo (the session's spot and time). */
   alt: string;
+  /** Where the files load from (see EntryCard's `mediaBase`). */
+  mediaBase?: string;
 }) {
   const { t } = useLang();
   const open = index !== null && index < photos.length;
@@ -59,7 +62,7 @@ export function MediaViewer({
             (current.type.startsWith("video/") ? (
               <video
                 key={current.id}
-                src={`/api/blob/${current.id}`}
+                src={`${mediaBase}/${current.id}`}
                 controls
                 autoPlay
                 playsInline
@@ -69,7 +72,7 @@ export function MediaViewer({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={current.id}
-                src={`/api/blob/${current.id}`}
+                src={`${mediaBase}/${current.id}`}
                 alt={alt}
                 className="max-h-full max-w-full rounded-lg object-contain"
               />

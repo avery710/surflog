@@ -203,25 +203,30 @@ describe("public side", () => {
     const json = JSON.stringify(view);
     for (const secret of [
       ME.id, // the Google sub / ownerId
-      "ownerId",
       "owner_id",
       "SECRET GOAL TEXT",
-      "goal",
       "SECRET BOARD NOTE",
       "board-1",
       on.data.token, // the token itself is not echoed back
       "dev-share", // session id
       "s1",
-      "gridLat", // raw condition blobs
-      "fetchedAt",
-      "stationTownship",
-      "createdAt",
+      "21.958", // condition bookkeeping: the model grid node and fetch time
+      "2026-09-25T06:00:00",
       "email",
     ]) {
       expect(json, `public view leaked "${secret}"`).not.toContain(secret);
     }
     // the shape itself is exactly the allow-list
-    expect(Object.keys(view!).sort()).toEqual(["boardName", "lang", "media", "notesHtml", "notesText", "owner", "spotName", "tiles", "whenLabel"]);
+    expect(Object.keys(view!).sort()).toEqual(["boardName", "card", "lang", "media", "notesHtml", "notesText", "owner", "spotName", "tiles", "whenLabel"]);
+    // the card's Session carries no identity, goal or timestamps (keys exist only because the type needs them)
+    const cs = view!.card.session;
+    expect([cs.id, cs.ownerId, cs.createdAt, cs.notes]).toEqual(["shared", "", "", ""]);
+    expect([cs.goalText, cs.goalMet, cs.goalPointsMet]).toEqual([null, null, null]);
+    expect(cs.condCwaTide?.stationTownship).toBe("");
+    expect(view!.card.board?.photoId).toBeNull();
+    expect(view!.card.board?.note).toBe("");
+    expect(Object.keys(cs).sort()).toEqual(
+      ["boardId", "cond", "condCwaTide", "condOpenMeteo", "createdAt", "goalMet", "goalPointsMet", "goalText", "id", "notes", "notesHtml", "ownerId", "photos", "spot", "when"]);
     expect(Object.keys(view!.owner).sort()).toEqual(["image", "name"]);
     for (const t of view!.tiles) expect(Object.keys(t).filter((k) => t[k as keyof typeof t] !== undefined).sort()).toEqual(expect.arrayContaining(["key", "label", "lines", "value"]));
   });

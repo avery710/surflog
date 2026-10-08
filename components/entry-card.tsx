@@ -42,6 +42,7 @@ export function EntryCard({
   onUpdated,
   onDeleted,
   readOnly = false,
+  mediaBase = "/api/blob",
 }: {
   session: Session;
   /** The owner's current goal, for the edit panel's checkboxes. */
@@ -53,6 +54,9 @@ export function EntryCard({
   /** No ⋯ menu (edit / upload / delete) — for the signed-out landing
    *  page's demo cards, which must never call the API. */
   readOnly?: boolean;
+  /** Where photos/videos load from. The public share page passes its
+   *  token-scoped `/api/share/<token>/media`; `/api/blob` is owner-only. */
+  mediaBase?: string;
 }) {
   const { lang, t } = useLang();
   const [editing, setEditing] = useState(false);
@@ -422,7 +426,7 @@ export function EntryCard({
                   <>
                     {/* #t=0.1 makes WebKit paint a first frame instead of a blank box */}
                     <video
-                      src={`/api/blob/${p.id}#t=0.1`}
+                      src={`${mediaBase}/${p.id}#t=0.1`}
                       muted
                       playsInline
                       preload="metadata"
@@ -437,7 +441,7 @@ export function EntryCard({
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`/api/blob/${p.id}`}
+                    src={`${mediaBase}/${p.id}`}
                     alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
                     loading="lazy"
                     className="h-full w-full object-cover"
@@ -450,6 +454,7 @@ export function EntryCard({
             photos={session.photos}
             index={viewing}
             onIndexChange={setViewing}
+            mediaBase={mediaBase}
             alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
           />
         </div>

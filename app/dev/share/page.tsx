@@ -1,6 +1,7 @@
 import { SHARE_CASES, shareCaseData } from "@/app/dev/share/cases";
 import { PublicShareView } from "@/components/share/public-share-view";
 import { toPublicShare } from "@/lib/share-public";
+import { TAIWAN_SPOTS_FIXTURE } from "@/lib/spot-fixtures";
 import type { ShareLang } from "@/lib/share-strings";
 
 /**
@@ -41,7 +42,7 @@ export default function DevSharePage() {
           {LANGS.map((lang) => {
             const data = shareCaseData(c.id, lang);
             if (!data) return null;
-            const view = toPublicShare(c.session, data, { owner_name: "Avery Lin", owner_image: null });
+            const view = toPublicShare(c.session, data, { owner_name: "Avery Lin", owner_image: null }, TAIWAN_SPOTS_FIXTURE.find((x) => x.slug === c.session.spot) ?? null);
             return (
               <div key={lang} className="mt-4 rounded-[var(--r-card)] border border-card-border p-4">
                 <h3 className="text-sm font-bold">{lang}</h3>

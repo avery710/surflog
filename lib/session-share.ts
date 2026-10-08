@@ -195,7 +195,8 @@ export async function loadPublicShare(token: string, fallbackLang: ShareLang): P
   if (!row) return null;
   const session = await sharedSession(row);
   if (!session) return null;
-  return toPublicShare(session, await buildCardForSession(session, fallbackLang), row);
+  const [card, spot] = await Promise.all([buildCardForSession(session, fallbackLang), resolveSpot(session.spot)]);
+  return toPublicShare(session, card, row, spot);
 }
 
 /** Card data for the public image route (same lookup rules as the page). */
