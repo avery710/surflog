@@ -125,8 +125,8 @@ const METRICS: Record<ShareVariant, Metrics> = {
   strip: { kind: "strip", W: 1080, H: null, margin: 44, pad: 0, name: 48, nameLines: 1, date: 28, label: 22, fig: 36, unit: 19, small: 19, notes: 32, chip: 1.9, tileH: 160, tilePadX: 16, gap: 14, frame: false, curve: { w: 150, h: 56 } },
   column: { kind: "column", W: 760, H: null, margin: 40, pad: 0, name: 60, nameLines: 2, date: 30, label: 24, fig: 46, unit: 22, small: 24, notes: 32, chip: 1.9, tileH: 0, tilePadX: 0, gap: 0, frame: false, curve: { w: 300, h: 70 } },
   card: { kind: "card", W: 1080, H: null, margin: 20, pad: 36, name: 76, nameLines: 2, date: 34, label: 19, fig: 28, unit: 15, small: 17, notes: 38, chip: 1.9, tileH: 150, tilePadX: 14, gap: 14, frame: false, curve: { w: 150, h: 52 } },
-  // The Story: the Card's layout as a full-width band (no side margin), centred on a 9:16 background (a photo or blue).
-  story: { kind: "card", W: 1080, H: 1920, margin: 0, pad: 56, name: 76, nameLines: 2, date: 34, label: 19, fig: 28, unit: 15, small: 17, notes: 38, chip: 1.9, tileH: 150, tilePadX: 14, gap: 14, frame: false, curve: { w: 150, h: 52 } },
+  // The Story: the Card's layout, centred on a full-bleed 9:16 background (a photo or blue).
+  story: { kind: "card", W: 1080, H: 1920, margin: 48, pad: 36, name: 76, nameLines: 2, date: 34, label: 19, fig: 28, unit: 15, small: 17, notes: 38, chip: 1.9, tileH: 150, tilePadX: 14, gap: 14, frame: false, curve: { w: 150, h: 52 } },
   og: { kind: "card", W: 1200, H: 630, margin: 28, pad: 36, name: 52, nameLines: 1, date: 26, label: 19, fig: 30, unit: 16, small: 16, notes: 26, chip: 1.5, tileH: 138, tilePadX: 14, gap: 14, frame: true, curve: { w: 112, h: 44 } },
 };
 
@@ -648,8 +648,7 @@ export function shareElement(data: ShareCardData, variant: ShareVariant, layout:
           width: "100%",
           ...(isStory ? {} : { height: "100%" }),
           padding: m.pad,
-          // story: the band runs edge to edge, so square corners (rounded ones would leave photo slivers at the sides)
-          borderRadius: isStory ? 0 : 56,
+          borderRadius: 56,
           background: c.plate,
           color: c.text,
           ...(isStrip ? {} : { textShadow: c.textShadow }),
