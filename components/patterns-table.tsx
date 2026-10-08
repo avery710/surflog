@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
+import { INLINE_FIELD, INLINE_FIELD_IDLE } from "@/lib/inline-field";
 import type { Session } from "@/lib/types";
 
 const MAX_DESCRIPTION = 500;
@@ -96,10 +97,10 @@ export function PatternsTable({
                     <td className="whitespace-nowrap px-4 py-1.5 align-middle font-mono text-[13.5px] tabular-nums">
                       {r.n}
                     </td>
-                    <td className="w-full rounded-r-[var(--r-tile)] px-2 py-0.5 align-middle">
+                    <td className="w-full rounded-r-[var(--r-tile)] px-1 py-0.5 align-middle">
                       {readOnly ? (
                         note ? (
-                          <p className="px-2 py-1 text-[14px] leading-snug whitespace-pre-wrap break-words">{note}</p>
+                          <p className="px-3.5 py-[2px] text-[14px] leading-5 whitespace-pre-wrap break-words">{note}</p>
                         ) : null
                       ) : editing === r.slug ? (
                         <input
@@ -121,7 +122,7 @@ export function PatternsTable({
                               setEditing(null);
                             }
                           }}
-                          className="w-full rounded-[10px] border border-ring bg-background px-2 py-1 text-[14px] outline-none ring-4 ring-ring/15 disabled:opacity-60"
+                          className={`w-full text-[14px] ${INLINE_FIELD}`}
                         />
                       ) : (
                         <button
@@ -130,8 +131,8 @@ export function PatternsTable({
                           aria-label={t("patterns.editDescription", { spot: label })}
                           className={
                             note
-                              ? "w-full rounded-[10px] px-2 py-1 text-left text-[14px] leading-snug whitespace-pre-wrap break-words hover:bg-background"
-                              : "rounded-[10px] px-2 py-1 text-left text-[13px] font-medium text-[var(--faint)] hover:bg-background hover:text-muted-foreground"
+                              ? `w-full text-left text-[14px] whitespace-pre-wrap break-words ${INLINE_FIELD_IDLE}`
+                              : `text-left text-[13px] font-medium text-[var(--faint)] hover:text-muted-foreground ${INLINE_FIELD_IDLE}`
                           }
                         >
                           {note || t("patterns.addDescription")}

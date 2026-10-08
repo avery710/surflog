@@ -5,6 +5,7 @@ import { SpotsAdmin } from "@/components/admin/spots-admin";
 import { SiteHeader } from "@/components/site-header";
 import { listConnectedServices } from "@/lib/oauth";
 import { isSpotAdmin } from "@/lib/spot-admin";
+import { listAllEditRequests, softly, toAdmin } from "@/lib/spot-edit-requests";
 import { listAllRequests, rowToRequest } from "@/lib/spot-requests";
 import { listSpots } from "@/lib/spot-store";
 
@@ -15,15 +16,25 @@ export default async function AdminPage() {
   const session = await auth();
   if (!session?.user?.id || !isSpotAdmin(session.user)) notFound();
 
-  const [spots, requestRows, services] = await Promise.all([listSpots(), listAllRequests(), listConnectedServices()]);
+  const [spots, requestRows, services, edits] = await Promise.all([
+    listSpots(),
+    listAllRequests(),
+    listConnectedServices(),
+    // none (not an error) until the spot_edit_requests migration is applied
+    softly(() => listAllEditRequests().then((rows) => rows.map(toAdmin)), []),
+  ]);
   return (
     <>
       <SiteHeader
         user={session.user}
         canManageSpots
-        pendingSpotRequests={requestRows.filter((r) => r.status === "pending").length}
+        pendingSpotRequests={
+          requestRows.filter((r) => r.status === "pending").length + edits.filter((e) => e.status === "pending").length
+        }
       />
-      <SpotsAdmin initialSpots={spots} initialRequests={requestRows.map((r) => rowToRequest(r, true))}>
+      <SpotsAdmin initialSpots={spots} initialRequests={requestRows.map((r) => rowToRequest(r, true))}
+        initialEdits={edits}
+      >
         <ConnectedServices services={services} />
       </SpotsAdmin>
     </>

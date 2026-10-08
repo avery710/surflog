@@ -333,17 +333,15 @@ export function Journal({
               ~800px tablet). Pairing it with the goal card instead — short
               text, so it fits beside a narrow fixed column at any width —
               uses that space instead of wasting it, and needs no fixed-width
-              table on the other side. sm:items-stretch (changed from
-              items-start 2026-10-01, on request, now that the calendar is a
-              fixed 4-week window with a constant height): the goal card
-              matches that height in display mode and scrolls its points list
-              past it (see goal.tsx's own comment); the calendar opts back out
-              of the stretch itself (sm:self-start on its own card) so it's
-              never the one that grows. Below `sm` both stack full-width, goal
+              table on the other side. sm:items-stretch (2026-10-08, on
+              request): the goal card is as tall as its points need, never
+              capped or scrolled, and the calendar stretches to match it,
+              showing more past weeks to fill the height (see
+              activity-calendar.tsx). Below `sm` both stack full-width, goal
               above calendar (their natural DOM order), with no height cap on
               either. */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-            <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col">
               <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
             </div>
             <ActivityCalendar sessions={sessions} />

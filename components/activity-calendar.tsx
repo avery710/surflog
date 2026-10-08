@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "cn";
 import { useLang, type Lang, type TKey } from "@/lib/i18n";
@@ -13,7 +13,7 @@ import type { Session } from "@/lib/types";
  *  Sunday-Saturday week (2026-10-01: switched from month-rows, which
  *  needed leading blanks before day 1 to line day 1 up under its real
  *  weekday — a week-row never needs that, it always starts on Sunday), so
- *  every row is exactly the same height — see VISIBLE_WEEKS below for why
+ *  every row is exactly the same height — see MIN_VISIBLE_WEEKS below for why
  *  that matters. Fixed pixel column widths (not fractional), so the grid
  *  never depends on flex-wrap rounding, and the weekday header row below
  *  lines up with it exactly regardless of the two rows' different flex
@@ -44,52 +44,27 @@ const WEEKDAY_KEYS: TKey[] = [
   "calendar.weekday.sat",
 ];
 
-/** Exactly this many week-rows are visible at once, always — a fixed
- *  window with a fixed height (WEEK_LIST_HEIGHT_PX below), not a measured
- *  one (2026-10-01, on request — "only display last 4 weeks so we have
- *  fixed height and width"; replaces the earlier month-row design, where
- *  2-3 months of variable-height rows — a 28-day Feb starting Monday is 4
- *  dot rows, a 31-day month starting Sunday is 6 — were measured from the
- *  rendered DOM after mount). Every row is now always a full Sunday-Saturday
- *  week (7 dots, no leading blanks) at a fixed DOT_PX height (the month
- *  label's font-size is pinned to match DOT_PX exactly — see the label
- *  span below; at a larger size it was the tallest child in its row and
- *  silently stretched every row past DOT_PX, which the fixed-height scroll
- *  area then clipped), so every row really is the same height and the
- *  list's total height is a plain constant. A brand-new user with less
- *  than VISIBLE_WEEKS of history still gets exactly this many rows, on
- *  request — see the `minStartWeekStart` floor below — so the card is never
- *  shorter than this. Older weeks beyond this window scroll into view one
- *  at a time via the ↑ arrow in the rail on the right; ↓ returns toward
- *  the current (bottom) week. */
-const VISIBLE_WEEKS = 4;
+/** Minimum number of week-rows visible at once (phones always show exactly
+ *  this many: the list's min height below). From `sm` up the card is
+ *  stretched to the goal card's height beside it (2026-10-08, on request)
+ *  and shows as many MORE past weeks as fit that height — see
+ *  `visibleRows` in the component — never more than the weeks that exist
+ *  since the earliest session (a user with less history still gets 4 rows,
+ *  see `minStartWeekStart`). Every row is a full Sunday-Saturday week at a
+ *  fixed DOT_PX height (the month label's font-size is pinned to DOT_PX
+ *  exactly — see the label span below; at a larger size it was the tallest
+ *  child in its row and silently stretched every row past DOT_PX, which the
+ *  scroll area then clipped), so the row pitch is a plain constant. The
+ *  current week is always the bottom row; older weeks beyond the visible
+ *  window scroll into view via the ↑ arrow in the rail on the right, ↓
+ *  returns toward it. */
+const MIN_VISIBLE_WEEKS = 4;
 const ROW_GAP_PX = 8; // matches the `space-y-2` gap between week rows
-// 4 rows * 10px dots + 3 gaps * 8px = 64px — the list's fixed scroll height.
-const WEEK_LIST_HEIGHT_PX = VISIBLE_WEEKS * DOT_PX + (VISIBLE_WEEKS - 1) * ROW_GAP_PX;
 
-// The weekday header row above the list: one DOT_PX-tall leading-none label
-// line (the font-size is pinned to DOT_PX for the same clipping reason as
-// the week rows — see the WEEK_LIST_HEIGHT_PX comment above) plus the mb-2
-// (8px) gap before the list starts.
-const HEADER_ROW_HEIGHT_PX = DOT_PX + 8;
-// The card title ("Days in the water"): a fixed 20px line (h-5 leading-5) plus
-// its mb-3 (12px) gap, pinned rather than left to the font's own line
-// height so the card's total height stays a plain constant.
-const TITLE_HEIGHT_PX = 20 + 12;
-// The card's own pt-3.5 (14px, the goal card's top padding, so the two
-// titles sit on one line) + pb-5 (20px) padding and 1px top + bottom
-// border-border.
-const CARD_PADDING_Y_PX = 14 + 20;
-const CARD_BORDER_Y_PX = 2;
-
-/** Total rendered height of the calendar's card, border to border — fixed
- *  now that the list is always exactly VISIBLE_WEEKS rows (see above).
- *  Exported so other dashboard-panel cards can match it exactly (the goal
- *  card, 2026-10-01, on request — see its own comment) instead of a
- *  hand-typed duplicate number that would drift the next time this
- *  geometry changes. */
-export const CALENDAR_CARD_HEIGHT_PX =
-  CARD_PADDING_Y_PX + CARD_BORDER_Y_PX + TITLE_HEIGHT_PX + HEADER_ROW_HEIGHT_PX + WEEK_LIST_HEIGHT_PX;
+/** Pixel height of a list showing `n` week rows. */
+function weekListHeight(n: number): number {
+  return n * DOT_PX + (n - 1) * ROW_GAP_PX;
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -210,13 +185,13 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     ? (([ey, em, ed]) => weekStartOf(ey, em - 1, ed))(earliestDay.split("-").map(Number))
     : todayWeekStart;
 
-  // Always at least VISIBLE_WEEKS rows, even for a brand-new user with no
+  // Always at least MIN_VISIBLE_WEEKS rows, even for a brand-new user with no
   // (or very little) history — on request, so the card is always exactly
   // 4 rows tall, never shorter. Extra rows before the earliest session are
   // just real calendar weeks with no sessions in them (counts.get() already
   // defaults to 0), nothing special-cased. Older history beyond that floor
   // still pushes the start further back and makes the list scrollable.
-  const minStartWeekStart = addDays(todayWeekStart, -7 * (VISIBLE_WEEKS - 1));
+  const minStartWeekStart = addDays(todayWeekStart, -7 * (MIN_VISIBLE_WEEKS - 1));
   const startWeekStart =
     earliestWeekStart.getTime() < minStartWeekStart.getTime() ? earliestWeekStart : minStartWeekStart;
 
@@ -227,7 +202,33 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   // bottom, so the visible window always ends on the current week, never
   // on 4 older ones.
   const weeks = weeksBetween(startWeekStart, todayWeekStart);
-  const canScroll = weeks.length > VISIBLE_WEEKS;
+  // How many rows the list's box can hold (measured; from `sm` up the card
+  // is stretched, on phones it is exactly MIN_VISIBLE_WEEKS), capped by the
+  // weeks that exist.
+  const [fitRows, setFitRows] = useState(MIN_VISIBLE_WEEKS);
+  const visibleRows = Math.max(fitRows, MIN_VISIBLE_WEEKS);
+  // When the box fits more rows than there are weeks, the surplus is padded
+  // on top with empty (light-grey solid, like past no-surf days) placeholder weeks, so the card is always
+  // full and the current week stays the bottom row. They predate the journal,
+  // so they are not drawn as "no-surf" days. Total rows never exceed
+  // visibleRows when padding, so there is nothing to scroll into.
+  const padCount = Math.max(0, visibleRows - weeks.length);
+  const canScroll = weeks.length > visibleRows;
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Measures the list's box (an absolutely-filled flex-1 area, so the rows
+  // inside it never feed back into its own size). State is set from the
+  // observer callback, not the effect body.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      const fit = Math.floor((el.clientHeight + ROW_GAP_PX) / (DOT_PX + ROW_GAP_PX));
+      setFitRows(Math.max(MIN_VISIBLE_WEEKS, fit));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Enables/disables the up/down arrow buttons to match how far the list
   // can still scroll in each direction. Reads and writes the DOM directly
@@ -292,7 +293,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
   // week range actually grows (an older session pulling earliestWeekStart back
   // further, or the calendar rolling into a new week) — not on every
   // incidental re-render, which would fight a user mid-scroll. The list's
-  // own height is a fixed constant now (WEEK_LIST_HEIGHT_PX, set directly
+  // own height comes from visibleRows (weekListHeight(), set directly
   // as inline style below) rather than measured, since every week row is
   // the same height — so this effect only sets scrollTop, no React state,
   // and doesn't trip react-hooks/set-state-in-effect.
@@ -301,7 +302,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
     updateArrowState();
-  }, [weeks.length]);
+  }, [weeks.length, visibleRows, padCount]);
 
   return (
     // Full width below `sm`; from `sm` up, fit-content so the card hugs its
@@ -312,17 +313,13 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     // room around the ↑/↓ buttons so they don't sit flush against the card's
     // rounded corner; the plain p-5 used everywhere else read as too tight
     // once the card stopped carrying any other slack (see the width-fix
-    // immediately before this one). sm:self-start (2026-10-01, alongside the
-    // goal card's height match above): journal.tsx's row became
-    // sm:items-stretch so the goal card can be stretched to this card's
-    // height, and self-start opts this card back out of that stretch — its
-    // own height stays the fixed CALENDAR_CARD_HEIGHT_PX, never the taller
-    // goal card's (e.g. while it's in edit mode).
-    <section className="w-full sm:w-fit sm:shrink-0 sm:self-start">
-      <div className="rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-6 pb-5 pl-5">
+    // immediately before this one). From `sm` the card is stretched to the
+    // goal card's height (2026-10-08): the extra height shows more weeks.
+    <section className="w-full sm:flex sm:w-fit sm:shrink-0 sm:flex-col">
+      <div className="flex flex-col rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-6 pb-5 pl-5 sm:flex-1">
         {/* Same type style as the other dashboard-panel titles (goal card,
             patterns table, board rack). */}
-        <h2 className="mb-3 h-5 font-sans text-[13px] leading-5 font-bold text-muted-foreground">
+        <h2 className="mb-3 h-5 shrink-0 font-sans text-[13px] leading-5 font-bold text-muted-foreground">
           {t("calendar.title")}
         </h2>
         {/* The weekday header and the scrollable week list share one flex-1
@@ -331,14 +328,14 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
             height too: the ↑ button lines up with the "S M T W T F S" row,
             the ↓ button with the last (current) week row, rather than only
             spanning the shorter scrollable list below the header. */}
-        <div className="flex items-stretch gap-2">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-1 items-stretch gap-2">
+          <div className="flex min-w-0 flex-1 flex-col">
             {/* Weekday header, once for the whole card (not per week row) —
                 sits outside the scrollable week list so it never scrolls
                 away, and lines up with the dot columns below purely because
                 both use the same fixed DOT_PX/GAP_PX grid, regardless of
                 their separate flex containers' widths. */}
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-2 flex shrink-0 items-center gap-2">
               <span className="w-8 shrink-0" />
               <div className="grid" style={DOTS_GRID_STYLE}>
                 {WEEKDAY_KEYS.map((key) => (
@@ -352,18 +349,36 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
                 ))}
               </div>
             </div>
+            <div ref={boxRef} className="relative flex-1" style={{ minHeight: weekListHeight(MIN_VISIBLE_WEEKS) }}>
             <div
               ref={scrollRef}
               onScroll={updateArrowState}
               // Native scrollbar hidden — the up/down arrow rail to the
               // right (roughly the scrollbar's own former position) is the
-              // scroll affordance instead, on request. maxHeight is the
-              // fixed WEEK_LIST_HEIGHT_PX constant (VISIBLE_WEEKS rows,
-              // always the same height now that every row's own height is
-              // pinned to DOT_PX below), not measured from the DOM.
-              className="space-y-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              style={{ maxHeight: WEEK_LIST_HEIGHT_PX }}
+              // scroll affordance instead, on request. maxHeight is
+              // weekListHeight(visibleRows): at least MIN_VISIBLE_WEEKS rows,
+              // more when the stretched card has room. Pinned to the box's
+              // bottom so the current week stays the bottom row.
+              className="absolute inset-x-0 bottom-0 space-y-2 overflow-y-auto transition-[max-height] duration-200 ease-out motion-reduce:transition-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{ maxHeight: weekListHeight(visibleRows) }}
             >
+              {Array.from({ length: padCount }, (_, k) => {
+                const padStart = addDays(startWeekStart, -7 * (padCount - k));
+                return (
+                  <div key={`pad-${dateKey(padStart)}`} aria-hidden className="flex items-center gap-2">
+                    <span className="w-8 shrink-0" />
+                    <div className="grid" style={DOTS_GRID_STYLE}>
+                      {Array.from({ length: 7 }, (_, d) => (
+                        <span
+                          key={d}
+                          className={dotClassName(false, false)}
+                          style={{ width: DOT_PX, height: DOT_PX }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
               {weeks.map((weekStart, i) => {
                 // Labelled by the row's *last* day (Saturday), not its first
                 // (Sunday) — on request, 2026-10-01: a week straddling a
@@ -402,7 +417,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
                         // 10px, matching DOT_PX exactly (not the 11px tried
                         // first) — with leading-none that makes this span
                         // exactly as tall as a dot, so every row is a fixed
-                        // DOT_PX tall and WEEK_LIST_HEIGHT_PX's row-count
+                        // DOT_PX tall and weekListHeight()'s row-count
                         // arithmetic holds exactly; at 11px the label (the
                         // tallest child) stretched every row 1px past the
                         // dots, which the fixed-height scroll area clipped.
@@ -447,6 +462,7 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
           {/* A narrow rail standing in for the hidden scrollbar's own

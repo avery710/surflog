@@ -62,27 +62,28 @@ export function PillNeck({
  * Horizontal: `edge` is the left tile's right edge x, `gap` the distance to
  * the right tile, `c` the stem's centre y. Vertical: the same, transposed
  * (`edge` = upper tile's bottom y, `c` = stem's centre x). Each end runs 1px
- * into its tile so no hairline can show. Needs gap >= 6 (two fillets).
+ * into its tile so no hairline can show. Needs gap >= 6 (two fillets). `scale` enlarges the whole neck (the share
+ * images draw it ~2x): radius, stem and the 1px overrun all multiply.
  */
-export function flatNeckPath(direction: "horizontal" | "vertical", edge: number, gap: number, c: number): string {
+export function flatNeckPath(direction: "horizontal" | "vertical", edge: number, gap: number, c: number, scale = 1): string {
   const a = edge;
   const b = edge + gap;
-  const R = 3; // fillet radius
-  const H = 5.5; // half the stem
+  const R = 3 * scale; // fillet radius
+  const H = 5.5 * scale; // half the stem
   const o = H + R; // where the fillet meets the tile edge
   const p = (u: number, v: number) => (direction === "horizontal" ? `${u} ${v}` : `${v} ${u}`);
   return [
-    `M${p(a - 1, c - o)}`,
+    `M${p(a - scale, c - o)}`,
     `L${p(a, c - o)}`,
     `A${R} ${R} 0 0 0 ${p(a + R, c - H)}`,
     `L${p(b - R, c - H)}`,
     `A${R} ${R} 0 0 0 ${p(b, c - o)}`,
-    `L${p(b + 1, c - o)}`,
-    `L${p(b + 1, c + o)}`,
+    `L${p(b + scale, c - o)}`,
+    `L${p(b + scale, c + o)}`,
     `L${p(b, c + o)}`,
     `A${R} ${R} 0 0 0 ${p(b - R, c + H)}`,
     `L${p(a + R, c + H)}`,
     `A${R} ${R} 0 0 0 ${p(a, c + o)}`,
-    `L${p(a - 1, c + o)}Z`,
+    `L${p(a - scale, c + o)}Z`,
   ].join("");
 }

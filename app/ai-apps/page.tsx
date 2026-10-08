@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { ApiTokens } from "@/components/api-tokens";
 import { SiteHeader } from "@/components/site-header";
 import { isSpotAdmin } from "@/lib/spot-admin";
+import { pendingAdminWork } from "@/lib/spot-edit-requests";
 import { listAllRequests } from "@/lib/spot-requests";
 import { listApiTokens } from "@/lib/token-auth";
 
@@ -27,7 +28,9 @@ export default async function AiAppsPage() {
   const canManageSpots = isSpotAdmin(session.user);
   const [tokens, pendingSpotRequests] = await Promise.all([
     listApiTokens(session.user.id),
-    canManageSpots ? listAllRequests().then((rows) => rows.filter((r) => r.status === "pending").length) : 0,
+    canManageSpots
+      ? listAllRequests().then((rows) => pendingAdminWork(rows.filter((r) => r.status === "pending").length))
+      : 0,
   ]);
 
   return (

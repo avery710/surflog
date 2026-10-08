@@ -14,3 +14,12 @@ import type { SpotRequestRow } from "./spot-requests";
 export async function notifySpotRequest(request: SpotRequestRow): Promise<void> {
   console.info(`[spot-request] new request "${request.name}" (${request.id}) — no notifier configured`);
 }
+
+/**
+ * Same idea for a spot edit suggestion (POST /api/spots/:slug/edit-requests):
+ * logs only, no email provider. `fields` are the changed field names, never
+ * the values.
+ */
+export function notifySpotEdit(info: { id: string; spotSlug: string; fields: string[] }): void {
+  console.info(`[spot-edit] new suggestion for "${info.spotSlug}" (${info.id}): ${info.fields.join(", ")} — no notifier configured`);
+}

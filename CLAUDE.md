@@ -2149,10 +2149,8 @@ Language; the choice lives in localStorage (`surflog:lang`), per browser.
 - **`ui-designer`** (added 2026-09-29) — look and feel: applies the
   style references Avery gives (kept in the agent file's "Style
   references" list), plus layout, responsive changes, the tide chart /
-  calendar SVG. Type-checks, lints, and checks its own work in its own
-  cmux browser tab via Bash (agent file's "Verify", updated 2026-10-08;
-  before that it reported "no browser" and left visual checks to the main
-  session).
+  calendar SVG. No browser: it type-checks and
+  lints only, so visual checks stay with the main session.
 - **`storybook`** (added 2026-09-29) — a home-grown Storybook: dev-only
   showcase pages under `app/dev/` rendering each component in all its
   cases from synthetic fixtures (`app/dev/fixtures.ts`), indexed at

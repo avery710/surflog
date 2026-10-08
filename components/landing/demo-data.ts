@@ -37,10 +37,10 @@ export const BOARD_PHOTO_CREDITS: { label: string; href: string }[] = [];
 
 // Spot + days-ago for the history behind the calendar and spots table.
 const HISTORY: [string, number][] = [
-  ["jialeshui", 2], ["jialeshui", 4], ["fulong", 5], ["jialeshui", 8],
-  ["fulong", 11], ["jialeshui", 15], ["jialeshui", 19],
-  ["jialeshui", 22], ["jialeshui", 26], ["jialeshui", 30], ["fulong", 34],
-  ["jialeshui", 37], ["fulong", 41],
+  ["jialeshui", 2], ["jialeshui", 4], ["jialeshui", 8],
+  ["jialeshui", 15], ["jialeshui", 19],
+  ["jialeshui", 22], ["jialeshui", 26], ["jialeshui", 30],
+  ["jialeshui", 37],
 ];
 
 export function demoSessions(

@@ -45,7 +45,6 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
   const spotNotes = useMemo<Record<string, string>>(
     () => ({
       jialeshui: t("landing.demo.spotNote.jialeshui"),
-      fulong: t("landing.demo.spotNote.fulong"),
     }),
     [t]
   );
@@ -138,8 +137,8 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
       {/* ① The dashboard: goal + calendar + spots table in one panel, as in the journal */}
       <Section n="1" title={t("landing.dash.title")} body={t("landing.dash.body")}>
         <div className="flex flex-col gap-4 rounded-[var(--r-card)] bg-panel p-3 sm:p-5">
-          <div className="flex flex-col items-start gap-4 sm:flex-row">
-            <div className="w-full min-w-0 sm:flex-1">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+            <div className="flex w-full min-w-0 flex-col sm:flex-1">
               <GoalCard
                 goal={goalText}
                 sessions={all}
@@ -147,7 +146,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
                 readOnly
               />
             </div>
-            <div className="w-full sm:w-[260px] sm:shrink-0">
+            <div className="w-full sm:flex sm:w-[260px] sm:shrink-0">
               <ActivityCalendar sessions={all} />
             </div>
           </div>

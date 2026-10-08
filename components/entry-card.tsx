@@ -177,6 +177,12 @@ export function EntryCard({
           onOpenChange={setShareOpen}
           sessionId={session.id}
           fileStem={session.when.slice(0, 10)}
+          available={{
+            datetime: true,
+            waves: !!(session.condOpenMeteo || session.cond || session.condCwaTide),
+            board: !!board,
+            log: !!(session.notes?.trim() || session.notesHtml?.replace(/<[^>]*>|&nbsp;/g, "").trim()),
+          }}
         />
       )}
 

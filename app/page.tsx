@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { getGoal, listBoards, listSessions, listSpotNotes } from "@/lib/db";
 import { isSpotAdmin } from "@/lib/spot-admin";
 import { listSpots } from "@/lib/spot-store";
+import { pendingAdminWork } from "@/lib/spot-edit-requests";
 import { listAllRequests, listOwnRequests } from "@/lib/spot-requests";
 import { googleSignIn } from "@/app/actions";
 import { Journal } from "@/components/journal";
@@ -36,7 +37,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
     listSpots(),
     listOwnRequests(session.user.id),
     // admin only: how many requests are waiting, for the menu badge
-    canManageSpots ? listAllRequests().then((rows) => rows.filter((r) => r.status === "pending").length) : 0,
+    canManageSpots
+      ? listAllRequests().then((rows) => pendingAdminWork(rows.filter((r) => r.status === "pending").length))
+      : 0,
   ]);
 
   // A user's own requests: the minimum needed to log against one — never

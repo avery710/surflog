@@ -76,12 +76,11 @@ function DashboardPanel({
           fit-content), sm:items-stretch (2026-10-01). See journal.tsx for
           why: the calendar's own content is only ~200px wide, so pairing it
           with the goal card uses the space a full-width calendar card used
-          to waste between sm and lg; items-stretch (was items-start) lets
-          the goal card match the calendar's now-fixed height in display
-          mode, scrolling its points list past it — the calendar itself
-          opts back out via its own sm:self-start. */}
+          to waste between sm and lg; items-stretch (2026-10-08): the goal
+          card fits its points, the calendar stretches to it and shows more
+          weeks. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
           <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
         </div>
         <ActivityCalendar sessions={sessions} />

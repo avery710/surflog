@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ownedShareCard } from "@/lib/session-share";
-import { isShareVariant } from "@/lib/share-element";
+import { parseShareParts } from "@/lib/share-parts";
+import { isShareTone, isShareVariant } from "@/lib/share-element";
 import { renderShareImage } from "@/lib/share-image";
 import { isShareLang } from "@/lib/share-strings";
 
 type Params = { params: Promise<{ id: string }> };
 
 /**
- * GET /api/sessions/:id/share-image?variant=sticker|card&lang=en|zh-TW —
+ * GET /api/sessions/:id/share-image?variant=strip|column|card&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
  * the owner's preview/download of the two share images. Cookie session and
  * ownership checked; the public counterpart (token-checked, card only) is
  * app/s/[token]/card.png. Same renderer, lib/share-image.tsx.
@@ -20,15 +21,19 @@ export async function GET(req: NextRequest, { params }: Params) {
   const variant = req.nextUrl.searchParams.get("variant") ?? "card";
   const lang = req.nextUrl.searchParams.get("lang") ?? "en";
   if (variant === "og" || !isShareVariant(variant) || !isShareLang(lang)) {
-    return NextResponse.json({ error: "variant must be sticker or card, lang en or zh-TW" }, { status: 400 });
+    return NextResponse.json({ error: "variant must be strip, column or card, lang en or zh-TW" }, { status: 400 });
   }
 
+  const toneQ = req.nextUrl.searchParams.get("tone") ?? "light";
+  if (!isShareTone(toneQ)) return NextResponse.json({ error: "tone must be light or dark" }, { status: 400 });
+  const parts = parseShareParts(req.nextUrl.searchParams.get("parts"));
+
   const { id } = await params;
-  const card = await ownedShareCard(session.user.id, id, lang);
+  const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board });
   if (!card.ok) return NextResponse.json({ error: card.error }, { status: card.status });
 
   try {
-    return await renderShareImage(card.data, variant, { cacheControl: "private, no-store" });
+    return await renderShareImage(card.data, variant, { cacheControl: "private, no-store", tone: toneQ, parts });
   } catch (e) {
     console.error("[share-image]", e);
     return NextResponse.json({ error: "could not draw the image, try again" }, { status: 503 });

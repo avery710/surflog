@@ -12,7 +12,7 @@ import { isShareLang, type ShareLang } from "@/lib/share-strings";
 type Params = { params: Promise<{ id: string }> };
 
 const body = (share: ShareStatus | null) => ({
-  share: share ? { token: share.token, path: `/s/${share.token}`, lang: share.lang, createdAt: share.createdAt } : null,
+  share: share ? { token: share.token, path: `/s/${share.token}`, createdAt: share.createdAt } : null,
 });
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
@@ -26,26 +26,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
   return NextResponse.json(body(r.data), { headers: NO_STORE });
 }
 
-/** PUT { lang?: "en" | "zh-TW" | null } — turn sharing on (idempotent: an
- *  existing link keeps its token). `lang` fixes the page's language; null =
- *  follow the visitor; omitted = leave as is. */
-export async function PUT(req: NextRequest, { params }: Params) {
+/** PUT — turn sharing on (idempotent: an existing link keeps its token).
+ *  Takes no body: the page's language is the visitor's, never the owner's. */
+export async function PUT(_req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await params;
 
-  const input = (await req.json().catch(() => null)) as { lang?: unknown } | null;
-  let lang: ShareLang | null | undefined;
-  if (input && "lang" in input) {
-    if (input.lang === null) lang = null;
-    else if (isShareLang(input.lang)) lang = input.lang;
-    else return NextResponse.json({ error: "lang must be en, zh-TW or null" }, { status: 400 });
-  }
-
   const r = await enableShare(
     { id: session.user.id, name: session.user.name, image: session.user.image },
-    id,
-    lang
+    id
   );
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
   return NextResponse.json(body(r.data), { headers: NO_STORE });

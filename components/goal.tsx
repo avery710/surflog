@@ -13,7 +13,7 @@
  * touch the others.
  */
 import { PillNeck } from "@/components/pill-neck";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -34,20 +34,52 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Check, GripVertical, Plus, X } from "lucide-react";
 import { cn } from "cn";
-import { CALENDAR_CARD_HEIGHT_PX } from "@/components/activity-calendar";
 import { achievedCounts, goalPoints, joinGoalPoints, MAX_GOAL, type GoalRename } from "@/lib/goal";
+import { INLINE_FIELD } from "@/lib/inline-field";
 import { useLang } from "@/lib/i18n";
 import type { Session } from "@/lib/types";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 
-/** Shared type style for a goal point's text — the display bullet list and
- *  the edit-mode inputs both use this, so toggling into/out of edit mode
- *  doesn't change the point text's size, weight, line-height or tracking
- *  (2026-10-01, on request: the inputs used to be a plain 16px). Below
- *  16px, so focusing one of these inputs zooms the viewport on iOS
- *  Safari — accepted here, since matching the display text mattered more
- *  than avoiding that; not worked around in this change. */
-const POINT_TEXT_CLASS = "text-[14.5px] font-bold leading-snug tracking-[-0.01em]";
+/** Animates the card's body height between read and edit view: the outer box
+ *  gets an explicit pixel height that follows the inner content's measured
+ *  height (ResizeObserver, DOM writes only), with a CSS height transition
+ *  turned on after the first measure so mount doesn't animate. Under
+ *  prefers-reduced-motion the transition is never enabled. The calendar
+ *  beside the card is stretched to the card's height, so it follows. */
+function AnimatedHeight({ children }: { children: React.ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const o = outer.current;
+    const i = inner.current;
+    if (!o || !i || typeof ResizeObserver === "undefined") return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let first = true;
+    const ro = new ResizeObserver(() => {
+      o.style.height = `${i.offsetHeight}px`;
+      if (first) {
+        first = false;
+        if (!reduced) requestAnimationFrame(() => (o.style.transition = "height 220ms ease-out"));
+      }
+    });
+    ro.observe(i);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={outer} className="-mx-1.5 shrink-0 overflow-hidden px-1.5">
+      <div ref={inner} className="flex flex-col">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Type style of a goal point's text while editing: identical to the read-
+ *  view pill's (`DisplayPointItem`'s `pill`: 13.5px bold, tracking -0.01em),
+ *  so entering edit mode doesn't change the text. Line-height comes from
+ *  INLINE_FIELD (leading-5), also the pill's. Below 16px, so focusing the
+ *  input zooms iOS Safari — accepted, matching the display text matters more. */
+const POINT_TEXT_CLASS = "text-[13.5px] font-bold tracking-[-0.01em]";
 
 /** One point while editing. `id` is only a stable React/dnd-kit key for
  *  this edit (rows used to be keyed by index, which can't survive a
@@ -94,59 +126,10 @@ export function GoalCard({
   );
   const newPointRef = useRef<HTMLInputElement>(null);
 
-  // The scrollable points list (display mode only — see the height-cap
-  // comment on the card wrapper below) and its bottom fade hint. Managed by
-  // direct DOM reads/writes (no React state), same convention as
-  // activity-calendar.tsx's updateArrowState — this file avoids
-  // setState-in-effect, see CLAUDE.md "Conventions".
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const fadeRef = useRef<HTMLDivElement>(null);
-
   // In how many sessions each point has been ticked as achieved, matched
   // by the point's own wording — see achievedCounts().
   const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
   const counts = achievedCounts(pendingOrder ?? goalPoints(goal), sessions);
-
-  const updateFade = useCallback(() => {
-    const el = scrollRef.current;
-    const fade = fadeRef.current;
-    if (!el || !fade) return;
-    const overflowing = el.scrollHeight > el.clientHeight + 1;
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
-    fade.style.opacity = overflowing && !atBottom ? "1" : "0";
-    // tabIndex/aria-label toggle with overflow too, so the list is only a
-    // keyboard scroll stop (and only announces itself as scrollable) when
-    // there's actually something to scroll to.
-    if (overflowing) {
-      el.tabIndex = 0;
-      el.setAttribute("aria-label", t("goal.scrollHint"));
-    } else {
-      el.removeAttribute("tabindex");
-      el.removeAttribute("aria-label");
-    }
-  }, [t]);
-
-  // Re-check after every render that could change the list's content height
-  // (new/removed points, counts filling in, language switch re-wrapping
-  // text) — a plain effect with no deps array, like activity-preview's own
-  // per-render DOM sync, so nothing has to be exhaustively listed and nothing
-  // sets React state here.
-  useLayoutEffect(() => {
-    updateFade();
-  });
-
-  // Also re-check on the element's own size changes — covers the `sm`
-  // breakpoint turning the height cap on/off, and the window resizing,
-  // neither of which re-renders this component by itself. Re-subscribes
-  // whenever `editing` flips, since the scrollable node only exists in
-  // display mode (unmounted while editing).
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => updateFade());
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [updateFade, editing]);
 
   function startEdit() {
     cancelled.current = false;
@@ -177,6 +160,10 @@ export function GoalCard({
   }
 
   function updatePoint(id: string, value: string) {
+    // MAX_GOAL is enforced silently: an edit that would push the whole goal
+    // past it (and isn't shortening it) is ignored. No counter is shown.
+    const grown = joinGoalPoints(rows.map((r) => (r.id === id ? value : r.text)));
+    if (grown.length > MAX_GOAL && grown.length > joinGoalPoints(points).length) return;
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, text: value } : r)));
   }
 
@@ -244,33 +231,18 @@ export function GoalCard({
     seen.set(p, n + 1);
     return n ? `${p}\u0000${n}` : p;
   });
-  const total = joinGoalPoints(points).length;
 
   return (
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
     //
-    // Height match with the activity calendar (2026-10-01, on request —
-    // the calendar is now a fixed 4-week window, so it has a constant
-    // height Avery wanted this card to line up with): on `sm+`, in display
-    // mode only, the card's height is pinned to the calendar's own
-    // (CALENDAR_CARD_HEIGHT_PX, exported from activity-calendar.tsx so
-    // this doesn't hand-duplicate its geometry — see that file's own
-    // comment for the arithmetic) via a CSS custom property, and the
-    // points list becomes the part that scrolls past that height, with a
-    // bottom fade hint when it does. Below `sm`, and whenever editing,
-    // there's no cap — editing always shows every input row in full, and
-    // below `sm` the two cards stack full-width anyway. The calendar
-    // itself never stretches to match this card either way (see its own
-    // sm:self-start) — only this card adapts to the pairing.
-    <section>
-      <div
-        className={cn(
-          "flex items-stretch gap-3 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-3.5",
-          !editing && "sm:h-[var(--goal-card-h)]"
-        )}
-        style={{ "--goal-card-h": `${CALENDAR_CARD_HEIGHT_PX}px` } as React.CSSProperties}
-      >
+    // Height just fits the points: nothing here caps, clips or scrolls them
+    // (2026-10-08, on request). The row in journal.tsx stretches, so the
+    // activity calendar grows to this card's height (showing more weeks),
+    // not the other way round; flex-1 + h-full-ish fill keeps this card as
+    // tall as the calendar's minimum when it has only a point or two.
+    <section className="flex flex-1 flex-col">
+      <div className="flex flex-1 items-stretch gap-3 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-3.5">
         <div className="flex min-w-0 flex-1 flex-col">
           {/* No horizontal padding here (unlike the px-2 used by the body
               rows below, for their own hover/input backgrounds) — the card's
@@ -286,10 +258,11 @@ export function GoalCard({
               <div> (whose inline opacity:0 updateFade() sets directly, out of
               React's sight) got reused as the "add a point" row, leaving that
               row invisible in edit mode. */}
+          <AnimatedHeight>
           {editing ? (
             <div
               key="edit"
-              className="flex flex-col gap-1.5 px-2 py-1"
+              className="flex flex-col gap-0.5 px-2 py-1"
               // Commit when focus leaves the whole editing block, not on
               // every blur between its own rows (tabbing/clicking between
               // point inputs shouldn't save early).
@@ -322,25 +295,14 @@ export function GoalCard({
                   ))}
                 </SortableContext>
               </DndContext>
-              <p className="px-2 pt-0.5 text-[11px] font-medium text-[var(--faint)]">
-                {t("goal.charsLeft", { n: MAX_GOAL - total })}
-              </p>
             </div>
           ) : (
-            <div key="display" className="relative flex min-h-0 flex-1 flex-col">
+            <div key="display" className="flex flex-1 flex-col">
               <div
-                ref={scrollRef}
-                onScroll={updateFade}
-                // Native scrollbar hidden, same as the activity calendar's
-                // own week list — there's nothing else here standing in for
-                // it (no rail), just the bottom fade below and, once it
-                // overflows, keyboard scrolling via the tabIndex updateFade
-                // sets above.
                 className={cn(
-                  "min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+                  "flex-1",
                   // No points yet: centre the "add a goal" prompt in
-                  // whatever height this got matched to, instead of letting
-                  // it sit pinned to the top of a mostly-empty card.
+                  // whatever height this got matched to.
                   !shownPoints.length && "flex flex-col justify-center"
                 )}
               >
@@ -356,7 +318,7 @@ export function GoalCard({
                         type="button"
                         onClick={startEdit}
                         aria-label={t("goal.edit")}
-                        className="absolute inset-0 rounded-[10px] hover:bg-secondary/40"
+                        className="absolute inset-0 rounded-[10px]"
                       />
                     )}
                     <DndContext
@@ -374,6 +336,7 @@ export function GoalCard({
                               text={p}
                               count={counts[i]}
                               sortable={!readOnly && shownPoints.length > 1}
+                              interactive={!readOnly}
                               onEdit={startEdit}
                             />
                           ))}
@@ -388,22 +351,15 @@ export function GoalCard({
                     type="button"
                     onClick={startEdit}
                     aria-label={t("goal.edit")}
-                    className="w-full rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:bg-secondary hover:text-muted-foreground"
+                    className="w-full rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:opacity-80"
                   >
                     {t("goal.add")}
                   </button>
                 )}
               </div>
-              {/* Bottom fade — visibility toggled by updateFade() above,
-                  not Tailwind state classes, since it depends on a DOM
-                  measurement rather than anything React already tracks. */}
-              <div
-                ref={fadeRef}
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-6 rounded-b-[10px] bg-gradient-to-t from-card to-transparent opacity-0 transition-opacity"
-              />
             </div>
           )}
+          </AnimatedHeight>
         </div>
       </div>
     </section>
@@ -419,12 +375,14 @@ function DisplayPointItem({
   text,
   count,
   sortable,
+  interactive,
   onEdit,
 }: {
   id: string;
   text: string;
   count: number;
   sortable: boolean;
+  interactive: boolean;
   onEdit: () => void;
 }) {
   const { t } = useLang();
@@ -451,14 +409,22 @@ function DisplayPointItem({
             aria-label={t("goal.dragPoint", { point: text })}
             className={cn(
               pill,
-              "pointer-events-auto touch-none focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none",
+              "pointer-events-auto touch-none hover:opacity-80 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none",
               isDragging ? "cursor-grabbing" : "cursor-grab"
             )}
           >
             {text}
           </span>
         ) : (
+          interactive ? (
+          // Takes the pointer (the list is pointer-events-none) so hover
+          // fades just this chip; the click opens edit like the overlay.
+          <span onClick={onEdit} className={cn(pill, "pointer-events-auto cursor-pointer hover:opacity-80")}>
+            {text}
+          </span>
+        ) : (
           <span className={pill}>{text}</span>
+        )
         )}
       </span>
       {count ? (
@@ -508,6 +474,32 @@ function SortablePointRow({
 }) {
   const { t } = useLang();
   const draft = row.id === DRAFT_ID;
+  // Two-step remove: first click arms (× becomes "Remove?"), second removes.
+  const [armed, setArmed] = useState(false);
+  const removeBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!armed) return;
+    const disarm = () => setArmed(false);
+    const onPointer = (e: PointerEvent) => {
+      if (!removeBtnRef.current?.contains(e.target as Node)) disarm();
+    };
+    // Capture + stop: Escape only disarms here, it must not also cancel the
+    // whole goal edit (the input's own Escape handler never sees it).
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        disarm();
+      }
+    };
+    const timer = window.setTimeout(disarm, 4000);
+    document.addEventListener("pointerdown", onPointer, true);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointerdown", onPointer, true);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [armed]);
   const reducedMotion = usePrefersReducedMotion();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: row.id,
@@ -556,7 +548,8 @@ function SortablePointRow({
           if (e.key === "Escape") onCancel();
         }}
         className={cn(
-          "min-w-0 flex-1 rounded-[10px] border border-ring bg-background px-2 py-1.5 outline-none ring-4 ring-ring/15 disabled:opacity-60",
+          "min-w-0 flex-1",
+          INLINE_FIELD,
           POINT_TEXT_CLASS
         )}
       />
@@ -578,11 +571,38 @@ function SortablePointRow({
           // Safari doesn't focus buttons on click, so without this the
           // input blurs to <body> and the blur-to-save never fires.
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onRemove(row.id)}
-          aria-label={t("goal.removePoint", { point: row.text })}
-          className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-60"
+          ref={removeBtnRef}
+          onClick={() => {
+            // An empty row has nothing to lose: no confirm step.
+            if (armed || !row.text.trim()) onRemove(row.id);
+            else setArmed(true);
+          }}
+          aria-label={armed ? t("goal.removeSure") : t("goal.removePoint", { point: row.text })}
+          className={cn(
+            "flex shrink-0 items-center rounded-full p-1.5 transition-colors duration-[375ms] disabled:opacity-60 motion-reduce:transition-none",
+            armed ? "bg-destructive text-white" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+          )}
         >
-          <X className="size-3.5" aria-hidden />
+          {/* Both states stay mounted and their widths animate (the input
+              beside it shrinks/grows with the flex row): × collapses to 0
+              while the label opens, and back on disarm. */}
+          <span
+            className={cn(
+              "flex overflow-hidden transition-[max-width] duration-[375ms] ease-out motion-reduce:transition-none",
+              armed ? "max-w-0" : "max-w-3.5"
+            )}
+          >
+            <X className="size-3.5 shrink-0" aria-hidden />
+          </span>
+          <span
+            aria-hidden
+            className={cn(
+              "overflow-hidden text-[12px] font-semibold whitespace-nowrap transition-[max-width,padding] duration-[375ms] ease-out motion-reduce:transition-none",
+              armed ? "max-w-14 px-1" : "max-w-0 px-0"
+            )}
+          >
+            {t("goal.removeSure")}
+          </span>
         </button>
       )}
     </div>

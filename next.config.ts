@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   // project's CLAUDE.md is hand-curated project context, not a place for
   // generated boilerplate.
   agentRules: false,
+  // lib/share-image.tsx reads the wordmark PNGs from public/ at render time;
+  // a serverless function only carries the files it is told about.
+  outputFileTracingIncludes: {
+    "/api/sessions/[id]/share-image": ["./public/surflog-logo.png", "./public/surflog-logo-white.png"],
+    "/s/[token]/card.png": ["./public/surflog-logo.png", "./public/surflog-logo-white.png"],
+    "/dev/share/image": ["./public/surflog-logo.png", "./public/surflog-logo-white.png"],
+  },
 };
 
 export default nextConfig;

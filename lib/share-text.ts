@@ -3,7 +3,7 @@
  * text itself, but we need the line COUNT before rendering (the sticker's
  * height depends on it) and a hard cap with an ellipsis, so wrapping is done
  * here, by an estimated glyph width. Estimates, not font metrics: CJK is one
- * em per glyph, Latin letters about 0.56 em. A line that comes out a little
+ * em per glyph, Latin letters about 0.51 em. A line that comes out a little
  * wide or narrow is harmless — the renderer lays each line out on its own
  * row with `white-space: nowrap`.
  *
@@ -16,12 +16,16 @@ const NO_LINE_END = new Set(Array.from("（「『【《〈([{"));
 
 export function glyphWidthEm(ch: string): number {
   const cp = ch.codePointAt(0) ?? 0;
-  if (cp === 0x20) return 0.3;
+  // Latin widths calibrated 2026-10-08 against rendered Funnel Sans 500 text
+  // (three notes lines measured 26.0-27.9 em; the old 0.56 em average
+  // estimated 29-31 em, so lines wrapped ~10% early). A few % of margin is
+  // kept so a line never runs past the right edge.
+  if (cp === 0x20) return 0.28;
   if (cp < 0x80) {
-    if (/[ilI.,:;'|!]/.test(ch)) return 0.3;
-    if (/[mwMW@]/.test(ch)) return 0.85;
-    if (/[A-Z]/.test(ch)) return 0.66;
-    return 0.56;
+    if (/[ilI.,:;'|!]/.test(ch)) return 0.28;
+    if (/[mwMW@]/.test(ch)) return 0.78;
+    if (/[A-Z]/.test(ch)) return 0.61;
+    return 0.51;
   }
   // CJK, kana, hangul, fullwidth forms, emoji and anything else wide
   return 1;

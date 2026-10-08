@@ -15,6 +15,19 @@ export const WIND_LEVELS = [
   { max: Infinity, key: "gale" },
 ] as const;
 
+/** The card's dot colours (components/wind-strength.tsx, Tailwind 400-900) as
+ *  hex, for the share images where there is no Tailwind. Keep in step. */
+export const WIND_DOT_HEX = {
+  calm: "#34d399",
+  light: "#10b981",
+  gentle: "#84cc16",
+  moderate: "#fbbf24",
+  fresh: "#f97316",
+  strong: "#ef4444",
+  nearGale: "#b91c1c",
+  gale: "#7f1d1d",
+} as const;
+
 export type WindLevelKey = (typeof WIND_LEVELS)[number]["key"];
 
 /** Index into WIND_LEVELS (0 = calm … 7 = gale). */

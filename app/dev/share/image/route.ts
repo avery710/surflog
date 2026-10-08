@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { shareCaseData } from "@/app/dev/share/cases";
-import { isShareVariant } from "@/lib/share-element";
+import { parseShareParts } from "@/lib/share-parts";
+import { isShareTone, isShareVariant } from "@/lib/share-element";
 import { renderShareImage } from "@/lib/share-image";
 import { isShareLang } from "@/lib/share-strings";
 
@@ -15,10 +16,12 @@ export async function GET(req: NextRequest) {
   const variant = p.get("variant") ?? "card";
   const lang = p.get("lang") ?? "en";
   if (!isShareVariant(variant) || !isShareLang(lang)) return NextResponse.json({ error: "bad query" }, { status: 400 });
+  const tone = p.get("tone") ?? "light";
+  if (!isShareTone(tone)) return NextResponse.json({ error: "bad tone" }, { status: 400 });
   const data = shareCaseData(p.get("case") ?? "typical", lang);
   if (!data) return NextResponse.json({ error: "unknown case" }, { status: 404 });
   try {
-    return await renderShareImage(data, variant, { cacheControl: "no-store" });
+    return await renderShareImage(data, variant, { cacheControl: "no-store", tone, parts: parseShareParts(p.get("parts")), skipStencil: p.get("raw") === "1" });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "render failed" }, { status: 503 });
   }

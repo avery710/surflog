@@ -14,6 +14,7 @@
  *   blobs cannot reach a visitor even by a later edit that adds a column.
  *   An unknown token and a turned-off one are the same `null`.
  */
+import { boardPhotoDataUri } from "./share-board-photo";
 import { randomBytes } from "node:crypto";
 import { getBoard, getSession } from "@/lib/db";
 import { blobMeta } from "@/lib/blob";
@@ -42,14 +43,11 @@ interface ShareRow {
 
 export interface ShareStatus {
   token: string;
-  /** The language the owner fixed for the page, or null = follows the visitor. */
-  lang: ShareLang | null;
   createdAt: string;
 }
 
 const toStatus = (row: ShareRow): ShareStatus => ({
   token: row.token,
-  lang: isShareLang(row.lang) ? row.lang : null,
   createdAt: row.created_at,
 });
 
@@ -86,14 +84,13 @@ export interface ShareOwner {
 
 /**
  * Turn sharing on. Idempotent: an already-shared session keeps its token
- * (so a link already sent stays valid) and only takes the new language and
- * a fresh name/avatar snapshot. `lang` undefined leaves the language as is;
- * null clears it (follow the visitor).
+ * (so a link already sent stays valid) and only takes a fresh name/avatar
+ * snapshot. The page's language is always the visitor's (Accept-Language);
+ * `session_shares.lang` is no longer written or read.
  */
 export async function enableShare(
   owner: ShareOwner,
-  sessionId: string,
-  lang?: ShareLang | null
+  sessionId: string
 ): Promise<ServiceResult<ShareStatus>> {
   if (!(await ownedSession(owner.id, sessionId))) return notFound;
   const snapshot = { owner_name: cleanName(owner.name), owner_image: cleanImage(owner.image) };
@@ -101,15 +98,14 @@ export async function enableShare(
 
   const existing = await rowForSession(sessionId);
   if (existing) {
-    const patch = lang === undefined ? snapshot : { ...snapshot, lang };
-    const { data, error } = await sb.from(TABLE).update(patch).eq("token", existing.token).select("*").single();
+    const { data, error } = await sb.from(TABLE).update(snapshot).eq("token", existing.token).select("*").single();
     if (error) throw new Error(`Supabase: ${error.message}`);
     return { ok: true, data: toStatus(data as ShareRow) };
   }
 
   const { data, error } = await sb
     .from(TABLE)
-    .insert({ token: newShareToken(), session_id: sessionId, owner_id: owner.id, lang: lang ?? null, ...snapshot })
+    .insert({ token: newShareToken(), session_id: sessionId, owner_id: owner.id, ...snapshot })
     .select("*")
     .single();
   if (error) {
@@ -158,11 +154,15 @@ export async function buildCardForSession(session: Session, lang: ShareLang): Pr
 export async function ownedShareCard(
   ownerId: string,
   sessionId: string,
-  lang: ShareLang
+  lang: ShareLang,
+  opts: { boardPhoto?: boolean } = {}
 ): Promise<ServiceResult<ShareCardData>> {
   const session = await ownedSession(ownerId, sessionId);
   if (!session) return notFound;
-  return { ok: true, data: await buildCardForSession(session, lang) };
+  const data = await buildCardForSession(session, lang);
+  // The owner's own images may carry the board photo; public ones never do.
+  if (opts.boardPhoto && data.boardName) data.boardPhoto = await boardPhotoDataUri(session.ownerId, session.boardId);
+  return { ok: true, data };
 }
 
 // ---------------------------------------------------------------- public
@@ -192,8 +192,7 @@ export async function loadPublicShare(token: string, fallbackLang: ShareLang): P
   if (!row) return null;
   const session = await sharedSession(row);
   if (!session) return null;
-  const lang = isShareLang(row.lang) ? row.lang : fallbackLang;
-  return toPublicShare(session, await buildCardForSession(session, lang), row);
+  return toPublicShare(session, await buildCardForSession(session, fallbackLang), row);
 }
 
 /** Card data for the public image route (same lookup rules as the page). */
@@ -202,7 +201,7 @@ export async function loadPublicCard(token: string, fallbackLang: ShareLang): Pr
   if (!row) return null;
   const session = await sharedSession(row);
   if (!session) return null;
-  return buildCardForSession(session, isShareLang(row.lang) ? row.lang : fallbackLang);
+  return buildCardForSession(session, fallbackLang);
 }
 
 /** The mime type of `blobId` iff it is one of the shared session's own
