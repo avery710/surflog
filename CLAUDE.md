@@ -251,8 +251,9 @@ fields + CWA township, 9 Siargao, 26 Bali).
   signed-in user** — the one deliberate exception to "nothing aggregates
   across users". Others see only the Google display name, rating, comment,
   date (`toPublic()`, unit-tested); the spot admin can delete any review.
-  Fails soft until migration `20261008200000` is applied. Not checked in a
-  browser. Spot edit suggestions (`5226577`) are reviewed on `/admin`.
+  Migration `20261008200000` applied 2026-10-08 (fails soft without it).
+  Not checked in a browser. Spot edit suggestions (`5226577`, migration
+  `20261008100000`, applied) are reviewed on `/admin`.
 - Never exercised on live data: create/edit/delete a spot,
   send/approve/decline a request, the non-admin view, "Near me".
 
