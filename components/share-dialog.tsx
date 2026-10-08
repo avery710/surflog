@@ -323,7 +323,8 @@ export function ShareDialog({
                     }}
                     className={cn(
                       "relative flex h-60 w-full items-center justify-center overflow-hidden rounded-[var(--r-tile)] bg-[length:64px_64px] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
-                      tone === "light"
+                      // Story: an opaque 9:16 image, so the tile is cut to its shape (no transparency grid at the sides)
+                      v === "story" ? "mx-auto aspect-[9/16] w-auto bg-primary" : tone === "light"
                         ? "[background-image:conic-gradient(#2a2d32_25%,#33373c_0_50%,#2a2d32_0_75%,#33373c_0)]"
                         : "[background-image:conic-gradient(#d5d9de_25%,#e6e9ed_0_50%,#d5d9de_0_75%,#e6e9ed_0)]",
                       isSel ? "ring-2 ring-primary ring-offset-2" : "opacity-90 hover:opacity-100"
@@ -333,7 +334,7 @@ export function ShareDialog({
                       <span className="p-4 text-sm text-muted-foreground">{t("share.parts.none")}</span>
                     ) : img?.url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={img.url} alt={t("share.preview.alt")} className={cn("max-h-full max-w-full object-contain transition-opacity", stale && "opacity-60")} />
+                      <img src={img.url} alt={t("share.preview.alt")} className={cn(v === "story" ? "size-full object-cover" : "max-h-full max-w-full object-contain", "transition-opacity", stale && "opacity-60")} />
                     ) : null}
                     {loading && (
                       <span role="status" className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-center text-xs font-medium text-white">
