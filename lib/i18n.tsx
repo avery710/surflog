@@ -457,10 +457,6 @@ const DICT = {
     en: "This browser can't copy images. Use Save image.",
     "zh-TW": "這個瀏覽器無法複製圖片，請使用「儲存圖片」。",
   },
-  "share.hint.story": {
-    en: "For an Instagram story: copy or save the image, open Instagram, then paste the image onto your photo or video.",
-    "zh-TW": "要發限時動態：先複製或儲存圖片，打開 Instagram，再把圖片貼到你的照片或影片上。",
-  },
   "share.act.label": { en: "Send it", "zh-TW": "傳送" },
   "share.act.instagram": { en: "Instagram Story", "zh-TW": "Instagram 限時動態" },
   "share.act.more": { en: "More", "zh-TW": "更多" },

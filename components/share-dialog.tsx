@@ -396,7 +396,6 @@ export function ShareDialog({
           )}
         </section>
         {!canCopyImage && <p className="-mt-2 text-[12.5px] text-muted-foreground">{t("share.noClipboard")}</p>}
-        {!showStory && <p className="-mt-2 text-[12.5px] text-muted-foreground">{t("share.hint.story")}</p>}
 
         <LinkSection sessionId={sessionId} open={open} onUrl={setLinkUrl} />
       </DialogContent>
