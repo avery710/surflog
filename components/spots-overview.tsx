@@ -2,30 +2,36 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Search, X } from "lucide-react";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
+import { SuggestSpotEditDialog } from "@/components/suggest-spot-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { compassLabel } from "@/lib/format";
 import { useLang, type Lang } from "@/lib/i18n";
 import { PAGE_COLUMN } from "@/lib/layout";
 import { browseGroups, facingPoints, nameMatches, searchSpots, searchTokens, tideBandKey } from "@/lib/spot-browse";
 import { SpotCatalogProvider, type OwnRequest } from "@/lib/spot-catalog";
+import type { OwnEditRequest } from "@/lib/spot-edit-requests";
 import type { Spot } from "@/lib/spots";
 
 const noop = () => {};
 
 /** /spots — the log form's spot picker as a page: the whole shared catalogue,
  *  searched and grouped the same way (lib/spot-browse.ts), with one button to
- *  add a spot (admin) or request one (everyone else). Editing and deleting
- *  stay on /admin. */
+ *  add a spot (admin) or request one (everyone else). Everyone else can also
+ *  suggest an edit to any spot (reviewed on /admin); admins edit and delete
+ *  on /admin directly. */
 export function SpotsOverview({
   initialSpots,
   initialRequests,
+  initialEdits,
   canManage,
 }: {
   initialSpots: Spot[];
   initialRequests: OwnRequest[];
+  /** The viewer's own pending edit suggestions. */
+  initialEdits: OwnEditRequest[];
   canManage: boolean;
 }) {
   const { lang, t } = useLang();
@@ -36,6 +42,9 @@ export function SpotsOverview({
   const [text, setText] = useState("");
   const [query, setQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [edits, setEdits] = useState(initialEdits);
+  const [editing, setEditing] = useState<Spot | null>(null);
+  const pendingEdit = useMemo(() => new Map(edits.filter((e) => e.status === "pending").map((e) => [e.spotSlug, e])), [edits]);
 
   const addSpot = useCallback(
     (s: Spot) => setSpots((prev) => (prev.some((x) => x.slug === s.slug) ? prev : [...prev, s])),
@@ -152,7 +161,13 @@ export function SpotsOverview({
             <GroupHeading title={g.title} count={g.list.length} />
             <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">
               {g.list.map((s) => (
-                <SpotRow key={s.slug} spot={s} lang={lang} />
+                <SpotRow
+                  key={s.slug}
+                  spot={s}
+                  lang={lang}
+                  editPending={pendingEdit.has(s.slug)}
+                  onSuggestEdit={canManage ? undefined : () => setEditing(s)}
+                />
               ))}
             </ul>
           </section>
@@ -164,6 +179,13 @@ export function SpotsOverview({
       ) : (
         <RequestSpotDialog open={dialogOpen} onOpenChange={setDialogOpen} initialName={q} />
       )}
+      <SuggestSpotEditDialog
+        spot={editing}
+        pending={editing ? (pendingEdit.get(editing.slug) ?? null) : null}
+        onOpenChange={(open) => !open && setEditing(null)}
+        onSent={(r) => setEdits((prev) => [r, ...prev.filter((e) => e.spotSlug !== r.spotSlug)])}
+        onWithdrawn={(id) => setEdits((prev) => prev.filter((e) => e.id !== id))}
+      />
     </SpotCatalogProvider>
   );
 }
@@ -176,7 +198,18 @@ function GroupHeading({ title, count }: { title: string; count: number }) {
   );
 }
 
-function SpotRow({ spot, lang }: { spot: Spot; lang: Lang }) {
+function SpotRow({
+  spot,
+  lang,
+  editPending,
+  onSuggestEdit,
+}: {
+  spot: Spot;
+  lang: Lang;
+  editPending: boolean;
+  /** Absent for admins, who edit on /admin. */
+  onSuggestEdit?: () => void;
+}) {
   const { t } = useLang();
   const name = lang === "zh-TW" ? (spot.nameZh ?? spot.name) : spot.name;
   const other = spot.nameZh && spot.nameZh !== spot.name ? (lang === "zh-TW" ? spot.name : spot.nameZh) : null;
@@ -191,9 +224,27 @@ function SpotRow({ spot, lang }: { spot: Spot; lang: Lang }) {
 
   return (
     <li className="border-b border-card-border px-4 py-3 last:border-b-0">
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-        <span className="min-w-0 text-[14.5px] font-semibold break-words">{name}</span>
-        {other && <span className="min-w-0 text-[12.5px] text-muted-foreground break-words">{other}</span>}
+      <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+          <span className="min-w-0 text-[14.5px] font-semibold break-words">{name}</span>
+          {other && <span className="min-w-0 text-[12.5px] text-muted-foreground break-words">{other}</span>}
+          {editPending && (
+            <span className="self-center rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+              {t("spotEdit.pendingBadge")}
+            </span>
+          )}
+        </div>
+        {onSuggestEdit && (
+          <button
+            type="button"
+            onClick={onSuggestEdit}
+            className="-my-1 flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-semibold text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Pencil className="size-3.5" aria-hidden />
+            <span className="sr-only sm:not-sr-only">{t("spotEdit.button")}</span>
+            <span className="sr-only">{` — ${name}`}</span>
+          </button>
+        )}
       </div>
       {facts.length > 0 && (
         <dl className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">

@@ -818,6 +818,51 @@ const DICT = {
   "admin.search": { en: "Search spots", "zh-TW": "搜尋浪點" },
   "admin.noSpots": { en: "No spots match.", "zh-TW": "找不到符合的浪點。" },
   "admin.edit": { en: "Edit", "zh-TW": "編輯" },
+  // Suggesting an edit to an existing spot (/spots) and reviewing it (/admin).
+  "spotEdit.button": { en: "Suggest an edit", "zh-TW": "建議修改" },
+  "spotEdit.title": { en: "Suggest an edit: {name}", "zh-TW": "建議修改：{name}" },
+  "spotEdit.intro": {
+    en: "Fix what's wrong or missing. The admin reviews it before it changes for everyone.",
+    "zh-TW": "修正錯誤或補上缺少的資料，管理員審核後才會更新給所有人。",
+  },
+  "spotEdit.nameZh": { en: "Chinese name", "zh-TW": "中文名稱" },
+  "spotEdit.note": { en: "Note for the admin (optional)", "zh-TW": "給管理員的說明（選填）" },
+  "spotEdit.notePlaceholder": { en: "e.g. how you know, a link", "zh-TW": "例如資料來源、連結" },
+  "spotEdit.send": { en: "Send suggestion", "zh-TW": "送出建議" },
+  "spotEdit.sending": { en: "Sending…", "zh-TW": "送出中…" },
+  "spotEdit.sent": { en: "Suggestion sent", "zh-TW": "已送出建議" },
+  "spotEdit.withdraw": { en: "Withdraw suggestion", "zh-TW": "撤回建議" },
+  "spotEdit.withdrawn": { en: "Suggestion withdrawn", "zh-TW": "已撤回建議" },
+  "spotEdit.pendingBadge": { en: "Edit suggested", "zh-TW": "已建議修改" },
+  "spotEdit.pendingNote": {
+    en: "You already suggested an edit to this spot. Sending again replaces it.",
+    "zh-TW": "你已經對這個浪點提出過建議，再次送出會取代舊的建議。",
+  },
+  "spotEdit.noChanges": { en: "Nothing has changed yet.", "zh-TW": "還沒有任何修改。" },
+  "spotEdit.badLocation": {
+    en: "Couldn't read that location. Paste coordinates or a Google Maps link.",
+    "zh-TW": "無法辨識這個位置，請貼上座標或 Google 地圖連結。",
+  },
+  "spotEdit.invalid": { en: "Some of those values aren't valid.", "zh-TW": "有些資料格式不正確。" },
+  "spotEdit.duplicate": { en: "That would duplicate {name}.", "zh-TW": "這會和「{name}」重複。" },
+  "spotEdit.limit": { en: "Too many suggestions for now. Try again later.", "zh-TW": "建議太多了，請稍後再試。" },
+  "spotEdit.unavailable": { en: "Edit suggestions aren't switched on yet.", "zh-TW": "建議修改功能尚未開放。" },
+  "spotEdit.failed": { en: "Couldn't send the suggestion.", "zh-TW": "無法送出建議。" },
+  "spotEdit.adminTitle": { en: "Suggested edits", "zh-TW": "修改建議" },
+  "spotEdit.adminNone": { en: "No suggested edits waiting.", "zh-TW": "目前沒有待審的修改建議。" },
+  "spotEdit.apply": { en: "Apply", "zh-TW": "套用" },
+  "spotEdit.applied": { en: "Edit applied", "zh-TW": "已套用修改" },
+  "spotEdit.declined": { en: "Suggestion declined", "zh-TW": "已婉拒建議" },
+  "spotEdit.cleared": { en: "(cleared)", "zh-TW": "（清除）" },
+  "spotEdit.stale": {
+    en: "The spot has changed since this was suggested.",
+    "zh-TW": "這個建議送出後，浪點資料已經被修改過。",
+  },
+  "spotEdit.spotGone": { en: "This spot no longer exists.", "zh-TW": "這個浪點已不存在。" },
+  "spotEdit.confirmNearby": {
+    en: "Another spot is close to the new location. Apply anyway?",
+    "zh-TW": "新位置附近已有其他浪點，仍要套用嗎？",
+  },
 } as const satisfies Record<string, Record<Lang, string>>;
 
 export type TKey = keyof typeof DICT;

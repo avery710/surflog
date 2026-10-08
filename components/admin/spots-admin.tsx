@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Plus } from "lucide-react";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
+import { SpotEditReview } from "@/components/admin/spot-edit-review";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fmtDate } from "@/lib/format";
@@ -14,6 +15,7 @@ import { SpotCatalogProvider } from "@/lib/spot-catalog";
 import { normalizeName } from "@/lib/spot-geo";
 import type { Spot } from "@/lib/spots";
 import type { SpotRequest } from "@/lib/spot-requests";
+import type { AdminEditRequest } from "@/lib/spot-edit-requests";
 
 const noop = () => {};
 
@@ -25,10 +27,13 @@ type DialogState = { kind: "add" } | { kind: "edit"; spot: Spot } | { kind: "app
 export function SpotsAdmin({
   initialSpots,
   initialRequests,
+  initialEdits,
   children,
 }: {
   initialSpots: Spot[];
   initialRequests: SpotRequest[];
+  /** Users' suggested edits to existing spots, pending first. */
+  initialEdits: AdminEditRequest[];
   /** Further admin sections, rendered under the catalogue. */
   children?: React.ReactNode;
 }) {
@@ -250,6 +255,7 @@ export function SpotsAdmin({
             </div>
           ))}
         </section>
+        <SpotEditReview spots={spots} initialEdits={initialEdits} onSpotChanged={replaceSpot} />
         {children}
       </div>
 
