@@ -179,6 +179,14 @@ async function rowByToken(token: string): Promise<ShareRow | null> {
   return (data as ShareRow | null) ?? null;
 }
 
+/** The photo of the shared session's own board (the chip on the public page),
+ *  only when that board is the session owner's. Nothing else of the rack. */
+async function sharedBoardPhotoId(session: Session): Promise<string | null> {
+  if (!session.boardId) return null;
+  const board = await getBoard(session.boardId);
+  return board && board.ownerId === session.ownerId ? (board.photoId ?? null) : null;
+}
+
 /** The session behind a token, only while the share row and the owner agree. */
 async function sharedSession(row: ShareRow): Promise<Session | null> {
   const s = await getSession(row.session_id);
@@ -195,8 +203,12 @@ export async function loadPublicShare(token: string, fallbackLang: ShareLang): P
   if (!row) return null;
   const session = await sharedSession(row);
   if (!session) return null;
-  const [card, spot] = await Promise.all([buildCardForSession(session, fallbackLang), resolveSpot(session.spot)]);
-  return toPublicShare(session, card, row, spot);
+  const [card, spot, boardPhotoId] = await Promise.all([
+    buildCardForSession(session, fallbackLang),
+    resolveSpot(session.spot),
+    sharedBoardPhotoId(session),
+  ]);
+  return toPublicShare(session, card, row, spot, boardPhotoId);
 }
 
 /** Card data for the public image route (same lookup rules as the page). */
@@ -209,13 +221,15 @@ export async function loadPublicCard(token: string, fallbackLang: ShareLang): Pr
 }
 
 /** The mime type of `blobId` iff it is one of the shared session's own
- *  photos/videos and the owner's upload. Anything else — another session's
- *  blob, a board photo, a made-up id — is null. */
+ *  photos/videos, or the photo of the board that session was surfed on (its
+ *  chip), and the owner's upload. Anything else — another session's blob,
+ *  another board's photo, a made-up id — is null. */
 export async function sharedMediaMeta(token: string, blobId: string): Promise<{ mimeType: string } | null> {
   const row = await rowByToken(token);
   if (!row) return null;
   const session = await sharedSession(row);
-  if (!session || !session.photos.some((p) => p.id === blobId)) return null;
+  if (!session) return null;
+  if (!session.photos.some((p) => p.id === blobId) && (await sharedBoardPhotoId(session)) !== blobId) return null;
   const meta = await blobMeta(blobId);
   if (!meta || meta.ownerId !== row.owner_id) return null;
   return { mimeType: meta.mimeType };

@@ -35,8 +35,9 @@ export interface PublicShare {
   owner: { name: string | null; image: string | null };
   /** What the session card (EntryCard, read-only) needs to draw this session
    *  exactly like the owner's journal does — a Session rebuilt from public
-   *  fields only: no owner id, no session id, no goal ticks, board as a name
-   *  with no photo (board photos stay private). */
+   *  fields only: no owner id, no session id, no goal ticks; the board as its
+   *  name and photo id (that one photo is served through the share's media
+   *  route), nothing else of it. */
   card: { session: Session; spot: Spot | null; board: Board | null };
 }
 
@@ -65,8 +66,9 @@ function cardSession(session: Session, notesHtml: string, hasBoard: boolean): Se
   };
 }
 
-/** The board chip: the name only (as `brand`, so boardLabel() shows it unchanged). */
-function cardBoard(name: string): Board {
+/** The board chip: the name (as `brand`, so boardLabel() shows it unchanged)
+ *  and its photo id; no note, specs or anything else of the board. */
+function cardBoard(name: string, photoId: string | null): Board {
   return {
     id: SHARED_BOARD_ID,
     ownerId: "",
@@ -75,7 +77,7 @@ function cardBoard(name: string): Board {
     volumeL: null,
     rocker: null,
     note: "",
-    photoId: null,
+    photoId,
     isFavorite: false,
     sortOrder: null,
     createdAt: "",
@@ -90,7 +92,9 @@ export function toPublicShare(
   card: ShareCardData,
   row: { owner_name: string | null; owner_image: string | null },
   /** The session's catalogue spot (public data), for the card's spot name and shore word. */
-  spot: Spot | null = null
+  spot: Spot | null = null,
+  /** The session's board's photo (owner-checked by the caller), for the chip. */
+  boardPhotoId: string | null = null
 ): PublicShare {
   const notesHtml = sanitizeNotesHtml(session.notesHtml || "");
   return {
@@ -108,7 +112,7 @@ export function toPublicShare(
       // A pending spot request has no catalogue row: a stand-in carrying the
       // name the share card already resolved, and nothing else.
       spot: spot ?? { slug: session.spot, name: card.spotName, country: "", area: "", lat: null, lng: null, timezone: "Asia/Taipei" },
-      board: card.boardName ? cardBoard(card.boardName) : null,
+      board: card.boardName ? cardBoard(card.boardName, boardPhotoId) : null,
     },
   };
 }

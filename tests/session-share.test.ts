@@ -223,7 +223,7 @@ describe("public side", () => {
     expect([cs.id, cs.ownerId, cs.createdAt, cs.notes]).toEqual(["shared", "", "", ""]);
     expect([cs.goalText, cs.goalMet, cs.goalPointsMet]).toEqual([null, null, null]);
     expect(cs.condCwaTide?.stationTownship).toBe("");
-    expect(view!.card.board?.photoId).toBeNull();
+    expect(view!.card.board?.photoId).toBeNull(); // this fixture board has no photo
     expect(view!.card.board?.note).toBe("");
     expect(Object.keys(cs).sort()).toEqual(
       ["boardId", "cond", "condCwaTide", "condOpenMeteo", "createdAt", "goalMet", "goalPointsMet", "goalText", "id", "notes", "notesHtml", "ownerId", "photos", "spot", "when"]);
@@ -256,6 +256,19 @@ describe("shared media", () => {
     expect(await sharedMediaMeta(on.data.token, "c".repeat(32))).toBeNull();
     // does not exist
     expect(await sharedMediaMeta(on.data.token, "d".repeat(32))).toBeNull();
+  });
+
+  it("serves the photo of the session's own board (the chip), and only while that board is the owner's", async () => {
+    const photo = "e".repeat(32);
+    vi.mocked(getBoard).mockResolvedValue({ id: "board-1", ownerId: ME.id, brand: "Pyzel Ghost", lengthIn: 74, photoId: photo, note: "SECRET BOARD NOTE" } as never);
+    vi.mocked(blobMeta).mockResolvedValue({ mimeType: "image/jpeg", ownerId: ME.id });
+    const on = await enableShare(ME, "s1");
+    if (!on.ok) throw new Error("setup");
+    expect((await loadPublicShare(on.data.token, "en"))?.card.board?.photoId).toBe(photo);
+    expect(await sharedMediaMeta(on.data.token, photo)).toEqual({ mimeType: "image/jpeg" });
+    vi.mocked(getBoard).mockResolvedValue({ id: "board-1", ownerId: OTHER, brand: "Not Mine", lengthIn: 70, photoId: photo } as never);
+    expect(await sharedMediaMeta(on.data.token, photo)).toBeNull();
+    expect((await loadPublicShare(on.data.token, "en"))?.card.board).toBeNull();
   });
 
   it("refuses a blob whose recorded owner is not the share's owner", async () => {

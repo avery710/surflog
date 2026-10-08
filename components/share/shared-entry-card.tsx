@@ -34,7 +34,12 @@ export function SharedEntryCard({
       >
         <EntryCard
           session={mediaBase ? card.session : { ...card.session, photos: [] }}
-          boards={card.board ? [card.board] : []}
+          // the chip's photo through the share's own media route (/api/blob is owner-only)
+          boards={
+            card.board
+              ? [{ ...card.board, photoId: null, photoUrl: card.board.photoId && mediaBase ? `${mediaBase}/${card.board.photoId}` : undefined }]
+              : []
+          }
           onUpdated={noop}
           onDeleted={noop}
           readOnly
