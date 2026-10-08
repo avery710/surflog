@@ -29,7 +29,7 @@ export default async function SpotsPage() {
   return (
     <>
       <SiteHeader user={session.user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
-      <SpotsOverview initialSpots={spots} initialRequests={requests} initialEdits={ownEdits} canManage={canManageSpots} />
+      <SpotsOverview initialSpots={spots} initialRequests={requests} canManage={canManageSpots} />
     </>
   );
 }

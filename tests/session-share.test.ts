@@ -107,15 +107,9 @@ describe("owner management", () => {
   it("enabling creates a link; enabling again keeps the same token", async () => {
     const a = await enableShare(ME, "s1");
     expect(a.ok && a.data.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    const b = await enableShare(ME, "s1", "zh-TW");
+    const b = await enableShare(ME, "s1");
     expect(b.ok && a.ok && b.data.token === a.data.token).toBe(true);
-    expect(b.ok && b.data.lang).toBe("zh-TW");
     expect(tables.session_shares).toHaveLength(1);
-    // omitted lang leaves it; null clears it
-    const c = await enableShare(ME, "s1");
-    expect(c.ok && c.data.lang).toBe("zh-TW");
-    const d = await enableShare(ME, "s1", null);
-    expect(d.ok && d.data.lang).toBeNull();
   });
 
   it("stores the owner's name and https avatar only", async () => {
@@ -172,14 +166,13 @@ describe("public side", () => {
     }
   });
 
-  it("returns the whitelisted view in the owner's language, else the visitor's", async () => {
+  it("returns the whitelisted view in the visitor's language", async () => {
     const on = await enableShare(ME, "s1");
     if (!on.ok) throw new Error("setup");
     const auto = await loadPublicShare(on.data.token, "zh-TW");
     expect(auto?.lang).toBe("zh-TW");
     expect(auto?.spotName).toBe("佳樂水");
-    await enableShare(ME, "s1", "en");
-    const fixed = await loadPublicShare(on.data.token, "zh-TW");
+    const fixed = await loadPublicShare(on.data.token, "en");
     expect(fixed?.lang).toBe("en");
     expect(fixed?.spotName).toBe("Jialeshui");
     expect(fixed?.owner).toEqual({ name: "Avery Lin", image: "https://lh3.googleusercontent.com/a/x" });

@@ -32,9 +32,7 @@ export default async function AdminPage() {
           requestRows.filter((r) => r.status === "pending").length + edits.filter((e) => e.status === "pending").length
         }
       />
-      <SpotsAdmin initialSpots={spots} initialRequests={requestRows.map((r) => rowToRequest(r, true))}
-        initialEdits={edits}
-      >
+      <SpotsAdmin initialSpots={spots} initialRequests={requestRows.map((r) => rowToRequest(r, true))}>
         <ConnectedServices services={services} />
       </SpotsAdmin>
     </>
