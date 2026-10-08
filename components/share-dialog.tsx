@@ -301,7 +301,7 @@ export function ShareDialog({
             role="radiogroup"
             aria-label={t("share.variant.label")}
             onKeyDown={onKey}
-            className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 py-1 pb-2 lg:overflow-visible"
+            className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 py-1 pb-2 [scrollbar-width:none] lg:overflow-visible [&::-webkit-scrollbar]:hidden"
           >
             {KINDS.map((v) => {
               const img = images[v];
