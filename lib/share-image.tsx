@@ -57,8 +57,34 @@ export async function renderShareImage(
     height: layout.height,
     fonts,
   });
-  if (!stencil || opts.skipStencil) return new Response(res.body, { headers });
-  return new Response(new Uint8Array(await stencilPng(Buffer.from(await res.arrayBuffer()), tone, data.boardPhoto, layout.shapeBands)), { headers });
+  // Story and og are opaque; the stickers (strip, column, card) are cropped to their visible pixels.
+  const sticker = stencil || variant === "card";
+  if (opts.skipStencil || !sticker) return new Response(res.body, { headers });
+  const png = Buffer.from(await res.arrayBuffer());
+  const drawn = stencil ? await stencilPng(png, tone, data.boardPhoto, layout.shapeBands) : png;
+  return new Response(new Uint8Array(await trimTransparent(drawn)), { headers });
+}
+
+/** Crop a sticker to the box of its non-transparent pixels, so it carries no
+ *  empty margin (the layout's fixed width and outer margin) into a story. */
+export async function trimTransparent(png: Buffer): Promise<Buffer> {
+  const { default: sharp } = await import("sharp");
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h, channels } = info;
+  let top = h, left = w, right = -1, bottom = -1;
+  for (let y = 0; y < h; y++) {
+    const row = y * w * channels;
+    for (let x = 0; x < w; x++) {
+      if (data[row + x * channels + channels - 1] === 0) continue;
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+      if (x < left) left = x;
+      if (x > right) right = x;
+    }
+  }
+  if (right < 0) return png; // nothing drawn: leave it as is
+  if (left === 0 && top === 0 && right === w - 1 && bottom === h - 1) return png;
+  return sharp(png).extract({ left, top, width: right - left + 1, height: bottom - top + 1 }).png().toBuffer();
 }
 
 /** Turn the strip's flag-coloured text into holes and paint the board photo. */
