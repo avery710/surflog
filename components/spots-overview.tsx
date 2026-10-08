@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Pencil, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, MessageSquare, Pencil, Plus, Search, X } from "lucide-react";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
+import { SpotReviewsDialog, Stars } from "@/components/spot-reviews-dialog";
 import { SuggestSpotEditDialog } from "@/components/suggest-spot-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { compassLabel } from "@/lib/format";
@@ -13,6 +14,7 @@ import { PAGE_COLUMN } from "@/lib/layout";
 import { browseGroups, facingPoints, nameMatches, searchSpots, searchTokens, tideBandKey } from "@/lib/spot-browse";
 import { SpotCatalogProvider, type OwnRequest } from "@/lib/spot-catalog";
 import type { OwnEditRequest } from "@/lib/spot-edit-requests";
+import type { ReviewSummary } from "@/lib/spot-review";
 import type { Spot } from "@/lib/spots";
 
 const noop = () => {};
@@ -21,17 +23,21 @@ const noop = () => {};
  *  searched and grouped the same way (lib/spot-browse.ts), with one button to
  *  add a spot (admin) or request one (everyone else). Everyone else can also
  *  suggest an edit to any spot (reviewed on /admin); admins edit and delete
- *  on /admin directly. */
+ *  on /admin directly. Everyone can rate and review any spot; reviews are
+ *  shared with every signed-in user (components/spot-reviews-dialog.tsx). */
 export function SpotsOverview({
   initialSpots,
   initialRequests,
   initialEdits,
+  initialReviews,
   canManage,
 }: {
   initialSpots: Spot[];
   initialRequests: OwnRequest[];
   /** The viewer's own pending edit suggestions. */
   initialEdits: OwnEditRequest[];
+  /** Star average + count per spot slug (spots with no reviews are absent). */
+  initialReviews: Record<string, ReviewSummary>;
   canManage: boolean;
 }) {
   const { lang, t } = useLang();
@@ -44,6 +50,18 @@ export function SpotsOverview({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [edits, setEdits] = useState(initialEdits);
   const [editing, setEditing] = useState<Spot | null>(null);
+  const [reviews, setReviews] = useState(initialReviews);
+  const [reviewing, setReviewing] = useState<Spot | null>(null);
+  const setSummary = useCallback(
+    (slug: string, summary: ReviewSummary | null) =>
+      setReviews((prev) => {
+        const next = { ...prev };
+        if (summary) next[slug] = summary;
+        else delete next[slug];
+        return next;
+      }),
+    []
+  );
   const pendingEdit = useMemo(() => new Map(edits.filter((e) => e.status === "pending").map((e) => [e.spotSlug, e])), [edits]);
 
   const addSpot = useCallback(
@@ -166,6 +184,8 @@ export function SpotsOverview({
                   spot={s}
                   lang={lang}
                   editPending={pendingEdit.has(s.slug)}
+                  review={reviews[s.slug] ?? null}
+                  onReviews={() => setReviewing(s)}
                   onSuggestEdit={canManage ? undefined : () => setEditing(s)}
                 />
               ))}
@@ -186,6 +206,7 @@ export function SpotsOverview({
         onSent={(r) => setEdits((prev) => [r, ...prev.filter((e) => e.spotSlug !== r.spotSlug)])}
         onWithdrawn={(id) => setEdits((prev) => prev.filter((e) => e.id !== id))}
       />
+      <SpotReviewsDialog spot={reviewing} onOpenChange={(open) => !open && setReviewing(null)} onSummary={setSummary} />
     </SpotCatalogProvider>
   );
 }
@@ -202,11 +223,15 @@ function SpotRow({
   spot,
   lang,
   editPending,
+  review,
+  onReviews,
   onSuggestEdit,
 }: {
   spot: Spot;
   lang: Lang;
   editPending: boolean;
+  review: ReviewSummary | null;
+  onReviews: () => void;
   /** Absent for admins, who edit on /admin. */
   onSuggestEdit?: () => void;
 }) {
@@ -246,6 +271,27 @@ function SpotRow({
           </button>
         )}
       </div>
+      <button
+        type="button"
+        onClick={onReviews}
+        className="-mx-1.5 mt-1 flex items-center gap-1.5 rounded-full px-1.5 py-0.5 text-[12px] text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <MessageSquare className="size-3.5" aria-hidden />
+        {review ? (
+          <>
+            <Stars value={review.average} />
+            <span className="font-mono">
+              {t(review.count === 1 ? "review.summaryOne" : "review.summary", {
+                average: review.average.toFixed(1),
+                count: review.count,
+              })}
+            </span>
+          </>
+        ) : (
+          <span>{t("review.none")}</span>
+        )}
+        <span className="sr-only">{` — ${name}`}</span>
+      </button>
       {facts.length > 0 && (
         <dl className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
           {facts.map((f) => (

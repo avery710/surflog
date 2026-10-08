@@ -1911,6 +1911,30 @@ static import.
   non-admin view and its request dialog, a real add or request showing up
   in the list, real IME typing, and the picker in the log form after the
   helper move (unit tests only).
+- **Spot reviews** (added 2026-10-08, on request: "they can leave review
+  for each surf spot"; migration `20261008200000_create_spot_reviews.sql`,
+  **not applied to the live project yet**): table `spot_reviews` (1-5
+  stars required, comment optional ≤1000 chars, one per user per spot —
+  posting again replaces it; RLS on, no policies). Each `/spots` row shows
+  the star average + count (or "No reviews yet · write one"), which opens
+  `components/spot-reviews-dialog.tsx`: your own review form on top, every
+  other review under it. Routes: `GET/PUT/DELETE
+  /api/spots/:slug/reviews` (`lib/spot-reviews.ts` DB,
+  `lib/spot-review.ts` browser-safe validation/summary). **Reviews are
+  shared with every signed-in user** — the one deliberate exception to
+  "nothing aggregates across users", like the catalogue itself. Others see
+  only the author's Google display name (snapshotted on each save), rating,
+  comment and date — `toPublic()` never carries the owner id or email
+  (unit-tested). The spot admin can delete any review; there is no
+  report/flag button. Writes are limited to 30/h per user (in memory).
+  Fails soft until the migration is applied: no stars shown, the dialog
+  says "Reviews aren't switched on yet". The agent's choices, unconfirmed:
+  stars required, full Google name shown (not first name), no avatars, no
+  sorting/filtering, zh-TW wording. Not checked in a browser (written in a
+  cloud session with no database).
+  Suggesting an edit to a spot already existed (`5226577`, "Suggest an
+  edit" on each `/spots` row, reviewed on `/admin`); its migration
+  `20261008100000_create_spot_edit_requests.sql` is also still unapplied.
 - **Checked 2026-10-05 in cmux**: picker with all 76 spots, search
   ("bali", "外澳"), keyboard, 375 and 1280 px; picking Uluwatu shows the
   local-time note; `/api/conditions` returns full data for Uluwatu and
