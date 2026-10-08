@@ -417,6 +417,7 @@ const DICT = {
   "share.variant.strip": { en: "Strip", "zh-TW": "橫條" },
   "share.variant.column": { en: "Column", "zh-TW": "直條" },
   "share.variant.card": { en: "Card", "zh-TW": "卡片" },
+  "share.variant.story": { en: "Story", "zh-TW": "限時動態" },
   "share.variant.stripNote": {
     en: "Data in one row of cut-out tiles, plain text for the rest. Transparent: lay it over your own photo or video.",
     "zh-TW": "數據排成一列鏤空方塊，其餘為純文字。透明背景，可疊在你的照片或影片上。",

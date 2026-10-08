@@ -39,10 +39,10 @@ import { shareT } from "./share-strings";
 import { ALL_PARTS, type ShareParts } from "./share-parts";
 import type { NoteBlock, ShareCardData, ShareTile, ShareTideCurve } from "./share-card-data";
 
-export type ShareVariant = "strip" | "column" | "card" | "og";
+export type ShareVariant = "strip" | "column" | "card" | "story" | "og";
 
 export function isShareVariant(v: unknown): v is ShareVariant {
-  return v === "strip" || v === "column" || v === "card" || v === "og";
+  return v === "strip" || v === "column" || v === "card" || v === "story" || v === "og";
 }
 
 /** Text colour of strip/column: light = white (dark photos), dark = near-black. */
@@ -90,7 +90,7 @@ export const LOGO_ASPECT = 1200 / 228;
 
 /** How many lines of notes each kind draws (wrapped lines, list items
  *  included), then it cuts with "…". One number per kind, to be tuned. */
-export const NOTE_MAX_LINES: Record<ShareVariant, number> = { strip: 8, column: 10, card: 14, og: 2 };
+export const NOTE_MAX_LINES: Record<ShareVariant, number> = { strip: 8, column: 10, card: 14, story: 14, og: 2 };
 
 type Kind = "strip" | "column" | "card";
 
@@ -125,6 +125,8 @@ const METRICS: Record<ShareVariant, Metrics> = {
   strip: { kind: "strip", W: 1080, H: null, margin: 44, pad: 0, name: 48, nameLines: 1, date: 28, label: 22, fig: 36, unit: 19, small: 19, notes: 32, chip: 1.9, tileH: 160, tilePadX: 16, gap: 14, frame: false, curve: { w: 150, h: 56 } },
   column: { kind: "column", W: 760, H: null, margin: 40, pad: 0, name: 60, nameLines: 2, date: 30, label: 24, fig: 46, unit: 22, small: 24, notes: 32, chip: 1.9, tileH: 0, tilePadX: 0, gap: 0, frame: false, curve: { w: 300, h: 70 } },
   card: { kind: "card", W: 1080, H: null, margin: 20, pad: 36, name: 76, nameLines: 2, date: 34, label: 19, fig: 28, unit: 15, small: 17, notes: 38, chip: 1.9, tileH: 150, tilePadX: 14, gap: 14, frame: false, curve: { w: 150, h: 52 } },
+  // The Story: the Card's layout, centred on a full-bleed 9:16 background (a photo or blue).
+  story: { kind: "card", W: 1080, H: 1920, margin: 48, pad: 36, name: 76, nameLines: 2, date: 34, label: 19, fig: 28, unit: 15, small: 17, notes: 38, chip: 1.9, tileH: 150, tilePadX: 14, gap: 14, frame: false, curve: { w: 150, h: 52 } },
   og: { kind: "card", W: 1200, H: 630, margin: 28, pad: 36, name: 52, nameLines: 1, date: 26, label: 19, fig: 30, unit: 16, small: 16, notes: 26, chip: 1.5, tileH: 138, tilePadX: 14, gap: 14, frame: true, curve: { w: 112, h: 44 } },
 };
 
@@ -620,6 +622,7 @@ export function shareElement(data: ShareCardData, variant: ShareVariant, layout:
     );
   });
 
+  const isStory = variant === "story";
   return (
     <div
       style={{
@@ -628,16 +631,22 @@ export function shareElement(data: ShareCardData, variant: ShareVariant, layout:
         height: layout.height,
         padding: m.margin,
         // strip / column: no background at all, so the PNG keeps its alpha channel
-        ...(m.frame ? { background: "#0018ff" } : {}),
+        ...(m.frame || isStory ? { background: "#0018ff" } : {}),
+        // story: the card sits in the middle of the 9:16 frame (clear of Instagram's top and bottom bars)
+        ...(isStory ? { flexDirection: "column" as const, justifyContent: "center", position: "relative" as const } : {}),
         fontFamily: fonts.sans,
       }}
     >
+      {isStory && data.coverPhoto ? (
+        // eslint-disable-next-line @next/next/no-img-element -- satori / foreignObject, not next/image
+        <img src={data.coverPhoto} alt="" width={layout.width} height={layout.height} style={{ position: "absolute", top: 0, left: 0, width: layout.width, height: layout.height, objectFit: "cover" }} />
+      ) : null}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           width: "100%",
-          height: "100%",
+          ...(isStory ? {} : { height: "100%" }),
           padding: m.pad,
           borderRadius: 56,
           background: c.plate,

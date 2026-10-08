@@ -15,6 +15,7 @@
  *   An unknown token and a turned-off one are the same `null`.
  */
 import { boardPhotoDataUri } from "./share-board-photo";
+import { coverPhotoDataUri } from "./share-cover-photo";
 import { randomBytes } from "node:crypto";
 import { getBoard, getSession } from "@/lib/db";
 import { blobMeta } from "@/lib/blob";
@@ -155,13 +156,15 @@ export async function ownedShareCard(
   ownerId: string,
   sessionId: string,
   lang: ShareLang,
-  opts: { boardPhoto?: boolean } = {}
+  opts: { boardPhoto?: boolean; coverPhoto?: boolean } = {}
 ): Promise<ServiceResult<ShareCardData>> {
   const session = await ownedSession(ownerId, sessionId);
   if (!session) return notFound;
   const data = await buildCardForSession(session, lang);
   // The owner's own images may carry the board photo; public ones never do.
   if (opts.boardPhoto && data.boardName) data.boardPhoto = await boardPhotoDataUri(session.ownerId, session.boardId);
+  // The Story image's background: the session's first image, else blue.
+  if (opts.coverPhoto) data.coverPhoto = await coverPhotoDataUri(session.ownerId, session.photos);
   return { ok: true, data };
 }
 

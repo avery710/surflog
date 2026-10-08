@@ -122,6 +122,9 @@ export interface ShareCardData {
   /** The board's photo as a data URI (or URL in the browser). Set only by the
    *  owner's own routes; never by anything public. */
   boardPhoto?: string | null;
+  /** The Story image's background (the session's first image, as a data URI);
+   *  null/absent = plain app blue. Owner routes only, like `boardPhoto`. */
+  coverPhoto?: string | null;
 }
 
 const toMin = (t: string) => Date.parse(`${t.slice(0, 16)}:00Z`) / 60000;

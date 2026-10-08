@@ -15,7 +15,7 @@ type Params = { params: Promise<{ id: string }> };
 const BUILD = process.env.VERCEL_GIT_COMMIT_SHA ?? null;
 
 /**
- * GET /api/sessions/:id/share-image?variant=strip|column|card&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
+ * GET /api/sessions/:id/share-image?variant=strip|column|card|story&lang=en|zh-TW&tone=light|dark&parts=location,datetime,waves,board,log —
  * the owner's preview/download of the two share images. Cookie session and
  * ownership checked; the public counterpart (token-checked, card only) is
  * app/s/[token]/card.png. Same renderer, lib/share-image.tsx.
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const variant = req.nextUrl.searchParams.get("variant") ?? "card";
   const lang = req.nextUrl.searchParams.get("lang") ?? "en";
   if (variant === "og" || !isShareVariant(variant) || !isShareLang(lang)) {
-    return NextResponse.json({ error: "variant must be strip, column or card, lang en or zh-TW" }, { status: 400 });
+    return NextResponse.json({ error: "variant must be strip, column, card or story, lang en or zh-TW" }, { status: 400 });
   }
 
   const toneQ = req.nextUrl.searchParams.get("tone") ?? "light";
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const parts = parseShareParts(req.nextUrl.searchParams.get("parts"));
 
   const { id } = await params;
-  const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board });
+  const card = await ownedShareCard(session.user.id, id, lang, { boardPhoto: parts.board, coverPhoto: variant === "story" });
   if (!card.ok) return NextResponse.json({ error: card.error }, { status: card.status });
 
   // Fingerprint of everything the picture is drawn from. The browser keeps the

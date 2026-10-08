@@ -58,7 +58,7 @@ const webShareSupported = () => typeof navigator !== "undefined" && typeof navig
 // "ios" | "android" | "" (desktop). A string so useSyncExternalStore's snapshot is stable.
 const mobileOS = () => (typeof navigator === "undefined" ? "" : (detectMobileOS(navigator.userAgent, navigator.maxTouchPoints ?? 0) ?? ""));
 
-const KINDS: Variant[] = ["strip", "column", "card"];
+const KINDS: Variant[] = ["strip", "column", "card", "story"];
 const DEBOUNCE_MS = 250;
 
 export function ShareDialog({
@@ -112,7 +112,8 @@ export function ShareDialog({
   const canCopyImage = useSyncExternalStore(noopSubscribe, clipboardImageSupported, () => false);
   const canWebShare = useSyncExternalStore(noopSubscribe, webShareSupported, () => false);
   const os = useSyncExternalStore(noopSubscribe, mobileOS, () => "");
-  const showStory = canInstagramStory(os === "" ? null : (os as "ios" | "android"), canCopyImage);
+  // Only the Story image goes to Instagram Stories; the stickers keep the usual actions.
+  const showStory = selected === "story" && canInstagramStory(os === "" ? null : (os as "ios" | "android"), canCopyImage);
   // The public link, once it is on (owned by LinkSection, which does the switching).
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
 
