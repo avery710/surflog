@@ -39,25 +39,32 @@ export function PublicShareView({
       </header>
 
       <main className="mx-auto w-full max-w-[680px] flex-1 px-4.5 pt-6 pb-10">
-        {share.owner.name && (
-          <p className="mb-3 flex items-center gap-2 px-1 text-[13.5px] text-muted-foreground">
-            {share.owner.image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={share.owner.image}
-                alt=""
-                width={24}
-                height={24}
-                referrerPolicy="no-referrer"
-                className="size-6 rounded-full object-cover"
-              />
-            )}
-            <span>{t("share.page.by", { name: share.owner.name })}</span>
-          </p>
-        )}
         <h1 className="sr-only">{share.spotName}</h1>
-        {/* The session card itself, the same component as the journal's. */}
-        <SharedEntryCard card={share.card} lang={lang} mediaBase={mediaBase} />
+        {/* The session card itself, the same component as the journal's,
+            borderless here, with "Surfed by …" under the spot name. */}
+        <SharedEntryCard
+          card={share.card}
+          lang={lang}
+          mediaBase={mediaBase}
+          byline={
+            share.owner.name ? (
+              <span className="flex items-center gap-2 text-[13.5px] text-muted-foreground">
+                {share.owner.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={share.owner.image}
+                    alt=""
+                    width={24}
+                    height={24}
+                    referrerPolicy="no-referrer"
+                    className="size-6 rounded-full object-cover"
+                  />
+                )}
+                <span>{t("share.page.by", { name: share.owner.name })}</span>
+              </span>
+            ) : undefined
+          }
+        />
 
         <section className="mt-6 rounded-[var(--r-card)] border border-card-border bg-card px-6 py-5 text-center">
           <p className="text-[15px] font-semibold">{t("share.page.cta")}</p>

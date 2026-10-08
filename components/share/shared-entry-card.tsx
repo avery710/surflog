@@ -10,7 +10,18 @@ const noop = () => {};
 /** The public share page's session card: the journal's own EntryCard,
  *  read-only (no ⋯ menu, nothing calls the API), drawn from the allow-listed
  *  `PublicShare.card` with its media through the token-scoped route. */
-export function SharedEntryCard({ card, lang, mediaBase }: { card: PublicShare["card"]; lang: Lang; mediaBase?: string }) {
+export function SharedEntryCard({
+  card,
+  lang,
+  mediaBase,
+  byline,
+}: {
+  card: PublicShare["card"];
+  lang: Lang;
+  mediaBase?: string;
+  /** "Surfed by …", shown under the spot name. */
+  byline?: React.ReactNode;
+}) {
   return (
     <FixedLanguageProvider lang={lang}>
       <SpotCatalogProvider
@@ -28,6 +39,8 @@ export function SharedEntryCard({ card, lang, mediaBase }: { card: PublicShare["
           onDeleted={noop}
           readOnly
           mediaBase={mediaBase}
+          byline={byline}
+          plain
         />
       </SpotCatalogProvider>
     </FixedLanguageProvider>

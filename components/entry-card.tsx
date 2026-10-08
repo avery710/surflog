@@ -43,6 +43,8 @@ export function EntryCard({
   onDeleted,
   readOnly = false,
   mediaBase = "/api/blob",
+  byline,
+  plain = false,
 }: {
   session: Session;
   /** The owner's current goal, for the edit panel's checkboxes. */
@@ -57,6 +59,11 @@ export function EntryCard({
   /** Where photos/videos load from. The public share page passes its
    *  token-scoped `/api/share/<token>/media`; `/api/blob` is owner-only. */
   mediaBase?: string;
+  /** A line under the spot name and date (the share page's "Surfed by …"). */
+  byline?: React.ReactNode;
+  /** No border, background or inner side padding — the share page, where the
+   *  card is the whole page body rather than one card in a list. */
+  plain?: boolean;
 }) {
   const { lang, t } = useLang();
   const [editing, setEditing] = useState(false);
@@ -101,8 +108,10 @@ export function EntryCard({
   const trendHeadline = (trend: "rising" | "falling" | null) =>
     trend ? <Figure value={<span className="capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>} /> : null;
 
-  const cardClass =
-    "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-card-border bg-card";
+  const cardClass = plain
+    ? // every section's px-6 (and the header's top padding) dropped from the outside
+      "overflow-hidden [&>*]:px-0! [&>*:first-child]:pt-0!"
+    : "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-card-border bg-card";
 
   if (editing) {
     return (
@@ -144,6 +153,7 @@ export function EntryCard({
           <span className="shrink-0 text-[13px] font-medium tabular-nums text-foreground">
             {fmtWhen(session.when, lang)}
           </span>
+          {byline && <div className="basis-full">{byline}</div>}
         </div>
         {!readOnly && (<>
         <DropdownMenu>
