@@ -362,6 +362,10 @@ Session card ⋯ → Share → `components/share-dialog.tsx`: generated images
   identical 404. No per-app deep-link buttons, by decision.
 - Strings: `lib/share-strings.ts` (server-side copy of `lib/i18n.tsx`
   keys; a test fails on drift).
+- **Dialog layout** (2026-10-08): everything left-aligned at every width.
+  `DialogContent` there needs `grid-cols-[minmax(0,1fr)]`: without it the
+  grid column grows to the gallery's width and the dialog drifts off-centre
+  on phones. Checked with Playwright at 375 / 1280 px, no data.
 - Not verified: the buttons on a phone, a session with notes/media on the
   public page, Instagram paste, chat-app link previews, anything on
   staging.

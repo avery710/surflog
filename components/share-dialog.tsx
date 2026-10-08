@@ -317,13 +317,17 @@ export function ShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={t("entry.close")} className="max-w-xl lg:max-w-5xl">
+      {/* minmax(0,1fr): a grid column otherwise grows to the gallery's full width
+          (three fixed tiles) and pushes the whole dialog off-centre on phones. */}
+      <DialogContent
+        closeLabel={t("entry.close")}
+        className="max-h-[85dvh] max-w-xl grid-cols-[minmax(0,1fr)] overflow-x-hidden p-4 sm:p-6 lg:max-w-5xl">
         <DialogHeader>
           <DialogTitle>{t("share.title")}</DialogTitle>
           <DialogDescription>{t("share.description")}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 lg:justify-center">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <Segmented
             label={t("share.lang.label")}
             value={imageLang}
@@ -345,7 +349,7 @@ export function ShareDialog({
         </div>
 
         {hasPhoto && (
-          <div className="flex lg:justify-center">
+          <div className="flex">
             <label className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold">
               <Switch.Root
                 checked={photoChoice}
@@ -359,7 +363,7 @@ export function ShareDialog({
           </div>
         )}
 
-        <div role="group" aria-label={t("share.parts.label")} className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:justify-center">
+        <div role="group" aria-label={t("share.parts.label")} className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="text-[12.5px] font-semibold text-muted-foreground">{t("share.parts.label")}</span>
           {SHARE_PARTS.filter((k) => available[k]).map((k) => (
             <label key={k} className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold">
@@ -376,14 +380,14 @@ export function ShareDialog({
         </div>
 
         {/* The gallery: all three styles at once, each an Instagram-story frame,
-            so every tile is the same fixed 9:16 box. A snap scroller on phones
-            (the next preview peeks), centred from lg. */}
+            so every tile is the same fixed 9:16 box. A left-aligned snap scroller
+            whenever they don't fit (the next preview peeks). */}
         <div>
           <div
             role="radiogroup"
             aria-label={t("share.variant.label")}
             onKeyDown={onKey}
-            className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 py-1 pb-2 [justify-content:safe_center] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="-mx-1 flex snap-x snap-mandatory scroll-px-1 gap-3 overflow-x-auto px-1 py-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {KINDS.map((v) => {
               const img = images[v];
@@ -391,7 +395,7 @@ export function ShareDialog({
               const stale = !nothing && !!img && img.key !== liveKey && !img.error;
               const loading = !nothing && (!img?.url ? !img?.error : stale);
               return (
-                <div key={v} className="shrink-0 snap-center">
+                <div key={v} className="shrink-0 snap-start">
                   <button
                     type="button"
                     id={`share-kind-${v}`}
@@ -401,11 +405,11 @@ export function ShareDialog({
                     tabIndex={isSel ? 0 : -1}
                     onClick={() => {
                       setSelected(v);
-                      document.getElementById(`share-kind-${v}`)?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+                      document.getElementById(`share-kind-${v}`)?.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
                     }}
                     className={cn(
                       // one fixed 9:16 box per style; the grid shows through wherever the frame is transparent
-                      "relative flex aspect-[9/16] h-80 items-center justify-center overflow-hidden rounded-[var(--r-tile)] bg-[length:32px_32px] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring lg:h-[400px]",
+                      "relative flex aspect-[9/16] h-72 items-center justify-center overflow-hidden rounded-[var(--r-tile)] bg-[length:32px_32px] outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring sm:h-80 lg:h-[400px]",
                       tone === "light"
                         ? "[background-image:conic-gradient(#2a2d32_25%,#33373c_0_50%,#2a2d32_0_75%,#33373c_0)]"
                         : "[background-image:conic-gradient(#d5d9de_25%,#e6e9ed_0_50%,#d5d9de_0_75%,#e6e9ed_0)]",
@@ -464,15 +468,16 @@ export function ShareDialog({
               {t("share.act.instagram")}
             </button>
           )}
-          <div className="flex flex-wrap justify-center gap-x-2 gap-y-3 sm:justify-start sm:gap-x-4 lg:justify-center">
+          {/* -ml-2: each button is 64px with a 48px circle, so this lines the circles up with the left edge */}
+          <div className="-ml-2 flex flex-wrap justify-start gap-x-2 gap-y-3 sm:gap-x-4">
             {canCopyImage && <ActionButton label={t("share.button.copyImage")} disabled={!currentReady} onClick={copyImage} icon={<Copy />} />}
             <ActionButton label={t("share.button.saveImage")} disabled={!fullUrl} onClick={saveImage} icon={<Download />} />
             <ActionButton label={t("share.button.copyLink")} disabled={!linkUrl} onClick={() => void copyLink()} icon={<Link />} />
             {canWebShare && <ActionButton label={t("share.act.more")} disabled={!shareFile || !payload} onClick={() => void shareMore()} icon={<Share2 />} />}
           </div>
-          {!linkUrl && <p className="text-[12.5px] text-muted-foreground lg:text-center">{t("share.act.linkOff")}</p>}
+          {!linkUrl && <p className="text-[12.5px] text-muted-foreground">{t("share.act.linkOff")}</p>}
         </section>
-        {!canCopyImage && <p className="-mt-2 text-[12.5px] text-muted-foreground lg:text-center">{t("share.noClipboard")}</p>}
+        {!canCopyImage && <p className="-mt-2 text-[12.5px] text-muted-foreground">{t("share.noClipboard")}</p>}
 
         <LinkSection sessionId={sessionId} open={open} onUrl={setLinkUrl} />
       </DialogContent>
