@@ -253,13 +253,10 @@ export function Reviews({
       )}
 
       <section className="flex flex-col gap-2">
-        <h3 className="pl-0.5 text-xs font-semibold text-muted-foreground">
-          {t("review.all")} <span className="font-mono">{listed.length}</span>
-        </h3>
         {listed.length === 0 ? (
           <p className="text-[13.5px] text-muted-foreground">{t("review.empty")}</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-card-border rounded-[var(--r-tile)] border border-card-border">
+          <ul className="flex flex-col divide-y divide-card-border">
             {listed.filter((r) => !(r.mine && editing)).map((r) => (
               <li key={r.id} className="flex gap-3 px-3.5 py-3">
                 <Avatar name={r.authorName || t("review.anonymous")} image={r.authorImage} />
