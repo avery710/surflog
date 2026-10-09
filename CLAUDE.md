@@ -260,6 +260,13 @@ fields + CWA township, 9 Siargao, 26 Bali).
   `20261009000000` is **NOT applied yet**: until it is, saves skip the
   avatar and the list shows initials. Not checked in a browser. Spot edit suggestions (`5226577`, migration
   `20261008100000`, applied) are reviewed on `/admin`.
+- **Pinned spots** (2026-10-09): `spot_pins` (owner, spot, created_at; private
+  per user, max 50), pin button on every `/spots` row, a "Pinned" section on
+  top (oldest pin first; the spots also stay in their groups; search filters
+  it), optimistic with rollback. `PUT`/`DELETE /api/spots/:slug/pin`,
+  `lib/spot-pins.ts`. Migration `20261009100000` **NOT applied yet** (page
+  shows no pins, toggling says "not switched on yet"). Not in the log-form
+  picker. Not checked in a browser.
 - Never exercised on live data: create/edit/delete a spot,
   send/approve/decline a request, the non-admin view, "Near me".
 

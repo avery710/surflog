@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, MessageSquare, Pencil, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, MessageSquare, Pencil, Pin, Plus, Search, X } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "cn";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
 import { SpotReviewsDialog, Stars } from "@/components/spot-reviews-dialog";
@@ -24,12 +26,15 @@ const noop = () => {};
  *  add a spot (admin) or request one (everyone else). Everyone else can also
  *  suggest an edit to any spot (reviewed on /admin); admins edit and delete
  *  on /admin directly. Everyone can rate and review any spot; reviews are
- *  shared with every signed-in user (components/spot-reviews-dialog.tsx). */
+ *  shared with every signed-in user (components/spot-reviews-dialog.tsx).
+ *  Anyone can pin their favourite spots: a private "Pinned" section on top
+ *  (the spots also stay in their own groups). */
 export function SpotsOverview({
   initialSpots,
   initialRequests,
   initialEdits,
   initialReviews,
+  initialPins,
   canManage,
 }: {
   initialSpots: Spot[];
@@ -38,6 +43,8 @@ export function SpotsOverview({
   initialEdits: OwnEditRequest[];
   /** Star average + count per spot slug (spots with no reviews are absent). */
   initialReviews: Record<string, ReviewSummary>;
+  /** The viewer's pinned spot slugs, oldest pin first. */
+  initialPins: string[];
   canManage: boolean;
 }) {
   const { lang, t } = useLang();
@@ -52,6 +59,25 @@ export function SpotsOverview({
   const [editing, setEditing] = useState<Spot | null>(null);
   const [reviews, setReviews] = useState(initialReviews);
   const [reviewing, setReviewing] = useState<Spot | null>(null);
+  const [pins, setPins] = useState(initialPins);
+  const pinned = useMemo(() => new Set(pins), [pins]);
+
+  // Optimistic: the pin moves at once and is undone if the save fails.
+  async function togglePin(spot: Spot) {
+    const on = !pinned.has(spot.slug);
+    setPins((prev) => (on ? [...prev, spot.slug] : prev.filter((s) => s !== spot.slug)));
+    try {
+      const res = await fetch(`/api/spots/${encodeURIComponent(spot.slug)}/pin`, { method: on ? "PUT" : "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.code ?? "failed");
+      }
+    } catch (e) {
+      setPins((prev) => (on ? prev.filter((s) => s !== spot.slug) : [...prev, spot.slug]));
+      const code = e instanceof Error ? e.message : "";
+      toast.error(t(code === "unavailable" ? "spots.pinUnavailable" : code === "limit" ? "spots.pinLimit" : "spots.pinFailed"));
+    }
+  }
   const setSummary = useCallback(
     (slug: string, summary: ReviewSummary | null) =>
       setReviews((prev) => {
@@ -75,7 +101,7 @@ export function SpotsOverview({
   );
 
   const q = query.trim();
-  const { groups, pending, shown } = useMemo(() => {
+  const { groups, pending, shown, pinnedShown } = useMemo(() => {
     const worldwide = spots.some((s) => !s.region);
     const matched = q ? searchSpots(spots, q, (region) => t(`region.${region}`)) : spots;
     const tokens = searchTokens(q);
@@ -88,8 +114,24 @@ export function SpotsOverview({
       }).filter((g) => g.list.length > 0),
       pending: q ? waiting.filter((r) => nameMatches(r.name, tokens)) : waiting,
       shown: matched.length,
+      // pinned spots, in pin order, that the search keeps
+      pinnedShown: pins.map((slug) => matched.find((s) => s.slug === slug)).filter((s): s is Spot => !!s),
     };
-  }, [spots, requests, q, t]);
+  }, [spots, requests, q, t, pins]);
+
+  const row = (s: Spot) => (
+    <SpotRow
+      key={s.slug}
+      spot={s}
+      lang={lang}
+      editPending={pendingEdit.has(s.slug)}
+      review={reviews[s.slug] ?? null}
+      pinned={pinned.has(s.slug)}
+      onPin={() => void togglePin(s)}
+      onReviews={() => setReviewing(s)}
+      onSuggestEdit={canManage ? undefined : () => setEditing(s)}
+    />
+  );
 
   return (
     <SpotCatalogProvider
@@ -161,6 +203,13 @@ export function SpotsOverview({
           <p className="mt-4 text-[13.5px] text-muted-foreground">{t("picker.noMatch", { query: q })}</p>
         )}
 
+        {pinnedShown.length > 0 && (
+          <section className="mt-6" data-group="pinned">
+            <GroupHeading title={t("spots.pinned")} count={pinnedShown.length} />
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">{pinnedShown.map(row)}</ul>
+          </section>
+        )}
+
         {pending.length > 0 && (
           <section className="mt-6" data-group="pending">
             <GroupHeading title={t("picker.pending")} count={pending.length} />
@@ -178,17 +227,7 @@ export function SpotsOverview({
           <section key={g.key} className="mt-6" data-group={g.key}>
             <GroupHeading title={g.title} count={g.list.length} />
             <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">
-              {g.list.map((s) => (
-                <SpotRow
-                  key={s.slug}
-                  spot={s}
-                  lang={lang}
-                  editPending={pendingEdit.has(s.slug)}
-                  review={reviews[s.slug] ?? null}
-                  onReviews={() => setReviewing(s)}
-                  onSuggestEdit={canManage ? undefined : () => setEditing(s)}
-                />
-              ))}
+              {g.list.map(row)}
             </ul>
           </section>
         ))}
@@ -224,6 +263,8 @@ function SpotRow({
   lang,
   editPending,
   review,
+  pinned,
+  onPin,
   onReviews,
   onSuggestEdit,
 }: {
@@ -231,6 +272,8 @@ function SpotRow({
   lang: Lang;
   editPending: boolean;
   review: ReviewSummary | null;
+  pinned: boolean;
+  onPin: () => void;
   onReviews: () => void;
   /** Absent for admins, who edit on /admin. */
   onSuggestEdit?: () => void;
@@ -259,6 +302,19 @@ function SpotRow({
             </span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={onPin}
+          aria-pressed={pinned}
+          aria-label={t(pinned ? "spots.unpin" : "spots.pin", { name })}
+          title={t(pinned ? "spots.unpin" : "spots.pin", { name })}
+          className={cn(
+            "-my-1 flex size-8 shrink-0 items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
+            pinned ? "text-primary" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Pin className={cn("size-4", pinned && "fill-current")} aria-hidden />
+        </button>
         {onSuggestEdit && (
           <button
             type="button"
