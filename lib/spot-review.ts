@@ -9,6 +9,8 @@ export const MAX_REVIEW_BODY = 1000;
 export interface PublicReview {
   id: string;
   authorName: string | null;
+  /** Google avatar URL (https), or null: the dialog shows an initial instead. */
+  authorImage: string | null;
   rating: number;
   body: string | null;
   updatedAt: string;

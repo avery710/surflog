@@ -890,7 +890,7 @@ const DICT = {
   "review.empty": { en: "No reviews yet. Be the first.", "zh-TW": "還沒有評論，來寫第一則吧。" },
   "review.anonymous": { en: "A surfer", "zh-TW": "一位浪友" },
   "review.you": { en: "You", "zh-TW": "你" },
-  "review.others": { en: "From other surfers", "zh-TW": "其他浪友的評論" },
+  "review.all": { en: "Reviews", "zh-TW": "所有評論" },
   "review.limit": { en: "Too many changes for now. Try again later.", "zh-TW": "操作太頻繁，請稍後再試。" },
   "review.unavailable": { en: "Reviews aren't switched on yet.", "zh-TW": "評論功能尚未開放。" },
   "review.failed": { en: "Something went wrong. Try again.", "zh-TW": "發生錯誤，請再試一次。" },

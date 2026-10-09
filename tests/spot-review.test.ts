@@ -46,9 +46,17 @@ describe("toPublic", () => {
   };
   it("never carries the owner id, and marks the viewer's own", () => {
     const pub = toPublic(row, "someone-else");
-    expect(Object.keys(pub).sort()).toEqual(["authorName", "body", "id", "mine", "rating", "updatedAt"]);
+    expect(Object.keys(pub).sort()).toEqual(["authorImage", "authorName", "body", "id", "mine", "rating", "updatedAt"]);
     expect(JSON.stringify(pub)).not.toContain("google-sub-123");
     expect(pub.mine).toBe(false);
     expect(toPublic(row, "google-sub-123").mine).toBe(true);
+  });
+  it("shows a stored https avatar, the viewer's own as a fallback on their review only, never anything else", () => {
+    const pic = "https://lh3.googleusercontent.com/a/x";
+    expect(toPublic({ ...row, author_image: pic }, "someone-else").authorImage).toBe(pic);
+    expect(toPublic(row, "someone-else", pic).authorImage).toBeNull(); // not mine: no fallback
+    expect(toPublic(row, "google-sub-123", pic).authorImage).toBe(pic);
+    expect(toPublic({ ...row, author_image: "javascript:alert(1)" }, "someone-else").authorImage).toBeNull();
+    expect(toPublic({ ...row, author_image: "http://x.test/a.png" }, "someone-else").authorImage).toBeNull();
   });
 });

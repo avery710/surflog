@@ -252,7 +252,11 @@ fields + CWA township, 9 Siargao, 26 Bali).
   across users". Others see only the Google display name, rating, comment,
   date (`toPublic()`, unit-tested); the spot admin can delete any review.
   Migration `20261008200000` applied 2026-10-08 (fails soft without it).
-  Not checked in a browser. Spot edit suggestions (`5226577`, migration
+  Every review is listed with the author's avatar (`author_image`,
+  snapshotted https URL like `author_name`; your own review falls back to
+  your current avatar), yours first with a "You" tag. Migration
+  `20261009000000` is **NOT applied yet**: until it is, saves skip the
+  avatar and the list shows initials. Not checked in a browser. Spot edit suggestions (`5226577`, migration
   `20261008100000`, applied) are reviewed on `/admin`.
 - Never exercised on live data: create/edit/delete a spot,
   send/approve/decline a request, the non-admin view, "Near me".

@@ -12,6 +12,7 @@
  */
 import { getSupabase } from "./supabase";
 import { isMissingTable } from "./spot-store";
+import { cleanImage } from "./share-public";
 import { summarize, type PublicReview, type ReviewSummary } from "./spot-review";
 
 export { MAX_REVIEW_BODY, readReviewInput, summarize, type PublicReview, type ReviewSummary } from "./spot-review";
@@ -24,6 +25,8 @@ export interface ReviewRow {
   spot_slug: string;
   owner_id: string;
   author_name: string | null;
+  /** Absent until migration 20261009000000 is applied. */
+  author_image?: string | null;
   rating: number;
   body: string | null;
   created_at: string;
@@ -41,15 +44,21 @@ function fail(e: { code?: string; message: string }): Error {
   return isMissingTable(e) ? new ReviewTableMissingError() : new Error(`Supabase: ${e.message}`);
 }
 
-/** Built field by field so owner_id can never leak to another user. */
-export const toPublic = (r: ReviewRow, viewerId: string): PublicReview => ({
-  id: r.id,
-  authorName: r.author_name,
-  rating: r.rating,
-  body: r.body,
-  updatedAt: r.updated_at,
-  mine: r.owner_id === viewerId,
-});
+/** Built field by field so owner_id can never leak to another user. The
+ *  viewer's own review shows their current avatar (`viewerImage`) even if it
+ *  was saved before avatars were stored. */
+export const toPublic = (r: ReviewRow, viewerId: string, viewerImage?: string | null): PublicReview => {
+  const mine = r.owner_id === viewerId;
+  return {
+    id: r.id,
+    authorName: r.author_name,
+    authorImage: cleanImage(r.author_image) ?? (mine ? cleanImage(viewerImage) : null),
+    rating: r.rating,
+    body: r.body,
+    updatedAt: r.updated_at,
+    mine,
+  };
+};
 
 /** Every review of one spot, newest first. */
 export async function listSpotReviews(spotSlug: string): Promise<ReviewRow[]> {
@@ -74,14 +83,23 @@ export async function upsertReview(row: {
   spot_slug: string;
   owner_id: string;
   author_name: string | null;
+  author_image: string | null;
   rating: number;
   body: string | null;
 }): Promise<ReviewRow> {
-  const { data, error } = await getSupabase()
-    .from(TABLE)
-    .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "owner_id,spot_slug" })
-    .select("*")
-    .single();
+  const write = (values: Record<string, unknown>) =>
+    getSupabase()
+      .from(TABLE)
+      .upsert({ ...values, updated_at: new Date().toISOString() }, { onConflict: "owner_id,spot_slug" })
+      .select("*")
+      .single();
+  let { data, error } = await write({ ...row, author_image: cleanImage(row.author_image) });
+  // Before the author_image migration: save without the avatar rather than fail.
+  if (error && /author_image/.test(error.message)) {
+    const { author_image: _skip, ...rest } = row;
+    void _skip;
+    ({ data, error } = await write(rest));
+  }
   if (error) throw fail(error);
   return data as ReviewRow;
 }

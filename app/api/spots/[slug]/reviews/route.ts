@@ -42,7 +42,7 @@ function limited(userId: string) {
 /**
  * GET /api/spots/:slug/reviews — every review of a catalogue spot, newest
  * first, for any signed-in user. 200 { reviews: PublicReview[], canModerate }
- * (author display name only, never owner id or email). 404 unknown spot.
+ * (author display name and avatar URL only, never owner id or email). 404 unknown spot.
  * 503 { code: "unavailable" } until the table exists.
  */
 export async function GET(_req: NextRequest, { params }: Params) {
@@ -53,7 +53,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const spot = await resolveSpot(decode((await params).slug));
     if (!spot) return NextResponse.json({ error: "not found" }, { status: 404 });
     const rows = await listSpotReviews(spot.slug);
-    return NextResponse.json({ reviews: rows.map((r) => toPublic(r, userId)), canModerate: isSpotAdmin(session.user) });
+    return NextResponse.json({
+      reviews: rows.map((r) => toPublic(r, userId, session.user?.image)),
+      canModerate: isSpotAdmin(session.user),
+    });
   } catch (e) {
     if (e instanceof ReviewTableMissingError) return unavailable();
     console.error("[api/spots/:slug/reviews] GET failed", e);
@@ -83,10 +86,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
       spot_slug: spot.slug,
       owner_id: userId,
       author_name: session.user?.name?.trim().slice(0, 80) || null,
+      author_image: session.user?.image ?? null,
       rating: input.rating,
       body: input.body,
     });
-    return NextResponse.json({ review: toPublic(row, userId) });
+    return NextResponse.json({ review: toPublic(row, userId, session.user?.image) });
   } catch (e) {
     if (e instanceof ReviewTableMissingError) return unavailable();
     console.error("[api/spots/:slug/reviews] PUT failed", e);

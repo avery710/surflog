@@ -89,7 +89,8 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
   };
 
   const mine = reviews?.find((r) => r.mine) ?? null;
-  const others = reviews?.filter((r) => !r.mine) ?? [];
+  // Every review, the viewer's own first (it is also editable in the form above).
+  const listed = reviews ? [...reviews.filter((r) => r.mine), ...reviews.filter((r) => !r.mine)] : [];
 
   async function save() {
     if (rating < 1) {
@@ -195,36 +196,57 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
 
       <section className="flex flex-col gap-2">
         <h3 className="pl-0.5 text-xs font-semibold text-muted-foreground">
-          {t("review.others")} <span className="font-mono">{others.length}</span>
+          {t("review.all")} <span className="font-mono">{listed.length}</span>
         </h3>
-        {others.length === 0 ? (
+        {listed.length === 0 ? (
           <p className="text-[13.5px] text-muted-foreground">{t("review.empty")}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-card-border rounded-[var(--r-tile)] border border-card-border">
-            {others.map((r) => (
-              <li key={r.id} className="px-3.5 py-3">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="min-w-0 text-[13.5px] font-semibold break-words">{r.authorName || t("review.anonymous")}</span>
-                  <Stars value={r.rating} />
-                  <span className="font-mono text-[11.5px] text-muted-foreground">{fmtDay(r.updatedAt, lang)}</span>
-                  {canModerate && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void remove(r.id)}
-                      className="ml-auto rounded-full px-2.5 py-1 text-[12px] font-semibold text-destructive outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
-                    >
-                      {t("review.delete")}
-                    </button>
-                  )}
+            {listed.map((r) => (
+              <li key={r.id} className="flex gap-3 px-3.5 py-3">
+                <Avatar name={r.authorName || t("review.anonymous")} image={r.authorImage} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="min-w-0 text-[13.5px] font-semibold break-words">{r.authorName || t("review.anonymous")}</span>
+                    {r.mine && (
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">{t("review.you")}</span>
+                    )}
+                    <Stars value={r.rating} />
+                    <span className="font-mono text-[11.5px] text-muted-foreground">{fmtDay(r.updatedAt, lang)}</span>
+                    {canModerate && !r.mine && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void remove(r.id)}
+                        className="ml-auto rounded-full px-2.5 py-1 text-[12px] font-semibold text-destructive outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        {t("review.delete")}
+                      </button>
+                    )}
+                  </div>
+                  {r.body && <p className="mt-1.5 text-[13.5px] leading-relaxed whitespace-pre-line break-words">{r.body}</p>}
                 </div>
-                {r.body && <p className="mt-1.5 text-[13.5px] leading-relaxed whitespace-pre-line break-words">{r.body}</p>}
               </li>
             ))}
           </ul>
         )}
       </section>
     </div>
+  );
+}
+
+/** The author's Google avatar, or their initial in a grey circle. */
+function Avatar({ name, image }: { name: string; image: string | null }) {
+  if (image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- a Google avatar URL, not a local asset
+      <img src={image} alt="" width={32} height={32} referrerPolicy="no-referrer" className="size-8 shrink-0 rounded-full object-cover" />
+    );
+  }
+  return (
+    <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-badge text-[13px] font-semibold text-badge-foreground">
+      {[...name.trim()][0]?.toUpperCase() ?? "?"}
+    </span>
   );
 }
 
