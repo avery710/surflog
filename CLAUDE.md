@@ -254,7 +254,9 @@ fields + CWA township, 9 Siargao, 26 Bali).
   Migration `20261008200000` applied 2026-10-08 (fails soft without it).
   Every review is listed with the author's avatar (`author_image`,
   snapshotted https URL like `author_name`; your own review falls back to
-  your current avatar), yours first with a "You" tag. Migration
+  your current avatar), yours first with a "You" tag. Google-Maps style:
+  the form shows only until you've posted; then your review sits in the
+  list with Edit (reopens the form prefilled, Cancel / Update) and Delete. Migration
   `20261009000000` is **NOT applied yet**: until it is, saves skip the
   avatar and the list shows initials. Not checked in a browser. Spot edit suggestions (`5226577`, migration
   `20261008100000`, applied) are reviewed on `/admin`.

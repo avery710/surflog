@@ -53,6 +53,9 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  // One review per person per spot, edited in place (like Google Maps): once
+  // posted, the form closes and the review shows in the list with Edit / Delete.
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const url = `/api/spots/${encodeURIComponent(spot.slug)}/reviews`;
 
@@ -114,7 +117,8 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
       const next = [review, ...(reviews ?? []).filter((r) => !r.mine)];
       setReviews(next);
       report(next);
-      toast.success(t("review.saved"));
+      setEditing(false);
+      toast.success(t(mine ? "review.updated" : "review.saved"));
     } catch {
       setError(t("review.failed"));
     } finally {
@@ -156,43 +160,55 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
   }
   if (!reviews) return <p className="text-[13.5px] text-muted-foreground">{t("review.loading")}</p>;
 
+  const showForm = !mine || editing;
+
+  function startEdit() {
+    if (!mine) return;
+    setRating(mine.rating);
+    setBody(mine.body ?? "");
+    setError(null);
+    setEditing(true);
+  }
+
   return (
     <div className="flex flex-col gap-5">
-      <form
-        className="flex flex-col gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!busy) void save();
-        }}
-      >
-        <h3 className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("review.yours")}</h3>
-        <StarInput value={rating} onChange={(v) => (setRating(v), setError(null))} />
-        <label className="flex flex-col gap-1.5">
-          <span className="sr-only">{t("review.body")}</span>
-          <Textarea
-            value={body}
-            maxLength={MAX_REVIEW_BODY}
-            rows={3}
-            placeholder={t("review.bodyPlaceholder")}
-            onChange={(e) => setBody(e.target.value)}
-          />
-        </label>
-        {error && (
-          <div role="alert" className="rounded-xl bg-secondary px-3.5 py-3 text-[13px] leading-relaxed">
-            {error}
-          </div>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" disabled={busy || rating < 1} className="rounded-full px-6">
-            {busy ? t("review.saving") : mine ? t("review.update") : t("review.save")}
-          </Button>
-          {mine && (
-            <Button type="button" variant="ghost" disabled={busy} className="rounded-full" onClick={() => void remove(mine.id)}>
-              {t("review.deleteMine")}
-            </Button>
+      {showForm && (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!busy) void save();
+          }}
+        >
+          <h3 className="pl-0.5 text-xs font-semibold text-muted-foreground">{t(mine ? "review.editYours" : "review.yours")}</h3>
+          <StarInput value={rating} onChange={(v) => (setRating(v), setError(null))} />
+          <label className="flex flex-col gap-1.5">
+            <span className="sr-only">{t("review.body")}</span>
+            <Textarea
+              value={body}
+              maxLength={MAX_REVIEW_BODY}
+              rows={3}
+              placeholder={t("review.bodyPlaceholder")}
+              onChange={(e) => setBody(e.target.value)}
+            />
+          </label>
+          {error && (
+            <div role="alert" className="rounded-xl bg-secondary px-3.5 py-3 text-[13px] leading-relaxed">
+              {error}
+            </div>
           )}
-        </div>
-      </form>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" disabled={busy || rating < 1} className="rounded-full px-6">
+              {busy ? t("review.saving") : mine ? t("review.update") : t("review.save")}
+            </Button>
+            {mine && (
+              <Button type="button" variant="ghost" disabled={busy} className="rounded-full" onClick={() => (setEditing(false), setError(null))}>
+                {t("review.cancel")}
+              </Button>
+            )}
+          </div>
+        </form>
+      )}
 
       <section className="flex flex-col gap-2">
         <h3 className="pl-0.5 text-xs font-semibold text-muted-foreground">
@@ -202,7 +218,7 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
           <p className="text-[13.5px] text-muted-foreground">{t("review.empty")}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-card-border rounded-[var(--r-tile)] border border-card-border">
-            {listed.map((r) => (
+            {listed.filter((r) => !(r.mine && editing)).map((r) => (
               <li key={r.id} className="flex gap-3 px-3.5 py-3">
                 <Avatar name={r.authorName || t("review.anonymous")} image={r.authorImage} />
                 <div className="min-w-0 flex-1">
@@ -225,6 +241,16 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
                     )}
                   </div>
                   {r.body && <p className="mt-1.5 text-[13.5px] leading-relaxed whitespace-pre-line break-words">{r.body}</p>}
+                  {r.mine && (
+                    <div className="mt-2 flex gap-1.5">
+                      <Button type="button" size="sm" variant="secondary" disabled={busy} className="rounded-full px-3.5" onClick={startEdit}>
+                        {t("review.edit")}
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" disabled={busy} className="rounded-full px-3.5 text-destructive" onClick={() => void remove(r.id)}>
+                        {t("review.delete")}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
