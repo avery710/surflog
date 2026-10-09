@@ -167,15 +167,25 @@ export function PatternsTable({
                     {!readOnly && (
                       <td className="rounded-r-[var(--r-tile)] py-0.5 pr-2 align-middle">
                         {spot && note ? (
-                          <button
-                            type="button"
-                            onClick={() => setSharing({ spot, note })}
-                            aria-label={t("patterns.shareReviewLabel", { spot: label })}
-                            title={t("patterns.shareReview")}
-                            className="flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-                          >
-                            <Megaphone className="size-4" aria-hidden />
-                          </button>
+                          // Tooltip on hover and keyboard focus (the native title is slow and never shows on touch).
+                          <span className="group relative inline-flex">
+                            <button
+                              type="button"
+                              onClick={() => setSharing({ spot, note })}
+                              aria-label={t("patterns.shareReviewLabel", { spot: label })}
+                              aria-describedby={`share-tip-${spot.slug}`}
+                              className="flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                            >
+                              <Megaphone className="size-4" aria-hidden />
+                            </button>
+                            <span
+                              role="tooltip"
+                              id={`share-tip-${spot.slug}`}
+                              className="pointer-events-none absolute top-full right-0 z-10 mt-1 rounded-md bg-foreground px-2 py-1 text-[12px] font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                            >
+                              {t("patterns.shareReview")}
+                            </span>
+                          </span>
                         ) : null}
                       </td>
                     )}
