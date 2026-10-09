@@ -162,6 +162,11 @@ export const DICT = {
   "calendar.sessions": { en: "{n} sessions", "zh-TW": "{n} 次" },
   "calendar.showOlderWeeks": { en: "Show older weeks", "zh-TW": "顯示較舊的週次" },
   "calendar.showNewerWeeks": { en: "Show more recent weeks", "zh-TW": "顯示較新的週次" },
+  // Phones only: the most recent session beside the dots (activity-calendar.tsx).
+  "calendar.last.title": { en: "Last session", "zh-TW": "最近一次" },
+  "calendar.last.today": { en: "Today", "zh-TW": "今天" },
+  "calendar.last.yesterday": { en: "Yesterday", "zh-TW": "昨天" },
+  "calendar.last.daysAgo": { en: "{n} days ago", "zh-TW": "{n} 天前" },
   // Sunday-first (as displayed) weekday header above the dot grid, one letter/character each.
   "calendar.weekday.mon": { en: "M", "zh-TW": "一" },
   "calendar.weekday.tue": { en: "T", "zh-TW": "二" },

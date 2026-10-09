@@ -432,7 +432,10 @@ white cards — row 1 goal card + activity calendar (`sm:w-[260px]`,
 - **Activity calendar**: the component's header comment is the source of
   truth. Week rows, Sunday-first, titled "Days in the water". The ↑/↓
   week buttons sit in a side rail from `sm`, at the end of the title row
-  below it (2026-10-09, to give the AI app card room on phones).
+  below it (2026-10-09, to give the AI app card room on phones). Below `sm`,
+  when the calendar is full width (no AI app card), the card also shows
+  the most recent session behind a divider: spot, today / yesterday / N
+  days ago + time, swell height and period (`LastSession`).
 - **AI app card** (`components/ai-app-card.tsx`, 2026-10-09): shown only
   while the owner has no un-revoked token (`hasConnectedApp()`, fails soft
   to hidden); links to `/ai-apps`. Sits beside the calendar in one row at
