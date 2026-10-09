@@ -79,7 +79,11 @@ export function PatternsTable({
         <h2 className="shrink-0 px-3 pt-2 font-sans text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>
-        <div className="flex-1 overflow-auto">
+        {/* relative: makes this scroller the containing block of absolutely
+            positioned descendants (the share column's sr-only header), so
+            it clips them. Without it that label escaped the scroller and
+            widened the whole page on phones. */}
+        <div className="relative flex-1 overflow-auto">
           <table className="w-full min-w-[420px] border-separate [border-spacing:0_0]">
             <thead>
               <tr>
