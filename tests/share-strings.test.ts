@@ -44,6 +44,8 @@ describe("publicSharePath: the only unauthenticated paths", () => {
     expect(publicSharePath(`/share/${T}`)).toBe("page");
     expect(publicSharePath(`/share/${T}/card.png`)).toBe("image");
     expect(publicSharePath(`/api/share/${T}/media/${BLOB}`)).toBe("media");
+    // an upload from before 2026-10-05: base36, not 32 hex
+    expect(publicSharePath(`/api/share/${T}/media/mfx3k2p9a8b7c6d5`)).toBe("media");
     expect(publicSharePath(`/share/abc_-${"x".repeat(40)}`)).toBe("page");
   });
   it.each([
