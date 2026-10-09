@@ -80,7 +80,7 @@ export function PatternsTable({
           {t("patterns.title")}
         </h2>
         <div className="flex-1 overflow-auto">
-          <table className="w-full min-w-[420px] border-separate [border-spacing:0_2px]">
+          <table className="w-full min-w-[420px] border-separate [border-spacing:0_0]">
             <thead>
               <tr>
                 {[t("form.spot"), t("patterns.sessions"), t("patterns.description")].map((h) => (
@@ -106,7 +106,7 @@ export function PatternsTable({
                 const spot = readOnly ? undefined : catalog.bySlug(r.slug);
                 return (
                   <tr key={r.slug}>
-                    <td className="rounded-l-[var(--r-tile)] px-4 py-1.5 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
+                    <td className="rounded-l-[var(--r-tile)] px-4 py-1 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
                       {spot ? (
                         <Link
                           href={`/spots/${encodeURIComponent(spot.slug)}`}
@@ -118,7 +118,7 @@ export function PatternsTable({
                         label
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-1.5 align-middle font-mono text-[13.5px] tabular-nums">
+                    <td className="whitespace-nowrap px-4 py-1 align-middle font-mono text-[13.5px] tabular-nums">
                       {r.n}
                     </td>
                     <td className={`w-full px-1 py-0.5 align-middle ${readOnly ? "rounded-r-[var(--r-tile)]" : ""}`}>
