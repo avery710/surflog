@@ -423,7 +423,7 @@ function SortableBoardCard({
       }}
       {...(sorting ? { ...attributes, ...listeners, "aria-label": t("board.dragHandle", { name }) } : {})}
       className={
-        "relative grid min-w-0 grid-cols-1 gap-2 rounded-[var(--r-tile)] bg-secondary p-3 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-3" +
+        "relative min-w-0 rounded-[var(--r-tile)] bg-secondary p-3" +
         (sorting
           ? " cursor-grab touch-none select-none outline-none ring-primary/40 focus-visible:ring-4 active:cursor-grabbing" +
             (isDragging ? " shadow-lg" : "")
@@ -431,53 +431,22 @@ function SortableBoardCard({
       }
     >
       {/*
-        Three breakpoints share this one wrapper (`lg:contents`
-        makes it disappear at lg so the photo and text column
-        become direct children of the li's grid again):
-        - below sm (phone, one rack column, narrow): stacked in
-          one column, left-aligned — photo on top, full card
-          width, then name/specs/note below it. The photo is now
-          cropped square (`aspect-square`, on request 2026-10-08 —
-          was a plain static <img> at its natural height, "nothing
-          cropped", which made a tall portrait photo stretch the
-          whole card tall). Same absolutely-positioned-wrapper
-          technique as sm+ below, not a plain <img aspect-square>:
-          see the note at the bottom of this comment for why a
-          plain stretched <img> breaks in WebKit. A board with no
-          photo renders no box at all here (`hidden`), not an
-          empty placeholder square.
-        - sm to lg (the 2-up rack grid, still a narrow column
-          per board): unchanged from before this pass — photo
-          beside name/specs/note in a 2-col row
-          (`sm:grid-cols-[auto_minmax(0,1fr)]`), photo matching
-          that row's height, `object-cover`. Kept as-is rather
-          than stacked too: it already fit this width, and
-          stacking every 2-up card would make the rack much
-          taller for no clarity gain.
-        - lg: photo left of a column with name row (⠿ handle ·
-          name · 常用 badge · ⋯), specs, note; photo matching that
-          column's height. There's no separate button row any
-          more at any breakpoint.
-        The image is absolutely positioned inside a wrapper at
-        every breakpoint now, so its own (large) pixel size can't
-        drive the layout — a plain <img> with aspect-square +
-        stretch did the opposite in WebKit (2026-09-30, first hit
-        at sm+, same risk now that phone is also stretched by
-        `w-full`+`aspect-square`): the photo grew to its natural
-        size and squeezed the text to one character wide. Below sm
-        the wrapper is `aspect-square w-full` (width drives height,
-        since there's no `h-full` row to match yet); at sm+ it's
-        capped at 96px and fills the row (h-full, width from
-        aspect-square) to match the text column — a board with a
-        note (or a narrow phone) makes that column tall, and an
-        uncapped photo would grow and squeeze the text further.
+        One layout at every width (2026-10-09, on request: phones
+        used to stack the photo above the text): photo on the left,
+        name/specs/note in the column beside it, at phone, the
+        2-up rack and lg alike. The photo is a square capped at 96px
+        and matches the text column's height, so a board with a long
+        note makes the column taller and the photo grows with it up
+        to the cap. Boards without a photo keep an empty square, so
+        the text lines up across cards.
+        The image is absolutely positioned inside that box, so its
+        own pixel size can't drive the layout: a plain <img> with
+        aspect-square + stretch made the photo grow to its natural
+        size and squeeze the text to one character wide in WebKit.
       */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)] lg:contents">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
         <div
-          className={
-            "relative aspect-square w-full overflow-hidden rounded-[12px] bg-background sm:h-full sm:max-h-24 sm:min-h-16 sm:min-w-16 sm:max-w-24 sm:w-auto" +
-            (photoSrc ? "" : " hidden sm:block")
-          }
+          className="relative aspect-square h-full max-h-24 min-h-16 min-w-16 w-auto max-w-24 overflow-hidden rounded-[12px] bg-background"
         >
           {photoSrc && (
             // eslint-disable-next-line @next/next/no-img-element

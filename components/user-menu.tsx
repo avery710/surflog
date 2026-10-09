@@ -32,7 +32,12 @@ export function UserMenu({
   const initial = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
 
   return (
-    <DropdownMenu>
+    // modal={false}: a modal Radix menu locks body scroll while open, and
+    // with a classic scrollbar that removes 15px of width, so the whole
+    // page jumped sideways on a narrow window (reproduced 2026-10-09,
+    // 360px → 375px). Non-modal keeps the page still; outside click and
+    // Escape still close it.
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary outline-none transition-opacity hover:opacity-80"
         aria-label={name}
