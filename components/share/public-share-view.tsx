@@ -22,7 +22,8 @@ export function PublicShareView({
   mediaBase?: string;
   homeHref?: string;
   /** The visitor already has a Surflog session: "Open my journal" instead of
-   *  Sign in / Sign up free. Both of those go to Google sign-in, then the journal. */
+   *  "Start free" (header) / "Sign up free" (bottom box), which both go to
+   *  Google sign-in, then the journal. */
   signedIn?: boolean;
 }) {
   const { lang } = share;
@@ -43,17 +44,10 @@ export function PublicShareView({
               {t("share.page.openJournal")}
             </a>
           ) : (
-            <div className="flex items-center gap-2.5">
-              <a
-                href={signInHref}
-                className="rounded-full px-3 py-2 text-[13.5px] font-semibold text-white outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white"
-              >
-                {t("share.page.signIn")}
-              </a>
-              <a href={signInHref} className={pill}>
-                {t("share.page.signUp")}
-              </a>
-            </div>
+            // One button for new and returning visitors alike: both are the same Google sign-in.
+            <a href={signInHref} className={pill}>
+              {t("share.page.startFree")}
+            </a>
           )}
         </div>
       </header>
