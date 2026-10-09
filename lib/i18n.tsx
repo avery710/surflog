@@ -157,7 +157,7 @@ export const DICT = {
   "patterns.shareReview": { en: "Share as review", "zh-TW": "分享成評論" },
   "patterns.shareReviewLabel": { en: "Share your notes on {spot} as a review", "zh-TW": "把「{spot}」的筆記分享成評論" },
   "toast.couldntSaveDescription": { en: "Couldn't save your note", "zh-TW": "無法儲存筆記" },
-  "calendar.title": { en: "Days in the water", "zh-TW": "在海裡的日子" },
+  "calendar.title": { en: "Days in the water", "zh-TW": "下水的日子" },
   "calendar.session": { en: "{n} session", "zh-TW": "{n} 次" },
   "calendar.sessions": { en: "{n} sessions", "zh-TW": "{n} 次" },
   "calendar.showOlderWeeks": { en: "Show older weeks", "zh-TW": "顯示較舊的週次" },
