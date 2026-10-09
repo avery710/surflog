@@ -294,7 +294,7 @@ fields + CWA township, 9 Siargao, 26 Bali).
 - Ownerless imported data goes to an explicit account, never "whoever
   signs in first".
 - `proxy.ts` gates everything; unsigned paths are exact rules: `/`,
-  `/landing/<name>.jpg`, `/api/mcp`, the OAuth discovery/register/token
+  `/landing/<name>.jpg|.webp` (lower-case names), `/api/mcp`, the OAuth discovery/register/token
   routes, and the three share path shapes. `/dev` only outside production.
 
 **Uploads** (`lib/blob.ts`, `lib/upload-client.ts`): `POST /api/uploads`
@@ -455,8 +455,15 @@ list, 05 sharing. Real components on synthetic data
 (`components/landing/demo-data.ts`) — never `lib/db.ts` or the API.
 `/signin` is separate and stays. Copy only claims what exists. Section 03
 is one static mock conversation whose wording Avery edited line by line —
-keep it. Section 05 (`share-showcase.tsx`) renders the real share element
-via SVG `viewBox` + `foreignObject`.
+keep it. Section 04 (`spots-showcase.tsx`, 2026-10-09) sells the spot list
+as built by everyone: three static mocks (request a spot, rate and review,
+suggest an edit) under the live spot count; it replaced a grid of spot
+names. Section 05 (`share-showcase.tsx`) is the three sticker styles in one
+row, unlabelled, on the dialog's dark transparency checkerboard (no photo
+stand-ins "for now", no share-link box). The stickers are WebPs in
+`public/landing/` drawn by the real renderer from the demo session:
+**re-run `npx tsx scripts/landing-share-images.ts` when the share images
+change** (the strip's cut-out text can't be done in the DOM).
 **Licence NOT settled** for the demo board photos in `public/landing/`:
 the Haydenshapes one is CC BY-SA 4.0 (credit line required, present); the
 Wavestorm one is the maker's "All Rights Reserved" image.
@@ -527,6 +534,11 @@ standing instruction). cmux's browser is signed in to the dev server.
   position in Chromium.
 - **A `max-width` flex child needs `min-w-0`**, or a wide descendant
   pushes the column past the viewport.
+- **An `overflow-auto` box only clips absolutely positioned descendants
+  if it is positioned itself.** The spots table's `sr-only` header (which
+  is `position: absolute`) escaped its scroller and widened the journal
+  on phones (fixed 2026-10-09 with `relative` on the scroller). Measure
+  `document.documentElement.scrollWidth` with real-shaped data.
 - **`scale: tan(atan2(100cqw, 1080px))` is wrong in WebKit.** Scale with
   SVG `viewBox` + `foreignObject`, or measure in JS.
 - **When moving or renaming a module, fix its importers in the same

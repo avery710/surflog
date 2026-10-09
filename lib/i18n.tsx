@@ -12,7 +12,7 @@ const STORAGE_KEY = "surflog:lang";
  * and error messages that come back from the API routes (server-side,
  * English). `{name}` placeholders are filled by t(key, vars).
  */
-const DICT = {
+export const DICT = {
   "toast.sessionDeleted": { en: "Session deleted", "zh-TW": "紀錄已刪除" },
   "toast.couldntDelete": { en: "Couldn't delete", "zh-TW": "無法刪除" },
   "toast.uploadFailed": { en: "Upload failed", "zh-TW": "上傳失敗" },
@@ -220,23 +220,43 @@ const DICT = {
     "zh-TW": "設定幾個想練的重點，每次衝完勾選做到的項目；逐月看你哪幾天下水、最常去哪裡，每個浪點還能留下自己的筆記。",
   },
   "landing.dash.photoCredits": { en: "Board photos", "zh-TW": "板子照片來源" },
-  "landing.spots.title": { en: "A spot list surfers grow", "zh-TW": "和浪友一起蒐集世界浪點地圖" },
-  "landing.spots.body": {
-    en: "{n} spots across {c} countries, from Taiwan to Siargao to Bali, and growing. Pick one when you log a session and its conditions come with it.",
-    "zh-TW": "橫跨 {c} 個國家、共 {n} 個浪點，從台灣、錫亞高到峇里島，持續增加。記錄時選一個，浪況就會自動帶入。",
+  "landing.spots.title": { en: "A world spot list, built by surfers", "zh-TW": "浪友一起打造的世界浪點清單" },
+  "landing.spots.count": {
+    en: "{n} spots in {c} countries so far, from Taiwan to Siargao to Bali.",
+    "zh-TW": "目前有 {c} 個國家、{n} 個浪點，從台灣、錫亞高到峇里島。",
   },
-  "landing.spots.request": {
-    en: "Missing yours? Sign in, request it, and start logging there right away.",
-    "zh-TW": "找不到你的浪點？登入後申請新增，馬上就能開始記錄。",
+  "landing.spots.body": {
+    en: "Every surfer can add the breaks they know, rate and review them, and fix what's wrong, so the list grows wherever people surf.",
+    "zh-TW": "每位浪友都能新增自己熟悉的浪點、留下評分與評論、修正錯誤的資料，讓清單跟著大家衝浪的足跡一起長大。",
+  },
+  "landing.spots.add.title": { en: "Add the spot you surf", "zh-TW": "新增你衝的浪點" },
+  "landing.spots.add.body": {
+    en: "Not on the list yet? Send it in with a map link or your location and log a session there right away. Conditions fill in once it's approved.",
+    "zh-TW": "清單裡還沒有？貼上地圖連結或用目前位置送出，馬上就能在那裡記錄衝浪；審核通過後會自動補上浪況。",
+  },
+  "landing.spots.add.demoName": { en: "My local reef", "zh-TW": "家附近的礁岩浪點" },
+  "landing.spots.review.title": { en: "Rate it, review it", "zh-TW": "評分、留下評論" },
+  "landing.spots.review.body": {
+    en: "Crowd, parking, hazards, when it works. Reviews are shared with every surfer, so the next one paddles out knowing.",
+    "zh-TW": "人潮、停車、危險之處、什麼時候最好。評論會分享給所有浪友，下一個人下水前就心裡有數。",
+  },
+  "landing.spots.review.demo1": {
+    en: "Cleanest around mid tide on an east swell. Busy on weekends, go early.",
+    "zh-TW": "東湧配中潮最乾淨。週末人多，早點來。",
+  },
+  "landing.spots.review.demo2": {
+    en: "Rocks by the river mouth at low tide, watch your feet.",
+    "zh-TW": "退潮時河口有石頭，小心腳下。",
+  },
+  "landing.spots.fix.title": { en: "Keep it right, together", "zh-TW": "一起把資料修正確" },
+  "landing.spots.fix.body": {
+    en: "Facing or best swell off? Suggest an edit. It's checked before it changes for everyone.",
+    "zh-TW": "朝向或最佳湧浪不對？送出修改建議，審核後就會更新給所有人。",
   },
   "landing.share.title": { en: "Share a session your way", "zh-TW": "把這次衝浪分享出去" },
   "landing.share.body": {
-    en: "Turn any session into an image, a strip, a column or a card to lay over your own photo, or switch on a link anyone can open. A session stays private until you share it.",
-    "zh-TW": "把任何一筆紀錄變成圖片：可以疊在你照片上的橫條、直條或卡片；也可以開啟任何人都能打開的連結。在你分享之前，紀錄只有你看得到。",
-  },
-  "landing.share.linkBody": {
-    en: "Anyone with the link sees the conditions, your notes, photos and videos, with no sign-in. Turn it off and the link stops working.",
-    "zh-TW": "拿到連結的人不用登入，就能看到浪況、你的筆記、照片與影片。關閉後連結就會失效。",
+    en: "Turn any session into a sticker for your story: pick a style, lay it over your own photo or video, and post. Or switch on a link anyone can open. A session stays private until you share it.",
+    "zh-TW": "把任何一筆紀錄變成限時動態貼圖：選一種樣式，疊在你自己的照片或影片上就能發佈；也可以開啟任何人都能打開的連結。在你分享之前，紀錄只有你看得到。",
   },
   "landing.agent.title": { en: "Bring your own AI app", "zh-TW": "接上你自己的 AI App" },
   "landing.agent.body": {

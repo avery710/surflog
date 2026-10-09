@@ -20,8 +20,8 @@ export default auth((req) => {
   // journal itself) — only the exact root, nothing under it.
   if (pathname === "/") return;
   // The landing page's own pictures (public/landing/): one flat folder of
-  // JPEGs, nothing else under it.
-  if (/^\/landing\/[a-z0-9-]+\.jpg$/.test(pathname)) return;
+  // JPEGs (board photos) and WebPs (share stickers), nothing else under it.
+  if (/^\/landing\/[a-z0-9-]+\.(jpg|webp)$/.test(pathname)) return;
 
   // The MCP endpoint authenticates with a personal access token (bearer),
   // not the cookie session — app/api/mcp/route.ts does that check itself

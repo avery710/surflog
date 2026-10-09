@@ -15,6 +15,7 @@ import { cn } from "cn";
 import { BoardRack } from "@/components/board-rack";
 import { BOARD_PHOTO_CREDITS, DEMO_BOARDS, demoSessions } from "./demo-data";
 import { ShareShowcase } from "./share-showcase";
+import { SpotsShowcase } from "./spots-showcase";
 import { noop } from "@/app/dev/fixtures";
 
 /**
@@ -220,17 +221,29 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
         </div>
       </Section>
 
-      {/* ④ The shared spot list — read-only, from the catalogue (see
-          lib/landing-spots.ts); hidden when it couldn't be loaded. */}
-      {spots && spots.length > 0 && (
-        <Section n="4" title={t("landing.spots.title")} body={`${t("landing.spots.body", { n: String(spots.length), c: String(new Set(spots.map((s) => s.country)).size) })} ${t("landing.spots.request")}`}>
-          <SpotsList spots={spots} />
-        </Section>
-      )}
+      {/* ④ The spot list as something every surfer builds: request, review,
+          suggest an edit (./spots-showcase.tsx). The live count comes from the
+          catalogue (lib/landing-spots.ts) and is left out when it couldn't be
+          loaded; the section itself always shows. */}
+      <Section
+        n="4"
+        title={t("landing.spots.title")}
+        body={[
+          spots && spots.length > 0
+            ? t("landing.spots.count", { n: String(spots.length), c: String(new Set(spots.map((s) => s.country)).size) })
+            : null,
+          t("landing.spots.body"),
+        ]
+          .filter(Boolean)
+          // CJK sentences run on without a space
+          .join(lang === "zh-TW" ? "" : " ")}
+      >
+        <SpotsShowcase />
+      </Section>
 
-      {/* ⑤ Sharing: the two generated images and the public link's preview. */}
+      {/* ⑤ Sharing: the three sticker styles in one row. */}
       <Section n="5" title={t("landing.share.title")} body={t("landing.share.body")}>
-        <ShareShowcase session={hero} boards={boards} />
+        <ShareShowcase />
       </Section>
 
       {/* Closing CTA */}
@@ -324,65 +337,5 @@ function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) =
         </button>
       ))}
     </div>
-  );
-}
-
-/** Same order as the spot picker: Taiwan first, then these areas, then any
- *  other area alphabetically. */
-const AREA_PRIORITY = ["Siargao", "Bali"];
-/** Best-known breaks shown on the landing page (slugs from the catalogue). */
-const FEATURED = [
-  "wushi-north", "double-lions", "fulong", "jialeshui", "nanwan", "donghe", "jinzun",
-  "cloud-9", "jacking-horse", "quicksilver", "tuason-point", "stimpys", "rock-island",
-  "uluwatu-suluban", "padang-padang", "impossibles", "bingin", "dreamland", "balangan", "batu-bolong", "echo-beach",
-];
-
-function SpotsList({ spots }: { spots: LandingSpot[] }) {
-  const { lang, t } = useLang();
-  const name = (s: LandingSpot) => (lang === "zh-TW" ? (s.nameZh ?? s.name) : s.name);
-
-  const groups = useMemo(() => {
-    const out: { key: string; title: string; list: LandingSpot[] }[] = [];
-    const taiwan = spots.filter((s) => s.region);
-    if (taiwan.length) out.push({ key: "tw", title: t("picker.taiwan"), list: taiwan });
-    const abroad = new Map<string, { area: string; list: LandingSpot[] }>();
-    for (const s of spots) {
-      if (s.region) continue;
-      const title = [s.country, s.area].filter(Boolean).join(" · ") || t("picker.elsewhere");
-      const g = abroad.get(title) ?? { area: s.area, list: [] };
-      g.list.push(s);
-      abroad.set(title, g);
-    }
-    const rank = (area: string) => {
-      const i = AREA_PRIORITY.indexOf(area);
-      return i === -1 ? AREA_PRIORITY.length : i;
-    };
-    for (const [title, g] of [...abroad].sort((a, b) => rank(a[1].area) - rank(b[1].area) || a[0].localeCompare(b[0]))) {
-      out.push({ key: `w-${title}`, title, list: g.list });
-    }
-    // Showcase only the best-known breaks, in FEATURED order; the full
-    // catalogue is in the app.
-    const rankOf = (slug: string) => FEATURED.indexOf(slug);
-    for (const g of out) g.list = g.list.filter((s) => rankOf(s.slug) !== -1).sort((a, b) => rankOf(a.slug) - rankOf(b.slug));
-    return out.filter((g) => g.list.length > 0);
-  }, [spots, t]);
-
-  return (
-    <>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {groups.map((g) => (
-          <Panel key={g.key} className="min-w-0 p-4">
-            <h3 className="text-[14px] font-bold">{g.title}</h3>
-            <ul className="mt-2.5 flex flex-wrap gap-1.5">
-              {g.list.map((s) => (
-                <li key={s.slug} className="rounded-full bg-secondary px-2.5 py-1 text-[13px] font-semibold">
-                  {name(s)}
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        ))}
-      </div>
-    </>
   );
 }
