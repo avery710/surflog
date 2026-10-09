@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { MessageSquarePlus } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import { SpotReviewsDialog } from "@/components/spot-reviews-dialog";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
@@ -174,7 +174,7 @@ export function PatternsTable({
                             title={t("patterns.shareReview")}
                             className="flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                           >
-                            <MessageSquarePlus className="size-4" aria-hidden />
+                            <Megaphone className="size-4" aria-hidden />
                           </button>
                         ) : null}
                       </td>
