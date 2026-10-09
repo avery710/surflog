@@ -147,7 +147,7 @@ const DICT = {
 
   "patterns.title": { en: "What you've surfed", "zh-TW": "你衝過的浪點" },
   "patterns.sessions": { en: "Sessions", "zh-TW": "次數" },
-  "patterns.description": { en: "My notes (private)", "zh-TW": "我的筆記（不公開）" },
+  "patterns.description": { en: "My notes", "zh-TW": "我的筆記" },
   "patterns.addDescription": { en: "+ Add a note", "zh-TW": "+ 新增筆記" },
   "patterns.descriptionPlaceholder": {
     en: "e.g. best at mid tide, crowded on weekends",
