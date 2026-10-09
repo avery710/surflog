@@ -367,7 +367,7 @@ const DICT = {
     en: "The compass direction the break faces out to sea. With it, the wind tile can say onshore / offshore.",
     "zh-TW": "浪點面向外海的方位。填了之後，風向欄會標示是向岸風還是離岸風。",
   },
-  "spot.save": { en: "Add spot", "zh-TW": "新增浪點" },
+  "spot.save": { en: "Submit spot", "zh-TW": "提交浪點" },
   "spot.saving": { en: "Adding…", "zh-TW": "新增中…" },
   "spot.update": { en: "Save changes", "zh-TW": "儲存變更" },
   "spot.delete": { en: "Delete spot", "zh-TW": "刪除浪點" },
