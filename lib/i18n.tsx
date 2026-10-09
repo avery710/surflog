@@ -875,8 +875,8 @@ const DICT = {
   "review.summaryOne": { en: "{average} · 1 review", "zh-TW": "{average} · 1 則評論" },
   "review.title": { en: "Reviews: {name}", "zh-TW": "評論：{name}" },
   "review.intro": {
-    en: "Everyone signed in to Surflog can read these, with your Google name.",
-    "zh-TW": "所有登入 Surflog 的人都看得到評論，並會顯示你的 Google 名稱。",
+    en: "Reviews are shared publicly.",
+    "zh-TW": "評論會公開分享。",
   },
   "review.yours": { en: "Your review", "zh-TW": "你的評論" },
   "review.fromNotes": {
