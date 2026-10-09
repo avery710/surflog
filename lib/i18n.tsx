@@ -875,8 +875,8 @@ const DICT = {
   "review.summaryOne": { en: "{average} · 1 review", "zh-TW": "{average} · 1 則評論" },
   "review.title": { en: "Reviews: {name}", "zh-TW": "評論：{name}" },
   "review.intro": {
-    en: "Reviews are shared publicly.",
-    "zh-TW": "評論會公開分享。",
+    en: "Reviews are shared with everyone.",
+    "zh-TW": "評論會與所有人分享。",
   },
   "review.yours": { en: "Your review", "zh-TW": "你的評論" },
   "review.fromNotes": {
