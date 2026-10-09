@@ -84,12 +84,14 @@ export function PublicShareView({
 
         <div className="mt-auto pt-10">
           <section className="rounded-[var(--r-card)] border border-card-border bg-card px-6 py-5 text-center">
-            <p className="text-[15px] font-semibold">{t("share.page.cta")}</p>
+            {/* Signed in: a nudge to log their own session (the journal opens with the
+                log form, like the header "+"); signed out: the sign-up pitch. */}
+            <p className="text-[15px] font-semibold">{t(signedIn ? "share.page.ctaMember" : "share.page.cta")}</p>
             <a
-              href={signedIn ? homeHref : signInHref}
+              href={signedIn ? "/?log=1" : signInHref}
               className="mt-3 inline-block rounded-full bg-primary px-5 py-2.5 text-[14px] font-semibold text-primary-foreground outline-none hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              {t(signedIn ? "share.page.openJournal" : "share.page.signUp")}
+              {t(signedIn ? "share.page.logSession" : "share.page.signUp")}
             </a>
           </section>
           <p className="mt-4 text-center text-[12px] text-muted-foreground">{t("share.page.footer")}</p>

@@ -62,6 +62,8 @@ const S = {
   // Header / bottom buttons: a signed-in visitor gets their journal, anyone else "Start free" (header) / "Sign up free" (bottom box), one Google step either way.
   "share.page.openJournal": { en: "Open my journal", "zh-TW": "打開我的日誌" },
   "share.page.startFree": { en: "Start free", "zh-TW": "免費開始" },
+  "share.page.ctaMember": { en: "Been in the water lately?", "zh-TW": "最近有下水嗎？" },
+  "share.page.logSession": { en: "Log a session", "zh-TW": "記錄一次衝浪" },
   "share.page.signUp": { en: "Sign up free", "zh-TW": "免費加入" },
   "share.page.footer": {
     en: "Shared with Surflog. Conditions are model data for the nearest grid point.",
