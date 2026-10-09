@@ -719,6 +719,14 @@ export const DICT = {
     "zh-TW": "此連結無效。請回到應用程式重新發起連線。",
   },
   "tokens.title": { en: "AI apps", "zh-TW": "AI Apps" },
+  // The journal's "connect an AI app" card, shown until one is connected.
+  "aiCard.heading": { en: "AI app", "zh-TW": "AI App" },
+  "aiCard.title": { en: "Connect your AI app", "zh-TW": "接上你的 AI App" },
+  "aiCard.body": {
+    en: "Log sessions and get advice just by chatting with Claude, ChatGPT or Gemini.",
+    "zh-TW": "跟 Claude、ChatGPT 或 Gemini 聊天，就能記錄衝浪、取得建議。",
+  },
+  "aiCard.cta": { en: "Connect", "zh-TW": "去連結" },
   "tokens.back": { en: "Back to journal", "zh-TW": "回到日誌" },
   "tokens.intro": {
     en: "Let your own AI app read and log your surf sessions. It acts as you, on your journal only, and you can cut it off here at any time.",

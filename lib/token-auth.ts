@@ -121,6 +121,19 @@ export async function listApiTokens(ownerId: string): Promise<ApiToken[]> {
   return (data as TokenRow[]).map(rowToToken);
 }
 
+/** Whether the owner has any AI app connected: an un-revoked token of either
+ *  kind, the same rule as the "Active" list on /ai-apps. The journal shows its
+ *  "connect an AI app" card only while this is false. */
+export async function hasConnectedApp(ownerId: string): Promise<boolean> {
+  const { count, error } = await getSupabase()
+    .from(TABLE)
+    .select("id", { count: "exact", head: true })
+    .eq("owner_id", ownerId)
+    .is("revoked_at", null);
+  if (error) throw new Error(`Supabase hasConnectedApp: ${error.message}`);
+  return (count ?? 0) > 0;
+}
+
 export type CreateTokenResult =
   | { ok: true; token: string; record: ApiToken }
   | { ok: false; error: string };

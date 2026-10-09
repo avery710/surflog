@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { GoalCard } from "@/components/goal";
 import { ActivityCalendar } from "@/components/activity-calendar";
+import { AiAppCard } from "@/components/ai-app-card";
 import { PatternsTable } from "@/components/patterns-table";
 import { BoardRack } from "@/components/board-rack";
 import { LangSwitch } from "@/app/dev/lang-switch";
@@ -55,11 +56,14 @@ function DashboardPanel({
   sessions,
   spotNotes,
   boards,
+  aiCard = false,
 }: {
   goal: string | null;
   sessions: Session[];
   spotNotes: Record<string, string>;
   boards: Board[];
+  /** journal.tsx's showAiAppCard: no AI app connected yet. */
+  aiCard?: boolean;
 }) {
   return (
     // mirrors components/journal.tsx — keep in sync. There it's an inline
@@ -79,12 +83,25 @@ function DashboardPanel({
           to waste between sm and lg; items-stretch (2026-10-08): the goal
           card fits its points, the calendar stretches to it and shows more
           weeks. */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
+      {aiCard ? (
+        // With the AI app card: see journal.tsx's comment on this branch.
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+          <div className="flex min-w-0 flex-col lg:flex-1">
+            <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
+          </div>
+          <div className="flex flex-wrap items-stretch gap-3 sm:gap-4 lg:flex-nowrap">
+            <ActivityCalendar sessions={sessions} fit />
+            <AiAppCard />
+          </div>
         </div>
-        <ActivityCalendar sessions={sessions} />
-      </div>
+      ) : (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
+          </div>
+          <ActivityCalendar sessions={sessions} />
+        </div>
+      )}
 
       <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={devSaveSpotNote} />
 
@@ -673,6 +690,23 @@ export default function DashboardPreviewPage() {
               </Frame>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="font-sans text-[15px] font-bold">No AI app connected yet</h2>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          The “typical” case with the card linking to /ai-apps beside the calendar, at this window&apos;s real width
+          (its layout switches on <code>sm:</code> and <code>lg:</code>, which frames can&apos;t emulate).
+        </p>
+        <div className="mt-3">
+          <DashboardPanel
+            goal={typicalCase.goal}
+            sessions={typicalCase.sessions}
+            boards={typicalCase.boards}
+            spotNotes={typicalCase.spotNotes}
+            aiCard
+          />
         </div>
       </section>
 

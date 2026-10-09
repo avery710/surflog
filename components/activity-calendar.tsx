@@ -157,7 +157,14 @@ function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
-export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
+export function ActivityCalendar({
+  sessions,
+  fit = false,
+}: {
+  sessions: Session[];
+  /** Hug the content below `sm` too (default: full width there). */
+  fit?: boolean;
+}) {
   const { lang, t } = useLang();
   const scrollRef = useRef<HTMLDivElement>(null);
   const upBtnRef = useRef<HTMLButtonElement>(null);
@@ -315,8 +322,10 @@ export function ActivityCalendar({ sessions }: { sessions: Session[] }) {
     // once the card stopped carrying any other slack (see the width-fix
     // immediately before this one). From `sm` the card is stretched to the
     // goal card's height (2026-10-08): the extra height shows more weeks.
-    <section className="w-full sm:flex sm:w-fit sm:shrink-0 sm:flex-col">
-      <div className="flex flex-col rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-6 pb-5 pl-5 sm:flex-1">
+    // `fit`: hug the content at every width, phones too (the journal's row
+    // with the AI app card beside it).
+    <section className={fit ? "flex w-fit shrink-0 flex-col" : "w-full sm:flex sm:w-fit sm:shrink-0 sm:flex-col"}>
+      <div className={cn("flex flex-col rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-6 pb-5 pl-5", fit ? "flex-1" : "sm:flex-1")}>
         {/* Same type style as the other dashboard-panel titles (goal card,
             patterns table, board rack). */}
         <h2 className="mb-3 h-5 shrink-0 font-sans text-[13px] leading-5 font-bold text-muted-foreground">

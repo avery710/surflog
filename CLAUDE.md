@@ -431,6 +431,12 @@ white cards — row 1 goal card + activity calendar (`sm:w-[260px]`,
 `app/dev/dashboard/page.tsx` mirrors this markup; keep in sync.
 - **Activity calendar**: the component's header comment is the source of
   truth. Week rows, Sunday-first, titled "Days in the water".
+- **AI app card** (`components/ai-app-card.tsx`, 2026-10-09): shown only
+  while the owner has no un-revoked token (`hasConnectedApp()`, fails soft
+  to hidden); links to `/ai-apps`. Sits beside the calendar in one row at
+  every width (calendar `fit`, card takes the rest); below `lg` the goal
+  card moves to its own row above them; at 320 px the card wraps under.
+  Without it the row is the old goal + calendar layout.
 - **Board rack** (`components/board-rack.tsx`): 常用 via the ⋯ menu; the
   badge is also a remove button. **排序 / Reorder mode** makes the whole
   card the drag surface (dnd-kit, **one** `SortableContext` for all cards;

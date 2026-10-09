@@ -8,6 +8,7 @@ import { googleSignIn } from "@/app/actions";
 import { Journal } from "@/components/journal";
 import { Landing } from "@/components/landing/landing";
 import { getLandingSpots } from "@/lib/landing-spots";
+import { hasConnectedApp } from "@/lib/token-auth";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ log?: string; spot?: string }> }) {
   const session = await auth();
@@ -27,7 +28,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   }
 
   const canManageSpots = isSpotAdmin(session.user);
-  const [sessions, spotNotes, boards, goal, spots, requestRows, pendingSpotRequests] = await Promise.all([
+  const [sessions, spotNotes, boards, goal, spots, requestRows, pendingSpotRequests, aiConnected] = await Promise.all([
     listSessions(session.user.id),
     listSpotNotes(session.user.id),
     listBoards(session.user.id),
@@ -40,6 +41,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
     canManageSpots
       ? listAllRequests().then((rows) => pendingAdminWork(rows.filter((r) => r.status === "pending").length))
       : 0,
+    // whether to show the "connect an AI app" card; on any failure assume
+    // connected, so a database hiccup never nags someone who already is
+    hasConnectedApp(session.user.id).catch(() => true),
   ]);
 
   // A user's own requests: the minimum needed to log against one — never
@@ -51,6 +55,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   // column, so Journal applies that column itself to everything below
   // its header instead. See journal.tsx's own comment.
   return (
-    <Journal initialSessions={sessions} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} user={session.user} openLogForm={(await searchParams).log === "1"} logSpot={(await searchParams).spot} />
+    <Journal initialSessions={sessions} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} showAiAppCard={!aiConnected} user={session.user} openLogForm={(await searchParams).log === "1"} logSpot={(await searchParams).spot} />
   );
 }

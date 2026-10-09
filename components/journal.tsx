@@ -8,6 +8,7 @@ import { SessionList } from "@/components/session-list";
 import { PatternsTable } from "@/components/patterns-table";
 import { BoardRack } from "@/components/board-rack";
 import { GoalCard } from "@/components/goal";
+import { AiAppCard } from "@/components/ai-app-card";
 import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,7 @@ export function Journal({
   initialRequests = [],
   canManageSpots = false,
   pendingSpotRequests = 0,
+  showAiAppCard = false,
   user,
   openLogForm = false,
   logSpot,
@@ -57,6 +59,8 @@ export function Journal({
   canManageSpots?: boolean;
   /** Admin only: how many spot requests are waiting (badge on the menu link). */
   pendingSpotRequests?: number;
+  /** No AI app connected yet: show the card linking to /ai-apps beside the calendar. */
+  showAiAppCard?: boolean;
   user: JournalUser;
   /** Arrived via the "+" on a sub page (`/?log=1`): start with the log form open. */
   openLogForm?: boolean;
@@ -323,12 +327,33 @@ export function Journal({
               activity-calendar.tsx). Below `sm` both stack full-width, goal
               above calendar (their natural DOM order), with no height cap on
               either. */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+          {showAiAppCard ? (
+            // With the AI app card (2026-10-09, on request: beside the
+            // calendar, in one row even on phones): the calendar hugs its
+            // content and the card takes the rest of that row. Below `lg`
+            // the goal gets its own row above them, since three columns
+            // would squeeze it; from `lg` all three share one row, the
+            // calendar stretched to the goal's height as without the card.
+            // flex-wrap only matters on the narrowest phones (320px), where
+            // the card drops under the calendar rather than widening the page;
+            // the gap is 12px below `sm` to leave the card a little more room.
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+              <div className="flex min-w-0 flex-col lg:flex-1">
+                <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+              </div>
+              <div className="flex flex-wrap items-stretch gap-3 sm:gap-4 lg:flex-nowrap">
+                <ActivityCalendar sessions={sessions} fit />
+                <AiAppCard />
+              </div>
             </div>
-            <ActivityCalendar sessions={sessions} />
-          </div>
+          ) : (
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+              </div>
+              <ActivityCalendar sessions={sessions} />
+            </div>
+          )}
 
           {/* Row 2: the spot table, now full width on every breakpoint since
               it no longer shares a row with the calendar. */}
