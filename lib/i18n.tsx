@@ -876,7 +876,7 @@ const DICT = {
   "review.title": { en: "Reviews: {name}", "zh-TW": "評論：{name}" },
   "review.intro": {
     en: "Reviews are shared with everyone.",
-    "zh-TW": "評論會與所有人分享。",
+    "zh-TW": "評論會公開分享。",
   },
   "review.yours": { en: "Your review", "zh-TW": "你的評論" },
   "review.fromNotes": {
