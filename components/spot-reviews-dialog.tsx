@@ -49,7 +49,8 @@ const errorKey: Record<string, TKey> = {
   unavailable: "review.unavailable",
 };
 
-function Reviews({
+/** The form and the list of reviews of one spot (in the dialog, and inline on a spot's page). */
+export function Reviews({
   spot,
   onSummary,
   draftBody,

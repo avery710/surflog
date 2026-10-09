@@ -303,7 +303,12 @@ function SpotRow({
     >
       <div className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-          <span className="min-w-0 text-[14.5px] font-semibold break-words">{name}</span>
+          <Link
+            href={`/spots/${encodeURIComponent(spot.slug)}`}
+            className="min-w-0 rounded-sm text-[14.5px] font-semibold break-words underline decoration-transparent underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {name}
+          </Link>
           {other && <span className="min-w-0 text-[12.5px] text-muted-foreground break-words">{other}</span>}
           {editPending && (
             <span className="self-center rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">

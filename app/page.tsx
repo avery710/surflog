@@ -9,7 +9,7 @@ import { Journal } from "@/components/journal";
 import { Landing } from "@/components/landing/landing";
 import { getLandingSpots } from "@/lib/landing-spots";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ log?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ log?: string; spot?: string }> }) {
   const session = await auth();
   // Signed out → the landing page (proxy.ts lets exactly "/" through
   // without sign-in for this). It renders synthetic demo data only and
@@ -51,6 +51,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   // column, so Journal applies that column itself to everything below
   // its header instead. See journal.tsx's own comment.
   return (
-    <Journal initialSessions={sessions} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} user={session.user} openLogForm={(await searchParams).log === "1"} />
+    <Journal initialSessions={sessions} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} user={session.user} openLogForm={(await searchParams).log === "1"} logSpot={(await searchParams).spot} />
   );
 }

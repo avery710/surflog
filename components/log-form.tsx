@@ -32,6 +32,7 @@ export function LogForm({
   onCreated,
   ownerId,
   recentSpot,
+  presetSpot,
   boards = [],
   sessions = [],
   goal = null,
@@ -43,6 +44,8 @@ export function LogForm({
   ownerId?: string;
   /** Spot of the user's most recent session — fallback when no default is set. */
   recentSpot?: string;
+  /** A spot to start on (from a spot's page): wins over the saved default if it exists. */
+  presetSpot?: string;
   boards?: Board[];
   /** The owner's sessions — only used to pre-select the last-used board. */
   sessions?: Session[];
@@ -67,6 +70,7 @@ export function LogForm({
     !!v && (bySlug(v) != null || pendingRequests.some((p) => p.value === v));
   const spot =
     pickedSpot ??
+    (isOption(presetSpot) ? presetSpot : null) ??
     (isOption(defaultSpot) ? defaultSpot : isOption(recentSpot) ? recentSpot : "waiao");
   const isDefault = spot === defaultSpot;
   const spotId = useId();

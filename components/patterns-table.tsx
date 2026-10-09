@@ -109,7 +109,7 @@ export function PatternsTable({
                     <td className="rounded-l-[var(--r-tile)] px-4 py-1.5 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
                       {spot ? (
                         <Link
-                          href={`/spots#spot-${encodeURIComponent(spot.slug)}`}
+                          href={`/spots/${encodeURIComponent(spot.slug)}`}
                           className="rounded-sm underline decoration-transparent underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {label}
@@ -170,11 +170,10 @@ export function PatternsTable({
                             type="button"
                             onClick={() => setSharing({ spot, note })}
                             aria-label={t("patterns.shareReviewLabel", { spot: label })}
-                            title={t("patterns.shareReviewLabel", { spot: label })}
-                            className="flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold whitespace-nowrap text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+                            title={t("patterns.shareReview")}
+                            className="flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
                           >
                             <MessageSquarePlus className="size-4" aria-hidden />
-                            <span className="hidden sm:inline">{t("patterns.shareReview")}</span>
                           </button>
                         ) : null}
                       </td>

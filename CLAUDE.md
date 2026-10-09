@@ -267,6 +267,16 @@ fields + CWA township, 9 Siargao, 26 Bali).
   `lib/spot-pins.ts`. Migration `20261009100000` **NOT applied yet** (page
   shows no pins, toggling says "not switched on yet"). Not in the log-form
   picker. Not checked in a browser.
+- **Spot page** `/spots/<slug>` (2026-10-09, `components/spot-detail.tsx`): header
+  with Pin and "Log a session here" (`/?log=1&spot=<slug>` → `presetSpot` on the
+  log form), About (facing, best swell/wind/tide, map link, Suggest an edit for
+  non-admins), "Your sessions here" (count, range, the private note editable,
+  headline numbers per session, own data only), Reviews inline (`Reviews`
+  exported from the dialog). Spot names link here from `/spots` rows and from
+  the journal's "What you've surfed" table (whose column is "My notes
+  (private)"; its icon-only "Share as review" button opens the review dialog
+  with the note copied in). Not built: nearby spots, per-session pages.
+  `/dev/spot-detail` previews it on synthetic data. Not checked signed in.
 - Never exercised on live data: create/edit/delete a spot,
   send/approve/decline a request, the non-admin view, "Near me".
 

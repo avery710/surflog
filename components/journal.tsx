@@ -43,6 +43,7 @@ export function Journal({
   pendingSpotRequests = 0,
   user,
   openLogForm = false,
+  logSpot,
 }: {
   initialSessions: Session[];
   initialSpotNotes: Record<string, string>;
@@ -59,6 +60,8 @@ export function Journal({
   user: JournalUser;
   /** Arrived via the "+" on a sub page (`/?log=1`): start with the log form open. */
   openLogForm?: boolean;
+  /** With `openLogForm` (from a spot's page: `/?log=1&spot=<slug>`): the spot the form starts on. */
+  logSpot?: string;
 }) {
   const { t } = useLang();
   const [sessions, setSessions] = useState(initialSessions);
@@ -353,6 +356,7 @@ export function Journal({
               onBusyChange={setFormBusy}
               ownerId={user.id}
               recentSpot={sessions[0]?.spot}
+              presetSpot={logSpot}
               onRequestSpot={openRequestDialog}
               boards={boards}
               sessions={sessions}
