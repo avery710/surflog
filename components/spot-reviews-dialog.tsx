@@ -38,7 +38,16 @@ export function SpotReviewsDialog({
           <DialogTitle>{t("review.title", { name })}</DialogTitle>
           <DialogDescription>{t("review.intro")}</DialogDescription>
         </DialogHeader>
-        {spot && <Reviews key={spot.slug} spot={spot} onSummary={onSummary} draftBody={draftBody} />}
+        {spot && (
+          <Reviews
+            key={spot.slug}
+            spot={spot}
+            onSummary={onSummary}
+            draftBody={draftBody}
+            // Opened from "Share as review": Cancel closes this window, not just the form.
+            onCancel={draftBody !== undefined ? () => onOpenChange(false) : undefined}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -54,10 +63,13 @@ export function Reviews({
   spot,
   onSummary,
   draftBody,
+  onCancel,
 }: {
   spot: Spot;
   onSummary: (slug: string, s: ReviewSummary | null) => void;
   draftBody?: string;
+  /** Cancel closes the host (the share flow); without it Cancel just stops editing. */
+  onCancel?: () => void;
 }) {
   const { lang, t } = useLang();
   const [reviews, setReviews] = useState<PublicReview[] | null>(null);
@@ -221,8 +233,18 @@ export function Reviews({
             <Button type="submit" disabled={busy || rating < 1} className="rounded-full px-6">
               {busy ? t("review.saving") : mine ? t("review.update") : t("review.save")}
             </Button>
-            {mine && (
-              <Button type="button" variant="ghost" disabled={busy} className="rounded-full" onClick={() => (setEditing(false), setError(null))}>
+            {(mine || onCancel) && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                className="rounded-full"
+                onClick={() => {
+                  setError(null);
+                  if (onCancel) onCancel();
+                  else setEditing(false);
+                }}
+              >
                 {t("review.cancel")}
               </Button>
             )}
