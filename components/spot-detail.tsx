@@ -178,16 +178,11 @@ export function SpotDetail({
         ) : (
           <p className="mt-2 text-[13.5px] text-muted-foreground">{t("spotPage.noInfo")}</p>
         )}
-        {spot.lat != null && spot.lng != null && (
-          <a
-            href={`https://www.google.com/maps?q=${spot.lat},${spot.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-block text-[13px] font-semibold text-primary hover:underline"
-          >
-            {t("spotPage.map")}
-          </a>
-        )}
+        <div className="mt-5 border-t border-card-border pt-4">
+          <h2 className="mb-1 text-[13px] font-bold text-muted-foreground">{t("spotPage.reviews")}</h2>
+          <p className="mb-3 text-[12.5px] text-muted-foreground">{t("review.intro")}</p>
+          <Reviews spot={spot} onSummary={noop} />
+        </div>
       </section>
 
       <section className="mt-4 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-4">
@@ -273,11 +268,6 @@ export function SpotDetail({
         )}
       </section>
 
-      <section className="mt-4 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-4">
-        <h2 className="mb-1 text-[13px] font-bold text-muted-foreground">{t("spotPage.reviews")}</h2>
-        <p className="mb-3 text-[12.5px] text-muted-foreground">{t("review.intro")}</p>
-        <Reviews spot={spot} onSummary={noop} />
-      </section>
 
       <SuggestSpotEditDialog
         spot={suggesting ? spot : null}

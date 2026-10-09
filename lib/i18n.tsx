@@ -655,7 +655,6 @@ const DICT = {
   "spotPage.logHere": { en: "Log a session here", "zh-TW": "在這裡記錄一次衝浪" },
   "spotPage.about": { en: "About this spot", "zh-TW": "浪點資訊" },
   "spotPage.noInfo": { en: "No details for this spot yet.", "zh-TW": "這個浪點還沒有詳細資料。" },
-  "spotPage.map": { en: "Open in Google Maps", "zh-TW": "在 Google 地圖開啟" },
   "spotPage.history": { en: "Your sessions here", "zh-TW": "你在這裡的紀錄" },
   "spotPage.noSessions": { en: "You haven't logged a session here yet.", "zh-TW": "你還沒有在這裡記錄過衝浪。" },
   "spotPage.sessions": { en: "sessions", "zh-TW": "次" },
