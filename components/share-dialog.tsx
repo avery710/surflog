@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLang, type Lang } from "@/lib/i18n";
 import type { ShareTone, ShareVariant } from "@/lib/share-element";
-import { INSTAGRAM_STORY_URL, canInstagramStory, detectMobileOS, sharePayload } from "@/lib/share-targets";
+import { sharePayload } from "@/lib/share-targets";
 import { ALL_PARTS, SHARE_PARTS, noParts, serializeShareParts, type ShareParts } from "@/lib/share-parts";
 
 /**
@@ -22,10 +22,8 @@ import { ALL_PARTS, SHARE_PARTS, noParts, serializeShareParts, type ShareParts }
  *
  * Sending, laid out like Strava's share sheet, all feature-detected (helpers in
  * lib/share-targets.ts). The web can't hand an image to another app except via
- * the OS share sheet or the clipboard:
- * - Instagram Story (phones only): copies the sticker, then opens
- *   `instagram://story-camera`; the user taps "Add sticker" to paste. An
- *   unofficial best effort: there is no web API for Stories.
+ * the OS share sheet or the clipboard. Instagram Story is off for now (removed,
+ * not deleted from lib/share-targets.ts):
  * - Copy image: ClipboardItem built SYNCHRONOUSLY in the click, holding a Promise
  *   for the blob (iOS Safari drops the gesture otherwise). Save: a download.
  * - Copy link / WhatsApp / LINE: only with the public link ALREADY on; this
@@ -62,8 +60,6 @@ const noopSubscribe = () => () => {};
 const clipboardImageSupported = () =>
   typeof ClipboardItem !== "undefined" && typeof navigator !== "undefined" && !!navigator.clipboard?.write;
 const webShareSupported = () => typeof navigator !== "undefined" && typeof navigator.share === "function";
-// "ios" | "android" | "" (desktop). A string so useSyncExternalStore's snapshot is stable.
-const mobileOS = () => (typeof navigator === "undefined" ? "" : (detectMobileOS(navigator.userAgent, navigator.maxTouchPoints ?? 0) ?? ""));
 
 const KINDS: Variant[] = ["strip", "column", "card"];
 const DEBOUNCE_MS = 250;
@@ -90,7 +86,7 @@ export function ShareDialog({
   const [selected, setSelected] = useState<Variant>("strip");
   const [imageLang, setImageLang] = useState<Lang>(appLang);
   // Color mode of all three images. Light = white / light ink (dark photos), Dark = near-black.
-  const [tone, setTone] = useState<ShareTone>("light");
+  const [tone, setTone] = useState<ShareTone>("dark");
   const [chosen, setChosen] = useState<ShareParts>({ ...ALL_PARTS });
   // What is actually drawn: the switch AND the session having it.
   const parts: ShareParts = {
@@ -130,8 +126,6 @@ export function ShareDialog({
 
   const canCopyImage = useSyncExternalStore(noopSubscribe, clipboardImageSupported, () => false);
   const canWebShare = useSyncExternalStore(noopSubscribe, webShareSupported, () => false);
-  const os = useSyncExternalStore(noopSubscribe, mobileOS, () => "");
-  const showStory = canInstagramStory(os === "" ? null : (os as "ios" | "android"), canCopyImage);
   // The public link, once it is on (owned by LinkSection, which does the switching).
   const [linkUrl, setLinkUrl] = useState<string | null>(null);
 
@@ -258,20 +252,6 @@ export function ShareDialog({
     }
   }
 
-  // Instagram's web hand-off: copy the sticker, then open the story camera. The
-  // user taps "Add sticker" there. Instagram can't be sent an image from the web.
-  function sendToInstagramStory() {
-    const p = ensureFull(selected);
-    if (!p) return;
-    navigator.clipboard
-      .write([new ClipboardItem({ "image/png": p })])
-      .then(() => {
-        toast.success(t("share.toast.storyCopied"));
-        window.location.href = INSTAGRAM_STORY_URL;
-      })
-      .catch(() => toast.error(t("share.toast.copyFailed")));
-  }
-
   // "More": the image with an invite and a link (the public link when it's on,
   // else Surflog itself) through the OS share sheet, to any chat app.
   const shareFile = useMemo(() => (fullBlob ? new File([fullBlob], fileName, { type: "image/png" }) : null), [fullBlob, fileName]);
@@ -342,26 +322,11 @@ export function ShareDialog({
             value={tone}
             onChange={setTone}
             options={[
-              { value: "light", label: t("share.tone.light") },
               { value: "dark", label: t("share.tone.dark") },
+              { value: "light", label: t("share.tone.light") },
             ]}
           />
         </div>
-
-        {hasPhoto && (
-          <div className="flex">
-            <label className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold">
-              <Switch.Root
-                checked={photoChoice}
-                onCheckedChange={setPhotoChoice}
-                className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#c9ced6] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=checked]:bg-primary"
-              >
-                <Switch.Thumb className="block size-4 translate-x-0.5 rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-[18px]" />
-              </Switch.Root>
-              {t("share.bg.photo")}
-            </label>
-          </div>
-        )}
 
         <div role="group" aria-label={t("share.parts.label")} className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="text-[12.5px] font-semibold text-muted-foreground">{t("share.parts.label")}</span>
@@ -377,6 +342,18 @@ export function ShareDialog({
               {t(`share.part.${k}`)}
             </label>
           ))}
+          {hasPhoto && (
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold">
+              <Switch.Root
+                checked={photoChoice}
+                onCheckedChange={setPhotoChoice}
+                className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#c9ced6] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=checked]:bg-primary"
+              >
+                <Switch.Thumb className="block size-4 translate-x-0.5 rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-[18px]" />
+              </Switch.Root>
+              {t("share.bg.photo")}
+            </label>
+          )}
         </div>
 
         {/* The gallery: all three styles at once, each an Instagram-story frame,
@@ -457,17 +434,6 @@ export function ShareDialog({
         </div>
 
         <section aria-label={t("share.act.label")} className="flex flex-col gap-3">
-          {showStory && (
-            <button
-              type="button"
-              disabled={!currentReady}
-              onClick={sendToInstagramStory}
-              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-full bg-secondary text-[15px] font-semibold outline-none transition-colors hover:bg-secondary/70 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <InstagramGlyph />
-              {t("share.act.instagram")}
-            </button>
-          )}
           {/* -ml-2: each button is 64px with a 48px circle, so this lines the circles up with the left edge */}
           <div className="-ml-2 flex flex-wrap justify-start gap-x-2 gap-y-3 sm:gap-x-4">
             {canCopyImage && <ActionButton label={t("share.button.copyImage")} disabled={!currentReady} onClick={copyImage} icon={<Copy />} />}
@@ -660,23 +626,5 @@ function ActionButton({ label, icon, onClick, disabled, bare }: { label: string;
   );
 }
 
-/** A flat camera-in-a-rounded-square: brand-neutral, not Instagram's artwork. */
-function InstagramGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" aria-hidden>
-      <defs>
-        <linearGradient id="share-ig" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#f9a03f" />
-          <stop offset="0.5" stopColor="#e1306c" />
-          <stop offset="1" stopColor="#7b3fe4" />
-        </linearGradient>
-      </defs>
-      <rect width="24" height="24" rx="6.5" fill="url(#share-ig)" />
-      <rect x="5.5" y="5.5" width="13" height="13" rx="4" fill="none" stroke="#fff" strokeWidth="1.7" />
-      <circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" strokeWidth="1.7" />
-      <circle cx="16.1" cy="7.9" r="0.9" fill="#fff" />
-    </svg>
-  );
-}
 
 /** A coloured rounded square with a plain speech bubble (WhatsApp / LINE stand-in). */
