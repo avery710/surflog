@@ -430,7 +430,9 @@ white cards — row 1 goal card + activity calendar (`sm:w-[260px]`,
 `items-start`), row 2 "What you've surfed" table, row 3 board rack.
 `app/dev/dashboard/page.tsx` mirrors this markup; keep in sync.
 - **Activity calendar**: the component's header comment is the source of
-  truth. Week rows, Sunday-first, titled "Days in the water".
+  truth. Week rows, Sunday-first, titled "Days in the water". The ↑/↓
+  week buttons sit in a side rail from `sm`, at the end of the title row
+  below it (2026-10-09, to give the AI app card room on phones).
 - **AI app card** (`components/ai-app-card.tsx`, 2026-10-09): shown only
   while the owner has no un-revoked token (`hasConnectedApp()`, fails soft
   to hidden); links to `/ai-apps`. Sits beside the calendar in one row at

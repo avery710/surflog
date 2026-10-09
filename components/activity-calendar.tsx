@@ -167,8 +167,9 @@ export function ActivityCalendar({
 }) {
   const { lang, t } = useLang();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const upBtnRef = useRef<HTMLButtonElement>(null);
-  const downBtnRef = useRef<HTMLButtonElement>(null);
+  // The card: the ↑/↓ buttons exist twice (title row below `sm`, side rail
+  // from `sm`), and updateArrowState() finds both pairs through it.
+  const cardRef = useRef<HTMLDivElement>(null);
   const scrollAnimationRef = useRef<number | null>(null);
 
   const counts = new Map<string, number>();
@@ -244,10 +245,11 @@ export function ActivityCalendar({
   function updateArrowState() {
     const el = scrollRef.current;
     if (!el) return;
-    if (upBtnRef.current) upBtnRef.current.disabled = el.scrollTop <= 1;
-    if (downBtnRef.current) {
-      downBtnRef.current.disabled = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
-    }
+    const atTop = el.scrollTop <= 1;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+    cardRef.current?.querySelectorAll<HTMLButtonElement>("[data-scroll-week]").forEach((btn) => {
+      btn.disabled = btn.dataset.scrollWeek === "older" ? atTop : atBottom;
+    });
   }
 
   // A slower, eased scroll than the browser's native `behavior: "smooth"`
@@ -315,8 +317,8 @@ export function ActivityCalendar({
     // Full width below `sm`; from `sm` up, fit-content so the card hugs its
     // content whether or not the up/down rail renders (it only exists when
     // canScroll) — a fixed width left a blank rail-sized gap on the right.
-    // The card's own right padding is a touch wider than its left/top/bottom
-    // (pr-6/24px vs p-5/20px) on request, 2026-10-01 — deliberate breathing
+    // From `sm` the card's own right padding is a touch wider than its
+    // left/top/bottom (pr-6/24px vs p-5/20px) on request, 2026-10-01 — deliberate breathing
     // room around the ↑/↓ buttons so they don't sit flush against the card's
     // rounded corner; the plain p-5 used everywhere else read as too tight
     // once the card stopped carrying any other slack (see the width-fix
@@ -325,12 +327,29 @@ export function ActivityCalendar({
     // `fit`: hug the content at every width, phones too (the journal's row
     // with the AI app card beside it).
     <section className={fit ? "flex w-fit shrink-0 flex-col" : "w-full sm:flex sm:w-fit sm:shrink-0 sm:flex-col"}>
-      <div className={cn("flex flex-col rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-6 pb-5 pl-5", fit ? "flex-1" : "sm:flex-1")}>
-        {/* Same type style as the other dashboard-panel titles (goal card,
-            patterns table, board rack). */}
-        <h2 className="mb-3 h-5 shrink-0 font-sans text-[13px] leading-5 font-bold text-muted-foreground">
-          {t("calendar.title")}
-        </h2>
+      {/* Below `sm` (2026-10-09, on request) the ↑/↓ buttons sit at the end
+          of the title row instead of in the side rail, which is hidden there,
+          so the card is 32px narrower on phones (rail + its gap + the wider
+          right padding the rail needed) and the AI app card beside it gets
+          the room. */}
+      <div
+        ref={cardRef}
+        className={cn(
+          "flex flex-col rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-5 pb-5 pl-5 sm:pr-6",
+          fit ? "flex-1" : "sm:flex-1"
+        )}
+      >
+        <div className="mb-3 flex h-5 shrink-0 items-center justify-between gap-2">
+          {/* Same type style as the other dashboard-panel titles (goal card,
+              patterns table, board rack). */}
+          <h2 className="font-sans text-[13px] leading-5 font-bold text-muted-foreground">{t("calendar.title")}</h2>
+          {canScroll && (
+            <div className="flex shrink-0 items-center gap-0.5 sm:hidden">
+              <WeekButton direction="older" label={t("calendar.showOlderWeeks")} onClick={() => scrollByWeek(-1)} />
+              <WeekButton direction="newer" label={t("calendar.showNewerWeeks")} onClick={() => scrollByWeek(1)} />
+            </div>
+          )}
+        </div>
         {/* The weekday header and the scrollable week list share one flex-1
             column, with the ↑/↓ rail as a sibling of that whole column (not
             just of the list) — on request, so the rail spans the header's
@@ -491,32 +510,56 @@ export function ActivityCalendar({
               yet) — on request, so the card's own width stays fixed as
               history accumulates, rather than widening by the rail's own
               width the first time a user crosses 4 weeks of sessions. */}
-          <div className="relative w-5 shrink-0">
+          <div className="relative hidden w-5 shrink-0 sm:block">
             {canScroll && (
               <>
-                <button
-                  ref={upBtnRef}
-                  type="button"
+                <WeekButton
+                  direction="older"
+                  label={t("calendar.showOlderWeeks")}
                   onClick={() => scrollByWeek(-1)}
-                  aria-label={t("calendar.showOlderWeeks")}
-                  className="absolute top-[-5px] left-0 flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
-                >
-                  <ChevronUp className="size-3.5" />
-                </button>
-                <button
-                  ref={downBtnRef}
-                  type="button"
+                  className="absolute top-[-5px] left-0"
+                />
+                <WeekButton
+                  direction="newer"
+                  label={t("calendar.showNewerWeeks")}
                   onClick={() => scrollByWeek(1)}
-                  aria-label={t("calendar.showNewerWeeks")}
-                  className="absolute bottom-[-5px] left-0 flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
-                >
-                  <ChevronDown className="size-3.5" />
-                </button>
+                  className="absolute bottom-[-5px] left-0"
+                />
               </>
             )}
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/** One ↑/↓ button. `data-scroll-week` is how updateArrowState() finds every
+ *  copy (title row and side rail) to enable or disable it. */
+function WeekButton({
+  direction,
+  label,
+  onClick,
+  className,
+}: {
+  direction: "older" | "newer";
+  label: string;
+  onClick: () => void;
+  className?: string;
+}) {
+  const Icon = direction === "older" ? ChevronUp : ChevronDown;
+  return (
+    <button
+      type="button"
+      data-scroll-week={direction}
+      onClick={onClick}
+      aria-label={label}
+      className={cn(
+        "flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30",
+        className
+      )}
+    >
+      <Icon className="size-3.5" />
+    </button>
   );
 }

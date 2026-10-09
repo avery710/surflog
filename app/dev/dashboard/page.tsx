@@ -711,6 +711,22 @@ export default function DashboardPreviewPage() {
       </section>
 
       <section className="mt-10">
+        <h2 className="font-sans text-[15px] font-bold">AI app connected</h2>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          The same case once an AI app is connected: no card, the goal and calendar layout as before, at this
+          window&apos;s real width.
+        </p>
+        <div className="mt-3">
+          <DashboardPanel
+            goal={typicalCase.goal}
+            sessions={typicalCase.sessions}
+            boards={typicalCase.boards}
+            spotNotes={typicalCase.spotNotes}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-sans text-[15px] font-bold">All cases</h2>
           <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
