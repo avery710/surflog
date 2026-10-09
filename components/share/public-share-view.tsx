@@ -46,8 +46,7 @@ export function PublicShareView({
             <div className="flex items-center gap-2.5">
               <a
                 href={signInHref}
-                // an outlined pill, so it reads as a button on the blue (plain white text blended in)
-                className="rounded-full border-2 border-white px-4 py-1.5 text-[13.5px] font-semibold text-white outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+                className="rounded-full px-3 py-2 text-[13.5px] font-semibold text-white outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white"
               >
                 {t("share.page.signIn")}
               </a>
