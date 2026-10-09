@@ -119,9 +119,12 @@ export function SpotsOverview({
     };
   }, [spots, requests, q, t, pins]);
 
-  const row = (s: Spot) => (
+  // `anchor`: the row in its own group carries id="spot-<slug>" (the dashboard
+  // table links to /spots#spot-<slug>); the Pinned copy doesn't, to keep ids unique.
+  const row = (s: Spot, anchor = false) => (
     <SpotRow
       key={s.slug}
+      anchor={anchor}
       spot={s}
       lang={lang}
       editPending={pendingEdit.has(s.slug)}
@@ -206,7 +209,7 @@ export function SpotsOverview({
         {pinnedShown.length > 0 && (
           <section className="mt-6" data-group="pinned">
             <GroupHeading title={t("spots.pinned")} count={pinnedShown.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">{pinnedShown.map(row)}</ul>
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">{pinnedShown.map((s) => row(s))}</ul>
           </section>
         )}
 
@@ -227,7 +230,7 @@ export function SpotsOverview({
           <section key={g.key} className="mt-6" data-group={g.key}>
             <GroupHeading title={g.title} count={g.list.length} />
             <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">
-              {g.list.map(row)}
+              {g.list.map((s) => row(s, true))}
             </ul>
           </section>
         ))}
@@ -259,6 +262,7 @@ function GroupHeading({ title, count }: { title: string; count: number }) {
 }
 
 function SpotRow({
+  anchor,
   spot,
   lang,
   editPending,
@@ -268,6 +272,7 @@ function SpotRow({
   onReviews,
   onSuggestEdit,
 }: {
+  anchor: boolean;
   spot: Spot;
   lang: Lang;
   editPending: boolean;
@@ -291,7 +296,11 @@ function SpotRow({
   if (spot.bestTide) facts.push({ label: t("spots.bestTide"), value: tideKey ? t(tideKey) : spot.bestTide });
 
   return (
-    <li className="border-b border-card-border px-4 py-3 last:border-b-0">
+    <li
+      id={anchor ? `spot-${spot.slug}` : undefined}
+      // scroll-mt clears the sticky header; :target tints the row a link landed on
+      className="scroll-mt-24 border-b border-card-border px-4 py-3 transition-colors last:border-b-0 target:bg-primary/8"
+    >
       <div className="flex items-start gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
           <span className="min-w-0 text-[14.5px] font-semibold break-words">{name}</span>

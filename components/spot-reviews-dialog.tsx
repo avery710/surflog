@@ -18,9 +18,13 @@ export function SpotReviewsDialog({
   spot,
   onOpenChange,
   onSummary,
+  draftBody,
 }: {
   /** The spot being reviewed; null = closed. */
   spot: Spot | null;
+  /** Text to start the review from (the "What you've surfed" private notes):
+   *  fills the form, opening it for editing if a review already exists. */
+  draftBody?: string;
   onOpenChange: (open: boolean) => void;
   /** Called with the spot's new summary (null = no reviews) after a change. */
   onSummary: (slug: string, summary: ReviewSummary | null) => void;
@@ -34,7 +38,7 @@ export function SpotReviewsDialog({
           <DialogTitle>{t("review.title", { name })}</DialogTitle>
           <DialogDescription>{t("review.intro")}</DialogDescription>
         </DialogHeader>
-        {spot && <Reviews key={spot.slug} spot={spot} onSummary={onSummary} />}
+        {spot && <Reviews key={spot.slug} spot={spot} onSummary={onSummary} draftBody={draftBody} />}
       </DialogContent>
     </Dialog>
   );
@@ -45,7 +49,15 @@ const errorKey: Record<string, TKey> = {
   unavailable: "review.unavailable",
 };
 
-function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s: ReviewSummary | null) => void }) {
+function Reviews({
+  spot,
+  onSummary,
+  draftBody,
+}: {
+  spot: Spot;
+  onSummary: (slug: string, s: ReviewSummary | null) => void;
+  draftBody?: string;
+}) {
   const { lang, t } = useLang();
   const [reviews, setReviews] = useState<PublicReview[] | null>(null);
   const [canModerate, setCanModerate] = useState(false);
@@ -76,6 +88,12 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
         if (mine) {
           setRating(mine.rating);
           setBody(mine.body ?? "");
+        }
+        // Started from the private notes: the text goes in the form (open for
+        // editing if there is already a review); nothing posts until "Post".
+        if (draftBody) {
+          setBody(draftBody.slice(0, MAX_REVIEW_BODY));
+          if (mine) setEditing(true);
         }
       })
       .catch(() => alive && setLoadError(t("review.failed")));
@@ -182,6 +200,7 @@ function Reviews({ spot, onSummary }: { spot: Spot; onSummary: (slug: string, s:
         >
           <h3 className="pl-0.5 text-xs font-semibold text-muted-foreground">{t(mine ? "review.editYours" : "review.yours")}</h3>
           <StarInput value={rating} onChange={(v) => (setRating(v), setError(null))} />
+          {draftBody && <p className="text-[12.5px] leading-relaxed text-muted-foreground">{t("review.fromNotes")}</p>}
           <label className="flex flex-col gap-1.5">
             <span className="sr-only">{t("review.body")}</span>
             <Textarea
