@@ -127,8 +127,9 @@ export function PatternsTable({
                           <p className="px-3.5 py-[2px] text-[14px] leading-5 whitespace-pre-wrap break-words">{note}</p>
                         ) : null
                       ) : editing === r.slug ? (
-                        <input
+                        <textarea
                           autoFocus
+                          rows={3}
                           value={draft}
                           maxLength={MAX_DESCRIPTION}
                           disabled={saving}
@@ -137,8 +138,8 @@ export function PatternsTable({
                           onChange={(e) => setDraft(e.target.value)}
                           onBlur={() => commit(r.slug)}
                           onKeyDown={(e) => {
-                            // Enter confirms an IME candidate (注音/倉頡) — only save on a real Enter
-                            if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                            // Enter starts a new line; Ctrl/Cmd+Enter saves. Enter during IME composition (注音/倉頡) is left alone.
+                            if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
                               e.preventDefault();
                               void commit(r.slug);
                             } else if (e.key === "Escape") {
@@ -146,7 +147,7 @@ export function PatternsTable({
                               setEditing(null);
                             }
                           }}
-                          className={`w-full text-[14px] ${INLINE_FIELD}`}
+                          className={`w-full resize-y text-[14px] leading-6 ${INLINE_FIELD}`}
                         />
                       ) : (
                         <button
