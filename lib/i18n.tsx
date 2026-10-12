@@ -193,11 +193,11 @@ export const DICT = {
   "landing.signIn": { en: "Sign in", "zh-TW": "登入" },
   "landing.hero.title": {
     en: "Log it easy. Surf it better.",
-    "zh-TW": "隨手記錄每次下水，陪你越衝越好的幫手",
+    "zh-TW": "輕鬆記錄每次下水，陪你衝浪進步的好幫手",
   },
   "landing.hero.body": {
     en: "Jot down your thoughts after a surf. Surflog fills in what the ocean was doing: swell, wind and tide. Every session counts.",
-    "zh-TW": "上岸隨手記下心得，湧浪、風、潮汐 Surflog 自動補上，讓每一次下水都算數。",
+    "zh-TW": "上岸隨手記下心得，湧浪、風、潮汐 Surflog 自動補上，讓每一次下水都算數！",
   },
   "landing.cond.title": { en: "Conditions fill themselves", "zh-TW": "浪況自動帶入" },
   "landing.cond.body": {
