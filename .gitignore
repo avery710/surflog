@@ -34,3 +34,6 @@ data/swelleye-readings/
 
 # Personal feature backlog — local only (see .claude/skills/backlog)
 BACKLOG.md
+
+# Local analysis reports (name session ids; never committed)
+reports/
