@@ -192,12 +192,12 @@ export const DICT = {
   // Signed-out landing page (components/landing/landing.tsx)
   "landing.signIn": { en: "Sign in", "zh-TW": "登入" },
   "landing.hero.title": {
-    en: "The surf journal that fills in the ocean for you.",
-    "zh-TW": "幫你自動記下海況的衝浪日誌",
+    en: "Log it easy. Surf it better.",
+    "zh-TW": "隨手記錄每次下水，陪你越衝越好的幫手",
   },
   "landing.hero.body": {
-    en: "Log the spot and the time. Swell, wind, tide and water temperature for that moment attach themselves — so after a season, you can see which conditions actually work at your breaks.",
-    "zh-TW": "只要填浪點和時間，當下的湧浪、風、潮汐和水溫就會自動附上。累積一季後，你就看得出哪些條件在你常去的浪點真的好衝。",
+    en: "Jot down your thoughts after a surf. Surflog fills in what the ocean was doing: swell, wind and tide. Every session counts.",
+    "zh-TW": "上岸隨手記下心得，湧浪、風、潮汐 Surflog 自動補上，讓每一次下水都算數。",
   },
   "landing.cond.title": { en: "Conditions fill themselves", "zh-TW": "浪況自動帶入" },
   "landing.cond.body": {
