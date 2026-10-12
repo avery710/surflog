@@ -9,7 +9,7 @@ You commit and push Surflog. **The only push target is `origin staging`** — `m
 
 ## How staging works
 
-Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typecheck → vercel build → deploy → alias to `surflog-staging.vercel.app`), ~90 s. A failing lint or typecheck stops the deploy. Local work happens on `main`; push with `git push origin HEAD:staging`. **Never force-push.**
+Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typecheck → vercel build → deploy → alias to `surflog.tw`), ~90 s. A failing lint or typecheck stops the deploy. Local work happens on `main`; push with `git push origin HEAD:staging`. **Never force-push.**
 
 ## Steps
 

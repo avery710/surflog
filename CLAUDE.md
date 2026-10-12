@@ -20,7 +20,9 @@ last checked.
   `github.com/avery710/surflog`.
 - **Deploy**: pushing to `staging` runs
   `.github/workflows/deploy-staging.yml` (lint, typecheck, test) → Vercel
-  (`surflog-staging.vercel.app`). No production pipeline. See README.md
+  (`surflog.tw` = `STAGING_DOMAIN`; the old `surflog-staging.vercel.app` is
+  no longer updated and stays frozen on its last build). No production
+  pipeline. See README.md
   "Staging deploys" / "Before deploying to Vercel".
 - **The original**: a published Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source in

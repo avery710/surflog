@@ -161,9 +161,11 @@ One-time setup:
    - Secrets: `VERCEL_TOKEN` (vercel.com/account/tokens),
      `VERCEL_PROJECT_ID` (Vercel project → Settings → General),
      `VERCEL_ORG_ID` (your Vercel account/team → Settings → General → ID).
-   - Variables: `STAGING_DOMAIN`, e.g. `surflog-staging.vercel.app` — any
-     free `*.vercel.app` name. Every deploy gets a new random URL; this is
-     the one address that always points at the latest staging build.
+   - Variables: `STAGING_DOMAIN`, currently `surflog.tw` (a custom domain
+     must first be added under Vercel project → Settings → Domains; a free
+     `*.vercel.app` name works too). Every deploy gets a new random URL; this
+     is the one address that always points at the latest staging build. The
+     previous address, `surflog-staging.vercel.app`, is no longer updated.
 4. **Google sign-in** — in Google Cloud Console, add
    `https://<STAGING_DOMAIN>/api/auth/callback/google` as an authorized
    redirect URI on the OAuth client (see "Setting up Google sign-in").
