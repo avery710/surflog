@@ -398,6 +398,24 @@ Session card ⋯ → Share → `components/share-dialog.tsx`: generated images
 ## UI
 
 **Session card** (`components/entry-card.tsx`):
+- **Order** (2026-10-16, after several flips on request): header, board
+  chip + goal pills, notes, condition tiles, media. Chip and goals share
+  one flex-wrap row when they fit; otherwise the chip has its own row and
+  the goals wrap together beneath (`GoalSection` `inline` prop; CSS only,
+  no measuring). Never a stem between chip and goals. Missing parts drop
+  out; unchecked with no board / no goals / no notes.
+- **Media** (`MediaMosaic`, Strava-style): full card width at every count,
+  capped at **260 px tall** (`w-full` + `max-h-[260px]`; without the
+  explicit width the cap shrinks the cells instead). 1 item 16:9, 2 halves,
+  3 columns, 4 a 2×2, 5+ a big cell + 2×2 with "+N" on the fifth. A single
+  item sits beside the tiles from `sm` (tiles `flex-[3]`, media `flex-[2]`),
+  stacked below. Cells open `components/media-viewer.tsx`.
+- **Media viewer**: black full screen, 44 px dark square buttons (zoom
+  in/out for photos only, close), edge chevrons hidden at the ends, "n / N"
+  counter, slide between items (280 ms) with finger-follow swipe and ←/→,
+  only the current item and its neighbours mounted, fade in/out, focus back
+  to the tapped cell (`returnFocusRef`). No pinch zoom. Slide, swipe, zoom
+  and focus return not checked (the tested sessions have one item).
 - Tiles: Swell (height + arrow + compass) · Period · Wind · Water temp ·
   Tide. Below `sm` a 3-column grid; from `sm` one flex row. Missing tiles
   are left out. Big figures are one style (`Figure` in
@@ -426,18 +444,37 @@ Session card ⋯ → Share → `components/share-dialog.tsx`: generated images
   stay its **first child**.
 - Edit panel offers only fields the card shows; other `cond` values ride
   along untouched. Button is "Refresh conditions" (no source name).
+- **Dev preview** `/dev/session-card` (renamed from `entry-card`
+  2026-10-16): every media count × 375 / 700 / 1100 px in real iframes
+  (`frame/`, height by `postMessage`), because `sm:`/`lg:` follow the
+  window, not a frame. Cases in `media-cases.ts`; video cells have no real
+  file.
 
-**Dashboard** (`components/journal.tsx`): one `bg-panel` wrapper holding
-white cards — row 1 goal card + activity calendar (`sm:w-[260px]`,
-`items-start`), row 2 "What you've surfed" table, row 3 board rack.
-`app/dev/dashboard/page.tsx` mirrors this markup; keep in sync.
+**Dashboard** (`components/journal.tsx`): white cards sit directly on the
+grey page (no wrapper), **12 px apart** (`gap-3`; session cards `mt-3`) —
+row 1 goal card + activity calendar (`sm:w-[260px]`, `items-start`), row 2
+"What you've surfed" table, row 3 board rack. Cards have **no outline**.
+`app/dev/dashboard/page.tsx` mirrors this markup; keep in sync. The
+landing's own dashboard mirror is still `gap-4` / old spacing.
+- **"What you've surfed"** (`components/patterns-table.tsx`): the card
+  eases its height (`components/animated-height.tsx`, 240 ms, off under
+  reduced motion) and the note field eases while opening, typing and
+  closing (`NoteField`, grows to the text, 220 px cap; the two coordinate
+  via `data-height-anim`). It is a `table-fixed` table at every width with
+  its header row always visible, **vertical scroll only, never horizontal**
+  (`overflow-x-hidden`; spot names and notes wrap, `[overflow-wrap:anywhere]`).
+  Below `sm` the spot column is 30%, count 44 px (header "#" / 次), share
+  40 px. A stacked-list phone layout was tried and **reverted on request
+  2026-10-16 — don't bring back**. Animations not watched in a visible tab.
 - **Activity calendar**: the component's header comment is the source of
   truth. Week rows, Sunday-first, titled "Days in the water". The ↑/↓
   week buttons sit in a side rail from `sm`, at the end of the title row
   below it (2026-10-09, to give the AI app card room on phones). Below `sm`,
   when the calendar is full width (no AI app card), the card also shows
   the most recent session behind a divider: spot, today / yesterday / N
-  days ago + time, swell height and period (`LastSession`).
+  days ago + time, swell height and period (`LastSession`). At 320 px
+  that box is cramped (heading cut to "Last s…", spot name breaks
+  mid-word); open, 375 px is fine.
 - **AI app card** (`components/ai-app-card.tsx`, 2026-10-09): shown only
   while the owner has no un-revoked token (`hasConnectedApp()`, fails soft
   to hidden); links to `/ai-apps`. Sits beside the calendar in one row at
@@ -458,7 +495,14 @@ white cards — row 1 goal card + activity calendar (`sm:w-[260px]`,
 `components/site-header.tsx` on sub pages duplicates the journal header's
 classes — keep in step; its "+" links to `/?log=1`. Controls on the blue
 are white-filled with white focus rings. **The wordmark stays black, by
-request.** The "+" icon is Avery's own mark (`LogIcon`). Every signed-in
+request.** The "+" icon is Avery's own mark (`LogIcon`). The "+" button
+is one shared component (`components/add-button.tsx`, button in the
+journal, link in `site-header.tsx`) with the **water-wave hover, variant
+3b**: the surface follows the pointer's height, the crest tilts toward it,
+a damped-spring rAF loop that stops when settled; focus and touch fall
+back to a calm centred wave, reduced motion gets a scale/darken only.
+Other variants are kept at `/dev/add-button`. Never watched running (hidden
+tab); the spring constants are two numbers in `step()`. Every signed-in
 page and the landing header use **`PAGE_COLUMN`** (`lib/layout.ts`) —
 change the width there only.
 
@@ -554,6 +598,14 @@ standing instruction). cmux's browser is signed in to the dev server.
   `document.documentElement.scrollWidth` with real-shaped data.
 - **`scale: tan(atan2(100cqw, 1080px))` is wrong in WebKit.** Scale with
   SVG `viewBox` + `foreignObject`, or measure in JS.
+- **`aspect-ratio` + `max-height` shrinks the width** (the 260 px media
+  cap left 258 px squares on the left of a wide card): give the box an
+  explicit `w-full`. Flex-wrap items in a `/dev` row need `min-w-0
+  max-w-full` or the page widens.
+- **Open, not fixed (2026-10-16):** a React hydration warning on the
+  dashboard — the goal pills' drag handle `aria-describedby`
+  (`DndDescribedBy-0` vs `-2`) differs server vs client. Predates the
+  day's changes; shows as the dev "1 Issue" badge.
 - **When moving or renaming a module, fix its importers in the same
   step** (the dev server 500s for everyone meanwhile).
 - Artifact only: db snapshots are frozen (copy before adding `id`);
@@ -603,13 +655,19 @@ load only when a session starts.
   exception: **board length is feet/inches** (stored as inches); volume
   in litres.
 - Times are local to the session's spot, no timezone suffix stored.
-- Single light theme, white page. Rounded, Coinbase-ish: 24px cards, 16px
-  tiles, pill buttons. **Funnel Sans** for UI and notes, **IBM Plex Mono**
-  for readings.
+- Single light theme, **light grey page** with white, outline-free cards.
+  Rounded, Coinbase-ish but tight since 2026-10-16: cards `--r-card` 6px,
+  tiles `--r-tile` 4px, inputs/menus `--radius` 9px, pill buttons stay
+  fully round. **Funnel Sans** for UI and notes, **IBM Plex Mono** for
+  readings. The share images and landing sticker WebPs still use the old,
+  rounder corners.
 - Colour tokens (`app/globals.css`, whose comments hold the history):
   `--primary` `#0018FF` (8.16:1 on white) for buttons, header, badges
-  (go-to badge, goal chip), focus rings; `--panel` `#f2f5f5` for the
-  dashboard panel; `--badge` `#374151` for the avatar fallback and, via
+  (go-to badge, goal chip), focus rings; `--panel` `#f7f9f9` is the **page
+  background** (`bg-panel` on the body and the public share page, nothing
+  else); `--secondary` / `--muted` `#f2f5f5` fill tiles, pills and board
+  cards inside the white cards; `--background` stays white (inputs read
+  it); `--badge` `#374151` for the avatar fallback and, via
   `--data`, the direction arrows and tide curve — readings are
   deliberately not blue.
 - Notes are rich text with a `- ` bullet shortcut. Avery writes notes in

@@ -456,6 +456,21 @@ const CASES: DashboardCase[] = [
     spotNotes: {},
   },
   {
+    id: "long-text",
+    group: "Overview",
+    title: "Long unbroken text in What you've surfed",
+    caption:
+      "Typical sessions, but one spot note is a 120-character URL-like run with no spaces, one is long wrapping Chinese, and one spot has a very long unbroken slug as its name — checks that the table wraps and never scrolls sideways.",
+    goal: typicalGoal,
+    sessions: typicalSessions.map((s, i) => (i % 3 === 2 ? { ...s, spot: "an-extremely-long-spot-name-without-any-spaces-to-break-on-x".repeat(2) } : s)),
+    boards: [typicalBoardA, typicalBoardB],
+    spotNotes: {
+      jialeshui: "https://example.com/" + "a-very-long-unbroken-link-segment-".repeat(4),
+      waiao: "今天佳樂水浪況意外地不錯，早上退潮的時候浪型很乾淨，胸肩高，偶爾有頭高的浪進來，風是離岸風，浪面很漂亮，幾乎沒有雜浪。",
+      ["an-extremely-long-spot-name-without-any-spaces-to-break-on-x".repeat(2)]: "x".repeat(140),
+    },
+  },
+  {
     id: "typical",
     group: "Overview",
     title: "Typical — a few weeks in",

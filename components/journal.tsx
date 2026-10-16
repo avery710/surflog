@@ -10,7 +10,7 @@ import { BoardRack } from "@/components/board-rack";
 import { GoalCard } from "@/components/goal";
 import { AiAppCard } from "@/components/ai-app-card";
 import { UserMenu } from "@/components/user-menu";
-import { Button } from "@/components/ui/button";
+import { AddButton } from "@/components/add-button";
 import {
   Dialog,
   DialogContent,
@@ -250,40 +250,11 @@ export function Journal({
             />
           </h1>
           <div className="flex items-center gap-2.5">
-            <Button
-              size="icon-lg"
-              onClick={() => setFormOpen(true)}
-              /* White fill + blue glyph (2026-10-02, replacing the dark-grey
-                 bg-badge treatment from the white-header era): bg-badge's
-                 #374151 on #0018ff is a shape with almost no contrast
-                 against its own background, so on the solid-blue bar it
-                 goes white instead — a plain white circle reads clearly as
-                 a button on blue, and the blue "+" glyph ties it back to
-                 the brand colour rather than introducing a third hue.
-                 focus-visible:ring-ring/50 (also blue) is overridden to a
-                 white ring, since the default would otherwise disappear
-                 against the same blue background it needs to stand out
-                 from. `hover:bg-card` is an explicit, not redundant,
-                 override: `components/ui/button.tsx`'s default variant
-                 carries its own `hover:bg-primary/80`, and `cn()`/`cva`
-                 here only dedupes same-modifier Tailwind class *groups*
-                 (e.g. two different `bg-*` utilities at the same
-                 modifier) — `hover:bg-primary/80` and plain `bg-card`
-                 aren't such a pair (one's unmodified, one's `hover:`), so
-                 without a matching `hover:bg-*` of its own the default
-                 survived and, on real hover, tinted the white circle blue
-                 — against the header's own blue background this read as
-                 the whole button vanishing, not dimming (caught live, not
-                 by eye: cmux's synthetic `hover` doesn't trigger real
-                 `:hover`, so a first check missed it — see CLAUDE.md
-                 "Testing in the browser (cmux)"). `hover:brightness-95`
-                 alone now does the "a little darker on hover" job. */
-              className="size-10 rounded-full bg-card text-primary shadow-[var(--shadow-card)] hover:bg-card hover:brightness-95 focus-visible:ring-white"
-              aria-label={t("action.logSession")}
-              title={t("action.logSession")}
-            >
-              <LogIcon className="size-4" />
-            </Button>
+            {/* White circle + blue glyph with the rising-wave hover (components/add-button.tsx, 2026-10-16).
+                History of the white-on-blue look: the dark-grey bg-badge treatment vanished against #0018ff, so
+                the button is white; the focus ring is white for the same reason; and the old Button's default
+                hover:bg-primary/80 turned the white circle blue on real hover, which is why this no longer uses it. */}
+            <AddButton label={t("action.logSession")} onClick={() => setFormOpen(true)} />
             <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
           </div>
         </div>
@@ -407,22 +378,7 @@ export function Journal({
   );
 }
 
-/** The log-session button's "+" glyph — Avery's own icon
- * (surflog+button.png, 300x257, black on transparent, a chunky
- * square-ended plus), rebuilt as inline SVG rather than the PNG so it
- * stays crisp at any size and takes `currentColor` (the button's own
- * `text-primary`, no separate colour prop needed). Geometry measured
- * directly from the PNG's alpha channel: two rectangles, not a single
- * centred cross — the vertical bar is 80 wide, the horizontal 63 tall,
- * deliberately unequal (kept as drawn, not squared off to match). */
-export function LogIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 300 257" fill="currentColor" aria-hidden className={className}>
-      <rect x="110" y="0" width="80" height="257" />
-      <rect x="0" y="97" width="300" height="63" />
-    </svg>
-  );
-}
+export { LogIcon } from "@/components/add-button";
 
 function EmptyState() {
   const { t } = useLang();

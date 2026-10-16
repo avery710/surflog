@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogIcon } from "@/components/journal";
+import { AddButton } from "@/components/add-button";
 import { UserMenu } from "@/components/user-menu";
 import { useLang } from "@/lib/i18n";
 import { PAGE_COLUMN } from "@/lib/layout";
@@ -47,14 +47,7 @@ export function SiteHeader({
           {/* Same white circle as the journal's "+". The log form only exists
               on the journal, so here it is a link that lands there with the
               form already open (app/page.tsx reads ?log=1). */}
-          <Link
-            href="/?log=1"
-            aria-label={t("action.logSession")}
-            title={t("action.logSession")}
-            className="flex size-10 items-center justify-center rounded-full bg-card text-primary shadow-[var(--shadow-card)] outline-none transition-[filter] hover:brightness-95 focus-visible:ring-3 focus-visible:ring-white active:scale-[0.975]"
-          >
-            <LogIcon className="size-4" />
-          </Link>
+          <AddButton href="/?log=1" label={t("action.logSession")} />
           <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
         </div>
       </div>

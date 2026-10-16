@@ -26,6 +26,12 @@ const PAGES = [
       "The teal-tinted panel above the session list (components/journal.tsx): GoalCard, activity calendar, the “What you've surfed” table, and the board rack together. Empty/typical/edge cases per section, en/zh-TW, fixed widths.",
   },
   {
+    href: "/dev/add-button",
+    title: "Add button hover",
+    description:
+      "Seven water-themed hover animations (ripples, floating, rising wave, a rising wave that follows the mouse, splash, swell, gentle) for the header's white “+” button, on a replica of the blue header, with a force-hover switch and the focus ring.",
+  },
+  {
     href: "/dev/board-rack",
     title: "Board rack",
     description:
