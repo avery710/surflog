@@ -515,17 +515,19 @@ change the width there only.
 
 **Footer** (`components/site-footer.tsx`, in the root layout so every page
 gets it, 2026-10-16): a full-width solid `bg-primary` banner, white text,
-content in `PAGE_COLUMN`. Below `sm` a centred stack: white wordmark (same
-`/surflog-logo.png` + `brightness-0 invert` markup as the headers, `h-5`,
-links to `/`, `aria-label` `footer.homeLabel`), the mail link, then a faded
-"© {year} Surflog". From `sm` (option B, approved) a split row: wordmark with
-the copyright under it on the left, the mail link on the right, vertically
-centred (CSS grid, same DOM order; banner about 84 px). The mail link is
-icon-only: a 20 px Lucide `Mail` in a 40 px circle with a 1.5 px white outline
-and transparent fill (hover: faint `white/15` fill, no movement; focus ring is
-an outline offset 4 px, apart from the border) to
-`mailto:support@surflog.tw` (`SUPPORT_EMAIL`; no visible address, no tooltip;
-`aria-label` `footer.emailLabel` carries the address); no negative margin, so the circle's right edge meets the column's right edge.
+content in `PAGE_COLUMN`. **One layout at every width** (option 2, approved;
+the phone's centred stack was dropped): a CSS grid with the white wordmark
+(same `/surflog-logo.png` + `brightness-0 invert` markup as the headers,
+`h-5`, links to `/`, `aria-label` `footer.homeLabel`) top-left, a faded
+"© {year} Surflog" (16 px line) under it (row gap 8 px), and the mail circle
+on the right pinned to the wordmark row and centred on it (`-my-1.5` keeps
+row 1 at 20 px; banner about 92 px). The mail link is icon-only: a 16 px Lucide
+`Mail` in a 32 px circle with a 1.5 px `white/40` border (hover: border
+`white/20` and a faint `white/15` fill, no movement; focus ring is an outline
+offset 4 px, apart from the border) to `mailto:support@surflog.tw`
+(`SUPPORT_EMAIL`; no visible address, no tooltip; `aria-label`
+`footer.emailLabel` carries the address); no horizontal margin, so the circle's
+right edge meets the column's right edge.
 `mt-auto` pins it to the bottom of short pages; a 40 px spacer sits above it.
 No Privacy/Terms links until those pages exist. The public share page keeps
 its own muted line above it (may read as doubled). The Google consent screen's

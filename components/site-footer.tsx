@@ -18,7 +18,7 @@ const YEAR = new Date().getFullYear();
  * edges line up with the header and the page. `mt-auto` pins it to the bottom
  * of a short page; the 40px transparent spacer inside the footer keeps a gap
  * above the banner without a margin that would fight `mt-auto`. White on
- * #0018FF is 8.16:1. Nothing below the banner. Phone: centred stack. From sm (option B): wordmark with the
+ * #0018FF is 8.16:1. Nothing below the banner. Every width (option 2): wordmark with the
  * copyright under it on the left, the icon-only mail link on the right. (Privacy / Terms links are the
  * natural next items once those pages exist; none are linked now.)
  */
@@ -27,10 +27,10 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto">
       <div aria-hidden className="h-10" />
-      <div className="bg-primary pt-6 pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)] text-primary-foreground sm:pt-5 sm:pb-[calc(env(safe-area-inset-bottom)_+_1.25rem)]">
-        {/* Phone: centred stack (wordmark, mail, copyright). From sm: a two-column grid, wordmark over copyright on the left, mail spanning both rows on the right, so the DOM order stays the phone's reading order. */}
-        <div className={`${PAGE_COLUMN} flex flex-col items-center gap-0.5 text-center sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:gap-x-4 sm:gap-y-1.5 sm:text-left`}>
-          <Link href="/" aria-label={t("footer.homeLabel")} className="mb-2 justify-self-start rounded-sm sm:col-start-1 sm:row-start-1 sm:mb-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+      <div className="bg-primary pt-6 pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)] text-primary-foreground">
+        {/* Every width: two-column grid, wordmark over copyright on the left, mail circle on the right pinned to the wordmark row (-my-1.5 stops its 32px from stretching the 20px row). */}
+        <div className={`${PAGE_COLUMN} grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 text-left`}>
+          <Link href="/" aria-label={t("footer.homeLabel")} className="col-start-1 row-start-1 justify-self-start rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
             {/* Same markup as the headers (white via brightness-0 invert). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -44,11 +44,11 @@ export function SiteFooter() {
           <a
             href={`mailto:${SUPPORT_EMAIL}`}
             aria-label={t("footer.emailLabel", { email: SUPPORT_EMAIL })}
-            className="inline-flex size-10 items-center justify-center rounded-full border-[1.5px] border-white/40 text-primary-foreground transition-colors hover:border-white/20 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none sm:col-start-2 sm:row-span-2 sm:row-start-1"
+            className="inline-flex size-8 items-center justify-center rounded-full border-[1.5px] border-white/40 text-primary-foreground transition-colors hover:border-white/20 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white motion-reduce:transition-none col-start-2 row-start-1 -my-1.5 justify-self-end self-center"
           >
-            <Mail className="size-5 shrink-0" aria-hidden />
+            <Mail className="size-4 shrink-0" aria-hidden />
           </a>
-          <p className="text-[12.5px] text-primary-foreground/70 sm:col-start-1 sm:row-start-2">© {YEAR} Surflog</p>
+          <p className="text-[12.5px] text-primary-foreground/70 col-start-1 row-start-2 leading-4">© {YEAR} Surflog</p>
         </div>
       </div>
     </footer>
