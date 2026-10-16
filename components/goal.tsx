@@ -678,7 +678,7 @@ export function GoalCheck({
  *  left | up-circle | up-pill. SSR and first paint have none, so no stem is
  *  ever drawn in the wrong place. A session records only the points that were
  *  ticked (lib/goal.ts), so no "missed" state. */
-export function GoalSection({ achieved }: { achieved: string[] }) {
+export function GoalSection({ achieved, inline = false }: { achieved: string[]; inline?: boolean }) {
   const { t } = useLang();
   const listRef = useRef<HTMLUListElement>(null);
   useLayoutEffect(() => {
@@ -707,7 +707,12 @@ export function GoalSection({ achieved }: { achieved: string[] }) {
   }, [achieved]);
   if (!achieved.length) return null;
   return (
-    <section data-goal-section className="mx-6 mt-1.5 mb-0.5 max-w-[calc(100%-3rem)]">
+    <section
+      data-goal-section
+      // inline: a flex item beside the board chip (entry-card.tsx), which
+      // supplies the side margins and the gap; otherwise its own row.
+      className={inline ? "mt-[3px] max-w-full min-w-0" : "mx-6 mt-1.5 mb-0.5 max-w-[calc(100%-3rem)]"}
+    >
       <ul
         ref={listRef}
         role="list"

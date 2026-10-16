@@ -365,19 +365,29 @@ export function EntryCard({
         </DialogContent>
       </Dialog>
 
-      {/* Order (2026-10-16, on request): header / board chip / goal pills /
-          notes / condition tiles / media. leading-9 makes the chip's line
+      {/* Order (2026-10-16, on request): header / board chip + goal pills (one
+          row if they fit) / notes / condition tiles / media. leading-9 makes the chip's line
           36px, 8px taller than the 28px pill, which sits 4px down
-          (BoardChip's mt-1), so the 4px above and below keep it visually
-          2px off the header text and the goals (GoalSection brings its own
-          mt-1.5/mb-0.5). */}
-      {board && (
-        <div className="px-6 pt-0 pb-0 text-[13.5px] leading-9 break-words">
-          <BoardChip board={board} />
+          (BoardChip's mt-1), so the chip needs no top padding under the
+          header; GoalSection brings its own mt-1.5/mb-0.5. The notes get pt-2
+          after a chip or goals, pt-1 straight after the header; the tiles
+          bring their own pt-3. */}
+      {(board || achieved.length > 0) && (
+        // Chip and goals share one row when they fit, else the goals (as a
+        // whole group, never split) drop under the chip. Pure CSS: a flex-wrap
+        // row wraps an item as a whole when its max-content width doesn't fit
+        // beside the previous one; a wrapped goals group then shrinks to the
+        // row and wraps its own pills. Gap 8px across, ~8px down (the chip's
+        // 36px line already leaves 4px under its pill). No stem joins the two.
+        <div className="mx-6 mb-0.5 flex flex-wrap items-start gap-x-2 gap-y-0.5">
+          {board && (
+            <div className="max-w-full min-w-0 text-[13.5px] leading-9 break-words">
+              <BoardChip board={board} />
+            </div>
+          )}
+          <GoalSection achieved={achieved} inline />
         </div>
       )}
-
-      <GoalSection achieved={achieved} />
 
       {session.notesHtml && (
         <div

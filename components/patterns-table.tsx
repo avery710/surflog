@@ -161,9 +161,9 @@ export function PatternsTable({
             positioned descendants (the share column's sr-only header), so
             it clips them. Without it that label escaped the scroller and
             widened the whole page on phones. */}
-        <div className="relative flex-1 overflow-auto">
-          <table className="w-full min-w-[420px] border-separate [border-spacing:0_0]">
-            <thead>
+        <div className="relative flex-1 overflow-x-hidden overflow-y-auto sm:overflow-auto">
+          <table className="w-full border-separate [border-spacing:0_0] max-sm:block sm:min-w-[420px]">
+            <thead className="max-sm:sr-only">
               <tr>
                 {[t("form.spot"), t("patterns.sessions"), t("patterns.description")].map((h) => (
                   <th
@@ -180,15 +180,15 @@ export function PatternsTable({
                 )}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="max-sm:block">
               {rows.map((r) => {
                 const label = catalog.label(r.slug, lang);
                 const note = spotNotes[r.slug];
                 // Only catalogue spots have a row on /spots and reviews (not pending requests).
                 const spot = readOnly ? undefined : catalog.bySlug(r.slug);
                 return (
-                  <tr key={r.slug}>
-                    <td className="rounded-l-[var(--r-tile)] px-4 py-1 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap">
+                  <tr key={r.slug} className="max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto_auto] max-sm:items-center max-sm:gap-x-1 max-sm:py-1">
+                    <td className="rounded-l-[var(--r-tile)] px-4 py-1 align-middle font-sans text-[15px] font-bold tracking-[-0.015em] whitespace-nowrap max-sm:col-start-1 max-sm:row-start-1 max-sm:block max-sm:min-w-0 max-sm:px-2.5 max-sm:py-0 max-sm:break-words max-sm:whitespace-normal">
                       {spot ? (
                         <Link
                           href={`/spots/${encodeURIComponent(spot.slug)}`}
@@ -200,10 +200,10 @@ export function PatternsTable({
                         label
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-1 align-middle font-mono text-[13.5px] tabular-nums">
+                    <td className="whitespace-nowrap px-4 py-1 align-middle font-mono text-[13.5px] tabular-nums max-sm:col-start-2 max-sm:row-start-1 max-sm:block max-sm:px-1 max-sm:py-0 max-sm:text-muted-foreground">
                       {r.n}
                     </td>
-                    <td className={`w-full px-1 py-0.5 align-middle ${readOnly ? "rounded-r-[var(--r-tile)]" : ""}`}>
+                    <td className={`w-full px-1 py-0.5 align-middle max-sm:col-span-3 max-sm:row-start-2 max-sm:block max-sm:min-w-0 ${readOnly ? "rounded-r-[var(--r-tile)]" : ""}`}>
                       {readOnly ? (
                         note ? (
                           <p className="px-3.5 py-[2px] text-[14px] leading-5 whitespace-pre-wrap break-words">{note}</p>
@@ -259,7 +259,7 @@ export function PatternsTable({
                       )}
                     </td>
                     {!readOnly && (
-                      <td className="rounded-r-[var(--r-tile)] py-0.5 pr-2 align-middle">
+                      <td className="rounded-r-[var(--r-tile)] py-0.5 pr-2 align-middle max-sm:col-start-3 max-sm:row-start-1 max-sm:block max-sm:py-0">
                         {spot && note ? (
                           // Tooltip on hover and keyboard focus (the native title is slow and never shows on touch).
                           <span className="group relative inline-flex">
