@@ -120,7 +120,7 @@ export function UserMenu({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem asChild className="text-destructive focus:bg-destructive/10">
+        <DropdownMenuItem asChild variant="destructive">
           <form action={googleSignOut} className="contents">
             <button type="submit" className="flex w-full items-center gap-2">
               <LogOut />

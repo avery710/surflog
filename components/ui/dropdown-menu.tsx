@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cn } from "cn"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
-import { CheckIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon } from "lucide-react"
 
 function DropdownMenu({
   ...props
@@ -21,25 +21,6 @@ function DropdownMenuPortal({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>) {
   return <DropdownMenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />
-}
-
-// Below `sm` a submenu opens inline inside its parent panel (accordion)
-// instead of as a flyout: the parent is right-aligned under the avatar and
-// at 320-375px there is not enough free width beside it for even a 160px
-// flyout, so Radix would flip it left and cover the parent. From `sm` up
-// the normal side-by-side flyout is kept.
-const NARROW_QUERY = "(max-width: 639px)"
-function subscribeNarrow(cb: () => void) {
-  const mq = window.matchMedia(NARROW_QUERY)
-  mq.addEventListener("change", cb)
-  return () => mq.removeEventListener("change", cb)
-}
-function useNarrow() {
-  return React.useSyncExternalStore(
-    subscribeNarrow,
-    () => window.matchMedia(NARROW_QUERY).matches,
-    () => false
-  )
 }
 
 // The parent Content keeps a ref to "close the open inline submenu", so
@@ -112,18 +93,18 @@ function DropdownMenuItem({
   )
 }
 
-function DropdownMenuSub({
-  children,
-  ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Sub>) {
-  const narrow = useNarrow()
+// A submenu always opens inline inside its parent panel (an accordion), at
+// every width, so it can never cover the parent and desktop matches the
+// phone. There is no side flyout: the parent is right-aligned under the
+// avatar, where even a 160px flyout does not fit beside it on phones.
+function DropdownMenuSub({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false)
   const triggerRef = React.useRef<HTMLDivElement | null>(null)
   const closeRef = React.useContext(CloseInlineSubContext)
 
-  // Register/unregister the Escape closer while this inline sub is open.
+  // Register/unregister the Escape closer while this sub is open.
   React.useEffect(() => {
-    if (!narrow || !open || !closeRef) return
+    if (!open || !closeRef) return
     closeRef.current = () => {
       setOpen(false)
       triggerRef.current?.focus()
@@ -131,21 +112,14 @@ function DropdownMenuSub({
     return () => {
       closeRef.current = null
     }
-  }, [narrow, open, closeRef])
+  }, [open, closeRef])
 
-  if (narrow) {
-    return (
-      <InlineTriggerRefContext.Provider value={triggerRef}>
-        <InlineSubContext.Provider value={{ open, toggle: () => setOpen((o) => !o) }}>
-          {children}
-        </InlineSubContext.Provider>
-      </InlineTriggerRefContext.Provider>
-    )
-  }
   return (
-    <DropdownMenuPrimitive.Sub data-slot="dropdown-menu-sub" {...props}>
-      {children}
-    </DropdownMenuPrimitive.Sub>
+    <InlineTriggerRefContext.Provider value={triggerRef}>
+      <InlineSubContext.Provider value={{ open, toggle: () => setOpen((o) => !o) }}>
+        {children}
+      </InlineSubContext.Provider>
+    </InlineTriggerRefContext.Provider>
   )
 }
 
@@ -154,48 +128,28 @@ function DropdownMenuSubTrigger({
   inset,
   children,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & { inset?: boolean }) {
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & { inset?: boolean }) {
   const inline = React.useContext(InlineSubContext)
   const triggerRef = React.useContext(InlineTriggerRefContext)
-  if (inline) {
-    return (
-      <DropdownMenuPrimitive.Item
-        ref={triggerRef}
-        data-slot="dropdown-menu-sub-trigger"
-        data-inset={inset}
-        data-state={inline.open ? "open" : "closed"}
-        aria-haspopup="menu"
-        aria-expanded={inline.open}
-        // Keep the menu open; the row only expands/collapses its options.
-        onSelect={(e) => {
-          e.preventDefault()
-          inline.toggle()
-        }}
-        onKeyDown={(e) => {
-          // ArrowRight expands like a flyout would; ArrowLeft collapses.
-          if (e.key === "ArrowRight" && !inline.open) inline.toggle()
-          if (e.key === "ArrowLeft" && inline.open) inline.toggle()
-        }}
-        className={cn(
-          "flex w-full cursor-pointer items-center gap-2 rounded-[var(--r-tile)] px-2.5 py-2 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-[state=open]:bg-secondary data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
-          className
-        )}
-        {...(props as React.ComponentProps<typeof DropdownMenuPrimitive.Item>)}
-      >
-        {children}
-        <ChevronDownIcon
-          className={cn(
-            "ml-auto transition-transform duration-200 motion-reduce:transition-none",
-            inline.open && "rotate-180"
-          )}
-        />
-      </DropdownMenuPrimitive.Item>
-    )
-  }
+  if (!inline) throw new Error("DropdownMenuSubTrigger must be inside DropdownMenuSub")
   return (
-    <DropdownMenuPrimitive.SubTrigger
+    <DropdownMenuPrimitive.Item
+      ref={triggerRef}
       data-slot="dropdown-menu-sub-trigger"
       data-inset={inset}
+      data-state={inline.open ? "open" : "closed"}
+      aria-haspopup="menu"
+      aria-expanded={inline.open}
+      // Keep the menu open; the row only expands/collapses its options.
+      onSelect={(e) => {
+        e.preventDefault()
+        inline.toggle()
+      }}
+      onKeyDown={(e) => {
+        // ArrowRight expands like a flyout would; ArrowLeft collapses.
+        if (e.key === "ArrowRight" && !inline.open) inline.toggle()
+        if (e.key === "ArrowLeft" && inline.open) inline.toggle()
+      }}
       className={cn(
         "flex w-full cursor-pointer items-center gap-2 rounded-[var(--r-tile)] px-2.5 py-2 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-[state=open]:bg-secondary data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
         className
@@ -203,12 +157,17 @@ function DropdownMenuSubTrigger({
       {...props}
     >
       {children}
-      <ChevronRightIcon className="ml-auto" />
-    </DropdownMenuPrimitive.SubTrigger>
+      <ChevronDownIcon
+        className={cn(
+          "ml-auto transition-transform duration-200 motion-reduce:transition-none",
+          inline.open && "rotate-180"
+        )}
+      />
+    </DropdownMenuPrimitive.Item>
   )
 }
 
-// Height easing for the inline submenu: a 0fr -> 1fr grid-rows transition
+// Height easing for the submenu: a 0fr -> 1fr grid-rows transition
 // (240ms ease-out, the same curve as AnimatedHeight), so the rows beneath
 // ride along frame by frame. Options are mounted only while open or while
 // the close transition runs, so closed options never enter the arrow-key
@@ -259,7 +218,7 @@ function InlineCollapse({
       <div className="min-h-0 overflow-hidden">
         <div
           className={cn(
-            "pl-2 transition-opacity duration-200 motion-reduce:transition-none",
+            "transition-opacity duration-200 motion-reduce:transition-none",
             expanded ? "opacity-100" : "opacity-0",
             className
           )}
@@ -273,30 +232,19 @@ function InlineCollapse({
 
 function DropdownMenuSubContent({
   className,
-  ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
+  children,
+}: {
+  className?: string
+  children: React.ReactNode
+}) {
   const inline = React.useContext(InlineSubContext)
-  if (inline) {
-    // Rendered inside the parent panel (no portal), so it can never cover
-    // it. Indented to read as belonging to the row above.
-    return (
-      <InlineCollapse open={inline.open} className={className}>
-        {props.children}
-      </InlineCollapse>
-    )
-  }
+  if (!inline) throw new Error("DropdownMenuSubContent must be inside DropdownMenuSub")
+  // Rendered inside the parent panel (no portal). Not indented: the options
+  // share the parent rows' left edge.
   return (
-    <DropdownMenuPortal>
-      <DropdownMenuPrimitive.SubContent
-        data-slot="dropdown-menu-sub-content"
-        sideOffset={4}
-        className={cn(
-          "z-50 min-w-[160px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-[var(--r-card)] bg-popover p-1.5 text-popover-foreground shadow-menu data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}
-      />
-    </DropdownMenuPortal>
+    <InlineCollapse open={inline.open} className={className}>
+      {children}
+    </InlineCollapse>
   )
 }
 
@@ -315,14 +263,16 @@ function DropdownMenuRadioItem({
     <DropdownMenuPrimitive.RadioItem
       data-slot="dropdown-menu-radio-item"
       className={cn(
-        "relative flex w-full cursor-pointer items-center gap-2 rounded-[var(--r-tile)] py-2 pr-2.5 pl-8 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-disabled:pointer-events-none data-disabled:opacity-50",
+        // pl-[34px] = px-2.5 + 16px icon + gap-2: the label starts where the
+        // other rows' labels do, and the check sits in their icon column.
+        "relative flex w-full cursor-pointer items-center gap-2 rounded-[var(--r-tile)] py-2 pr-2.5 pl-[34px] text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-disabled:pointer-events-none data-disabled:opacity-50",
         className
       )}
       {...props}
     >
       <span className="pointer-events-none absolute left-2.5 flex size-4 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <CheckIcon className="size-3.5 text-primary" />
+          <CheckIcon className="size-4 text-muted-foreground" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}

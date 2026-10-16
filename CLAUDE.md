@@ -518,7 +518,7 @@ in `step()`. Every signed-in
 page and the landing header use **`PAGE_COLUMN`** (`lib/layout.ts`) —
 change the width there only.
 
-**Menus**: dropdown panels are borderless, `--r-card` corners, `shadow-menu`. Submenus (only avatar → Language today) open inline as an accordion below `sm` so they never cover the parent, and as a side flyout (`sideOffset` 4) from `sm`; both live in `components/ui/dropdown-menu.tsx`. The inline accordion eases its height both ways (`InlineCollapse`, 240 ms grid-rows 0fr/1fr, options unmounted after the close; panel capped at Radix's available height and scrolls). Not checked in a browser.
+**Menus**: dropdown panels are borderless, `--r-card` corners, `shadow-menu`. Submenus (only avatar → Language today) open inline as an accordion at every width (no side flyout since 2026-10-16, so desktop matches the phone and they never cover the parent); it lives in `components/ui/dropdown-menu.tsx`. The inline accordion eases its height both ways (`InlineCollapse`, 240 ms grid-rows 0fr/1fr, options unmounted after the close; panel capped at Radix's available height and scrolls). Not checked in a browser.
 
 **Footer** (`components/site-footer.tsx`, in the root layout so every page
 gets it, 2026-10-16): a full-width solid `bg-primary` banner, white text,
