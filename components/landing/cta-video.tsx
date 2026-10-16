@@ -4,20 +4,28 @@ import { useEffect, useRef } from "react";
 import { cn } from "cn";
 
 /**
- * The closing CTA's background: an 8-second loop of the break at Wushi
- * (public/landing/cta-waves.mp4, ~270 KB — the 9 MB iPhone clip cropped to a
- * 5:4 slice around the horizon, 960 px, 24 fps, no audio). An MP4 beats a GIF
- * by ~20x at the same look, and `muted` + `playsInline` + `loop` is all a
- * browser needs to treat it like one (autoplay, inline on iOS).
+ * The closing CTA's background: Avery's iPhone clip (IMG_5420 2), cropped to
+ * a 3:2 band that starts just above the horizon, kept HDR. Tuned so the
+ * island sits above the heading at every card shape (checked at 320, 375,
+ * 768 and desktop): on a phone-shaped card the whole band is visible, on a
+ * wide card `object-position` (landing.tsx) shows its top part, and the
+ * heading always lands on water. The handheld horizon sloped ~0.58 degrees
+ * (measured), so it is rotated level, with the black wedges trimmed off.
+ * public/landing/cta-waves.mp4, ~5 MB, 1020x680:
+ *   ffmpeg -i "IMG_5420 2.mov" -an -vf "crop=1050:800:0:740,format=yuv420p10le,rotate=a=-0.58*PI/180:ow=iw:oh=ih:c=black:bilinear=1,crop=1020:680:15:60" \
+ *     -c:v libx265 -preset slow -crf 20 -tag:v hvc1 -color_primaries bt2020 \
+ *     -color_trc arib-std-b67 -colorspace bt2020nc \
+ *     -x265-params colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc \
+ *     -movflags +faststart cta-waves.mp4
+ * Why HEVC HDR and not H.264: every SDR re-encode (even with a hand-built
+ * HLG to SDR tone map) looked off against the original. HEVC plays in Safari,
+ * Chrome and Edge but not everywhere (Firefox may not): there the poster
+ * stays. The poster JPEG is the first frame tone-mapped to SDR by hand, so it
+ * is close to, not identical with, the HDR video.
  *
- * Decoration only: the poster JPEG paints first, the video file is not
- * requested until the section is within 200 px of the viewport, it pauses
- * once scrolled away, and with "reduce motion" on it never plays (the poster
- * stays).
- *
- * Re-encode (iPhone clips are rotated + HDR, ffmpeg autorotates):
- *   ffmpeg -i IMG.MOV -an -vf "crop=1080:864:0:480,scale=960:768,fps=24,format=yuv420p" \
- *     -c:v libx264 -preset slow -crf 29 -movflags +faststart cta-waves.mp4
+ * Decoration only: the video file is not requested until the section is
+ * within 200 px of the viewport, it pauses once scrolled away, and with
+ * "reduce motion" on it never plays (the poster stays).
  */
 const SRC = "/landing/cta-waves.mp4";
 const POSTER = "/landing/cta-waves-poster.jpg";

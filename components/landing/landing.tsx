@@ -248,16 +248,16 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
       </Section>
 
       {/* Closing CTA */}
-      {/* The looping clip is bright (hazy sky, white water), so the video is left untinted (by request) and the text is dark with a
-          white glow, the button solid brand blue. */}
-      <section className="relative isolate mt-16 overflow-hidden rounded-[var(--r-card)] bg-primary px-6 py-16 text-center text-foreground sm:py-20">
-        <CtaVideo className="object-[50%_66%]" />
+      {/* The looping clip is a blue sea, so the video is left untinted (by request) and the text is white with a
+          dark shadow, the button white. */}
+      <section className="relative isolate mt-16 overflow-hidden rounded-[var(--r-card)] bg-primary px-6 pb-[60px] pt-[100px] text-center text-primary-foreground sm:pb-[72px] sm:pt-28">
+        <CtaVideo className="object-[50%_10%]" />
         <div className="relative">
-          <h2 className="text-[28px] font-extrabold tracking-[-0.025em] [text-shadow:0_0_20px_rgb(255_255_255/0.7),0_0_6px_rgb(255_255_255/0.6)] sm:text-[34px]">
+          <h2 className="text-[28px] font-extrabold tracking-[-0.025em] [text-shadow:0_1px_3px_rgb(0_0_0/0.4),0_2px_20px_rgb(0_0_0/0.45)] sm:text-[34px]">
             {t("landing.cta.title")}
           </h2>
-          <p className="mt-2 text-[15.5px] font-medium [text-shadow:0_0_16px_rgb(255_255_255/0.75),0_0_5px_rgb(255_255_255/0.65)]">{t("landing.cta.body")}</p>
-          <CtaButton action={signInAction} className="mt-7 inline-flex shadow-[0_8px_24px_rgb(0_0_0/0.3)] rounded-full" />
+          <p className="mt-2 text-[15.5px] font-medium [text-shadow:0_1px_3px_rgb(0_0_0/0.5),0_1px_14px_rgb(0_0_0/0.5)]">{t("landing.cta.body")}</p>
+          <CtaButton action={signInAction} inverted className="mt-7 inline-flex" />
         </div>
       </section>
       </div>

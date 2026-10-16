@@ -476,10 +476,14 @@ sticker WebPs in `public/landing/`, unlabelled, on a checkerboard;
 change**. **Licence NOT settled** for the demo board photos: Haydenshapes
 is CC BY-SA 4.0 (credit present); Wavestorm is the maker's "All Rights
 Reserved". The closing CTA (2026-10-16) has a looping video background
-(`cta-video.tsx`, `public/landing/cta-waves.mp4` ~270 KB + poster JPG; an MP4,
-not a GIF; lazy-loaded, paused offscreen, poster only under reduced motion)
-untinted and uncorrected (no overlay, no colour grading, by request) with dark text on a white glow and a solid blue button. `proxy.ts` lets `/landing/*.mp4` through.
-Seen on `/dev/landing` at 375 and ~700 px; not on a real phone.
+(`cta-video.tsx`, `public/landing/cta-waves.mp4`): Avery's "IMG_5420 2" clip,
+cropped to a 3:2 band just above the horizon, rotated 0.58 degrees to level the (handheld, sloping) horizon, and re-encoded as **10-bit HEVC
+HDR with the original HLG tags** (~5 MB, crf 20; every SDR re-encode looked
+off in colour, and Avery asked for the original quality). HEVC is unsupported
+in some browsers (poster stays). Checked at 320 / 375 / 768 / desktop: island
+above the heading, text on water. White text on a dark shadow, white button,
+no overlay. Lazy-loaded, paused offscreen, poster only under reduced motion.
+`proxy.ts` lets `/landing/*.mp4` through. Not seen on a real phone or in Firefox.
 
 **Tried and removed on request — don't bring back unasked**: the rating
 field; CSV export; the spot-fit tag row; gust on the wind tile; hover
