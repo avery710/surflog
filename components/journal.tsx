@@ -24,6 +24,7 @@ import type { Spot } from "@/lib/spots";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
 import { PAGE_COLUMN } from "@/lib/layout";
+import { WhiteCard } from "@/components/white-card";
 import type { Board, Session } from "@/lib/types";
 
 interface JournalUser {
@@ -383,9 +384,11 @@ export { LogIcon } from "@/components/add-button";
 function EmptyState() {
   const { t } = useLang();
   return (
-    <div className="mt-2 sm:mt-3 rounded-[var(--r-card)] bg-card shadow-soft p-4 sm:p-6">
-      <h3 className="text-xl font-bold tracking-[-0.02em]">{t("empty.title")}</h3>
-      <p className="mt-1.5 text-[15px] font-medium text-muted-foreground">{t("empty.body")}</p>
-    </div>
+    <WhiteCard className="mt-2 sm:mt-3">
+      <div className="p-4 sm:p-6">
+        <h3 className="text-xl font-bold tracking-[-0.02em]">{t("empty.title")}</h3>
+        <p className="mt-1.5 text-[15px] font-medium text-muted-foreground">{t("empty.body")}</p>
+      </div>
+    </WhiteCard>
   );
 }

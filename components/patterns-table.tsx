@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Megaphone } from "lucide-react";
 import { Tooltip } from "@/components/tooltip";
-import { AnimatedHeight } from "@/components/animated-height";
+import { WhiteCard } from "@/components/white-card";
 import { SpotReviewsDialog } from "@/components/spot-reviews-dialog";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
@@ -170,8 +170,8 @@ export function PatternsTable({
     // table is table-fixed from sm (notes column shrinks), and every text
     // cell wraps, even an unbroken run ([overflow-wrap:anywhere]).
     <section className="w-full min-w-0">
-      <AnimatedHeight>
-      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] bg-card shadow-soft p-1 sm:p-1.5">
+      <WhiteCard>
+      <div className="flex max-h-[320px] flex-col p-1 sm:p-1.5">
         <h2 className="shrink-0 px-1.5 pt-1.5 font-sans sm:px-4 text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>
@@ -304,7 +304,7 @@ export function PatternsTable({
           </table>
         </div>
       </div>
-      </AnimatedHeight>
+      </WhiteCard>
       <SpotReviewsDialog
         spot={sharing?.spot ?? null}
         draftBody={sharing?.note}

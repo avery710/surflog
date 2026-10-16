@@ -423,7 +423,7 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
 - **"What you've surfed"** (`components/patterns-table.tsx`): `table-fixed`
   at every width, header always visible, **vertical scroll only, never
   horizontal** (names and notes wrap); "Jialeshui" just fits at 320 px.
-  Height animates (`components/animated-height.tsx`, `NoteField`,
+  Height animates (`components/animated-height.tsx`, `NoteField`; the card's fill, radius and **shadow sit on the `AnimatedHeight` wrapper**, because its `overflow:hidden` mid-ease clips a child's shadow and makes it flash; that arrangement is the shared `WhiteCard` (`components/white-card.tsx`), also used by the board rack, empty state and spot-detail sections; use it for new white cards,
   coordinated via `data-height-anim`; off under reduced motion; never
   watched in a visible tab). Share icon tooltip is portalled to `body`. A
   stacked phone layout was **reverted on request 2026-10-16 — don't bring
@@ -434,7 +434,7 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
 - **AI app card** (`components/ai-app-card.tsx`): only while the owner has
   no un-revoked token (`hasConnectedApp()`, fails soft to hidden); beside
   the calendar, goal card on its own row below `lg`.
-- **Board rack** (`components/board-rack.tsx`): 常用 via ⋯ (badge also
+- **Board rack** (`components/board-rack.tsx`, height eased by `AnimatedHeight` like the patterns table, surface on the wrapper): 常用 via ⋯ (badge also
   removes it). **Reorder** mode makes the whole card the drag surface
   (dnd-kit, **one** `SortableContext`; cross-group drops snap back).
   Reorder and 常用 are optimistic with rollback. Square photos use an

@@ -15,6 +15,7 @@ import { PAGE_COLUMN } from "@/lib/layout";
 import { facingPoints, tideBandKey } from "@/lib/spot-browse";
 import type { OwnEditRequest } from "@/lib/spot-edit-requests";
 import type { Spot } from "@/lib/spots";
+import { WhiteCard } from "@/components/white-card";
 
 /** One line of the viewer's own history at this spot (built server-side, headline numbers only). */
 export interface SpotSession {
@@ -149,7 +150,8 @@ export function SpotDetail({
         </div>
       </div>
 
-      <section className="mt-6 rounded-[var(--r-card)] bg-card shadow-soft px-5 py-4">
+      <WhiteCard className="mt-6">
+      <section className="px-5 py-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-[13px] font-bold text-muted-foreground">{t("spotPage.about")}</h2>
           {!canManage && (
@@ -184,8 +186,10 @@ export function SpotDetail({
           <Reviews spot={spot} onSummary={noop} />
         </div>
       </section>
+      </WhiteCard>
 
-      <section className="mt-4 rounded-[var(--r-card)] bg-card shadow-soft px-5 py-4">
+      <WhiteCard className="mt-4">
+      <section className="px-5 py-4">
         <h2 className="text-[13px] font-bold text-muted-foreground">{t("spotPage.history")}</h2>
         {history.length === 0 ? (
           <p className="mt-2 text-[13.5px] text-muted-foreground">{t("spotPage.noSessions")}</p>
@@ -267,6 +271,7 @@ export function SpotDetail({
           </ul>
         )}
       </section>
+      </WhiteCard>
 
 
       <SuggestSpotEditDialog

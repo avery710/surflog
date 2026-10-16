@@ -20,6 +20,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { WhiteCard } from "@/components/white-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -205,7 +206,8 @@ export function BoardRack({
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
     <section>
-      <div className="rounded-[var(--r-card)] bg-card shadow-soft p-3 sm:p-4">
+      <WhiteCard>
+      <div className="p-3 sm:p-4">
         <div className="flex items-center justify-between gap-3 pb-2">
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.boards")}
@@ -280,6 +282,7 @@ export function BoardRack({
           </DndContext>
         )}
       </div>
+      </WhiteCard>
 
       <Dialog open={editing != null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-lg" closeLabel={t("entry.close")}>
