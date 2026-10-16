@@ -29,31 +29,14 @@ const SURFACE_OFF = 48; // px: surface below the 40px circle = no water showing
 const CALM_LEVEL = 18; // px from the top: the centred rising wave used for focus and touch
 
 /**
- * Variant 3b. A cup of water in the circle: the surface height follows the
- * pointer's height, the crest leans toward the pointer's side, entering kicks
- * a slosh, leaving drains it. Three damped springs (level, tilt) run in one
- * rAF loop that writes --wy / --wr / --sx on the button and STOPS once the
- * water has settled, so nothing runs while idle. Focus-visible and touch press
- * have no pointer position and use the calm centred level. Forced mode drives a
- * scripted circular pointer path. Reduced motion: no tracking at all.
+ * The water simulation behind the header "+" button, shared by AddButton (3b)
+ * and the dev page's halo / beneath variants so they can't drift apart. Two
+ * damped springs (surface level, tilt) run in one rAF loop that writes
+ * --wy / --wr on the element `ref` points at, and STOPS once settled,
+ * so nothing runs while idle. `handlers` go on the pointer-sensitive element
+ * (any pointer event from its children bubbles to it).
  */
-export function AddButton({
-  label,
-  href,
-  onClick,
-  force = false,
-  focusRing = false,
-}: {
-  /** aria-label and title (already translated). */
-  label: string;
-  /** Renders a link instead of a button (sub-page headers). */
-  href?: string;
-  onClick?: () => void;
-  /** Dev page only: play a scripted pointer path instead of waiting for a mouse. */
-  force?: boolean;
-  /** Dev page only: show the focus-visible ring. */
-  focusRing?: boolean;
-}) {
+export function useWaterSpring(force = false) {
   const ref = useRef<HTMLElement>(null);
   const sim = useRef({
     level: SURFACE_OFF, levelV: 0, levelT: SURFACE_OFF,
@@ -78,7 +61,6 @@ export function AddButton({
     [m.tilt, m.tiltV] = spring(m.tilt, m.tiltV, m.tiltT, 90, 5);
     b.style.setProperty("--wy", m.level.toFixed(2));
     b.style.setProperty("--wr", m.tilt.toFixed(2));
-    b.style.setProperty("--sx", (-m.tilt * 0.06).toFixed(2));
     const settled =
       Math.abs(m.levelT - m.level) < 0.05 && Math.abs(m.levelV) < 0.05 && Math.abs(m.tilt - m.tiltT) < 0.05 && Math.abs(m.tiltV) < 0.05;
     if (settled && !m.held.hover && !m.held.calm && !m.forced) {
@@ -147,12 +129,7 @@ export function AddButton({
     return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height] as const;
   }
 
-  const props = {
-    ref: ref as never,
-    className: "ab v3b",
-    "data-focus": focusRing ? "true" : undefined,
-    "aria-label": label,
-    title: label,
+  const handlers = {
     onPointerEnter: (e: React.PointerEvent) => {
       if (reduced() || sim.current.forced || e.pointerType === "touch") return;
       const [x, y] = rel(e);
@@ -183,9 +160,47 @@ export function AddButton({
     },
     onPointerCancel: () => drain(),
     onFocus: (e: React.FocusEvent<HTMLElement>) => {
-      if (!reduced() && e.currentTarget.matches(":focus-visible")) calm();
+      if (!reduced() && (e.target as HTMLElement).matches(":focus-visible")) calm();
     },
     onBlur: () => !sim.current.forced && drain(),
+  };
+  return { ref, handlers };
+}
+
+/**
+ * Variant 3b. A cup of water in the circle: the surface height follows the
+ * pointer's height, the crest leans toward the pointer's side, entering kicks
+ * a slosh, leaving drains it. Three damped springs (level, tilt) run in one
+ * rAF loop that writes --wy / --wr on the button and STOPS once the
+ * water has settled, so nothing runs while idle. Focus-visible and touch press
+ * have no pointer position and use the calm centred level. Forced mode drives a
+ * scripted circular pointer path. Reduced motion: no tracking at all.
+ */
+export function AddButton({
+  label,
+  href,
+  onClick,
+  force = false,
+  focusRing = false,
+}: {
+  /** aria-label and title (already translated). */
+  label: string;
+  /** Renders a link instead of a button (sub-page headers). */
+  href?: string;
+  onClick?: () => void;
+  /** Dev page only: play a scripted pointer path instead of waiting for a mouse. */
+  force?: boolean;
+  /** Dev page only: show the focus-visible ring. */
+  focusRing?: boolean;
+}) {
+  const { ref, handlers } = useWaterSpring(force);
+  const props = {
+    ref: ref as never,
+    className: "ab v3b",
+    "data-focus": focusRing ? "true" : undefined,
+    "aria-label": label,
+    title: label,
+    ...handlers,
   };
   const inner = (
     <>

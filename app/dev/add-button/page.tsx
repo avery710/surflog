@@ -61,6 +61,7 @@ const CSS = `
 .ab.v6:is(:hover, :active, [data-force="true"]) span.fx.sw { animation: ab-swell 3s ease-out infinite; }
 
 
+
 @media (prefers-reduced-motion: reduce) {
   .ab, .ab * { animation: none !important; transition: none !important; }
   .ab span.fx, .ab i { display: none; }
@@ -106,9 +107,9 @@ const VARIANTS = [
   },
   {
     id: "v3b",
-    name: "3b. Rising wave, follows the mouse",
-    desc: "Like 3, but the water is a cup: its surface height follows the pointer's height, the crest leans toward the pointer's side, entering sloshes it and leaving drains it (springy, a small rAF loop that stops when settled). Force hover plays a scripted circular path.",
-    touch: "Focus and touch press show the calm centred wave from 3 (no pointer position).",
+    name: "3b. Rising wave, follows the mouse (the real header's button)",
+    desc: "Adopted in the header 2026-10-16: circle-clipped water, pointer-following level and tilt, entry slosh and leave drain, but the glyph has no bob or offset and the circle no press scale. The \"+\" is drawn above the water (blue on pale blue stays legible).",
+    touch: "Focus and touch press show the calm centred wave, glyph still.",
     body: () => null,
   },
   {

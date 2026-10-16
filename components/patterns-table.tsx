@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Megaphone } from "lucide-react";
 import { AnimatedHeight } from "@/components/animated-height";
 import { SpotReviewsDialog } from "@/components/spot-reviews-dialog";
@@ -84,6 +85,63 @@ function NoteField({
   return <textarea ref={ref} {...props} />;
 }
 
+/**
+ * The "Share as review" megaphone with its tooltip. The tooltip is portalled to
+ * <body> with position: fixed, so the table scroller's overflow clipping can't
+ * trim it and it sits above the sticky header (z-30) and dialogs. Shown on
+ * mouse hover and keyboard focus only (touch has no sticky hover), placed under
+ * the button's right edge and clamped to the viewport; closes on scroll.
+ */
+function ShareButton({ label, tip, tipId, onClick }: { label: string; tip: string; tipId: string; onClick: () => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  function show() {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    setPos({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) });
+  }
+  useEffect(() => {
+    if (!pos) return;
+    const hide = () => setPos(null);
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    return () => {
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+    };
+  }, [pos]);
+  return (
+    <>
+      <button
+        ref={ref}
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        aria-describedby={pos ? tipId : undefined}
+        onPointerEnter={(e) => e.pointerType === "mouse" && show()}
+        onPointerLeave={() => setPos(null)}
+        onFocus={(e) => e.currentTarget.matches(":focus-visible") && show()}
+        onBlur={() => setPos(null)}
+        className="flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <Megaphone className="size-4" aria-hidden />
+      </button>
+      {pos &&
+        createPortal(
+          <span
+            role="tooltip"
+            id={tipId}
+            style={{ top: pos.top, right: pos.right }}
+            className="pointer-events-none fixed z-[60] max-w-[calc(100vw-16px)] rounded-md bg-foreground px-2 py-1 text-[12px] font-medium whitespace-nowrap text-background shadow-sm"
+          >
+            {tip}
+          </span>,
+          document.body
+        )}
+    </>
+  );
+}
+
 const noop = () => {};
 
 const MAX_DESCRIPTION = 500;
@@ -155,7 +213,7 @@ export function PatternsTable({
     <section className="w-full min-w-0">
       <AnimatedHeight>
       <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] bg-card p-1.5">
-        <h2 className="shrink-0 px-2.5 pt-1.5 font-sans text-[13px] font-bold text-muted-foreground">
+        <h2 className="shrink-0 px-1.5 pt-1.5 font-sans sm:px-4 text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>
         {/* relative: makes this scroller the containing block of absolutely
@@ -171,7 +229,7 @@ export function PatternsTable({
                     key={h}
                     // table-fixed takes its column widths from this row: spot 28%, count 88px, notes the rest.
                     className={`px-2 pb-0.5 pt-2.5 text-left text-xs font-semibold break-words text-[var(--faint)] sm:px-4 ${
-                      i === 0 ? "w-[30%] pl-1.5 sm:w-[28%] sm:pl-4" : i === 1 ? "w-11 sm:w-[88px]" : ""
+                      i === 0 ? "w-[26%] pl-1.5 sm:w-[20%] sm:pl-4" : i === 1 ? "w-11 sm:w-[88px]" : ""
                     }`}
                   >
                     {i === 1 ? (
@@ -203,7 +261,7 @@ export function PatternsTable({
                       {spot ? (
                         <Link
                           href={`/spots/${encodeURIComponent(spot.slug)}`}
-                          className="rounded-sm underline decoration-transparent underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring"
+                          className="rounded-sm outline-none transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
                         >
                           {label}
                         </Link>
@@ -272,25 +330,12 @@ export function PatternsTable({
                     {!readOnly && (
                       <td className="rounded-r-[var(--r-tile)] py-0.5 pr-1 align-middle sm:pr-2">
                         {spot && note ? (
-                          // Tooltip on hover and keyboard focus (the native title is slow and never shows on touch).
-                          <span className="group relative inline-flex">
-                            <button
-                              type="button"
-                              onClick={() => setSharing({ spot, note })}
-                              aria-label={t("patterns.shareReviewLabel", { spot: label })}
-                              aria-describedby={`share-tip-${spot.slug}`}
-                              className="flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-                            >
-                              <Megaphone className="size-4" aria-hidden />
-                            </button>
-                            <span
-                              role="tooltip"
-                              id={`share-tip-${spot.slug}`}
-                              className="pointer-events-none absolute top-full right-0 z-10 mt-1 rounded-md bg-foreground px-2 py-1 text-[12px] font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-                            >
-                              {t("patterns.shareReview")}
-                            </span>
-                          </span>
+                          <ShareButton
+                            label={t("patterns.shareReviewLabel", { spot: label })}
+                            tip={t("patterns.shareReview")}
+                            tipId={`share-tip-${spot.slug}`}
+                            onClick={() => setSharing({ spot, note })}
+                          />
                         ) : null}
                       </td>
                     )}

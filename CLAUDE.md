@@ -463,8 +463,12 @@ landing's own dashboard mirror is still `gap-4` / old spacing.
   via `data-height-anim`). It is a `table-fixed` table at every width with
   its header row always visible, **vertical scroll only, never horizontal**
   (`overflow-x-hidden`; spot names and notes wrap, `[overflow-wrap:anywhere]`).
-  Below `sm` the spot column is 30%, count 44 px (header "#" / 次), share
-  40 px. A stacked-list phone layout was tried and **reverted on request
+  The spot column is 26% below `sm` (count 44 px with header "#" / 次,
+  share 40 px) and 20% from `sm`; "Jialeshui" just fits at 320 px. The
+  title, "Spot" header and spot names share one left edge. The share icon's
+  tooltip is portalled to `body` (`position: fixed`, `z-[60]`) so the
+  scroller can't clip it; spot-name hover fades, no underline. A
+  stacked-list phone layout was tried and **reverted on request
   2026-10-16 — don't bring back**. Animations not watched in a visible tab.
 - **Activity calendar**: the component's header comment is the source of
   truth. Week rows, Sunday-first, titled "Days in the water". The ↑/↓
@@ -497,12 +501,15 @@ classes — keep in step; its "+" links to `/?log=1`. Controls on the blue
 are white-filled with white focus rings. **The wordmark stays black, by
 request.** The "+" icon is Avery's own mark (`LogIcon`). The "+" button
 is one shared component (`components/add-button.tsx`, button in the
-journal, link in `site-header.tsx`) with the **water-wave hover, variant
-3b**: the surface follows the pointer's height, the crest tilts toward it,
-a damped-spring rAF loop that stops when settled; focus and touch fall
-back to a calm centred wave, reduced motion gets a scale/darken only.
-Other variants are kept at `/dev/add-button`. Never watched running (hidden
-tab); the spring constants are two numbers in `step()`. Every signed-in
+journal, link in `site-header.tsx`) with a **water-wave hover, inside the
+circle, the "+" glyph never moves** (variant 3c; the bobbing 3b was dropped
+2026-10-16): the surface follows the pointer's height, the crest tilts
+toward it, a damped-spring rAF loop (`useWaterSpring`) that stops when
+settled; focus and touch fall back to a calm centred wave, reduced motion
+gets a darken only. Halo-around-the-button and band-beneath variants were
+tried and dropped as a misreading. Other variants stay at `/dev/add-button`.
+Never watched running (hidden tab); the spring constants are two numbers
+in `step()`. Every signed-in
 page and the landing header use **`PAGE_COLUMN`** (`lib/layout.ts`) —
 change the width there only.
 

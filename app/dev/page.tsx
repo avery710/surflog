@@ -29,7 +29,7 @@ const PAGES = [
     href: "/dev/add-button",
     title: "Add button hover",
     description:
-      "Seven water-themed hover animations (ripples, floating, rising wave, a rising wave that follows the mouse, splash, swell, gentle) for the header's white “+” button, on a replica of the blue header, with a force-hover switch and the focus ring.",
+      "Seven water-themed hover animations (ripples, floating, rising wave, a rising wave that follows the mouse with the “+” held still — now the real header button, splash, swell, gentle) for the header's white “+” button, on a replica of the blue header, with a force-hover switch and the focus ring.",
   },
   {
     href: "/dev/board-rack",
