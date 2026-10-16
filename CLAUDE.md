@@ -514,14 +514,21 @@ page and the landing header use **`PAGE_COLUMN`** (`lib/layout.ts`) —
 change the width there only.
 
 **Footer** (`components/site-footer.tsx`, in the root layout so every page
-gets it, 2026-10-16): a full-width solid `bg-primary` banner, centred, white
-text, content in `PAGE_COLUMN`. One line: a Lucide `Mail` icon + the bold
-`mailto:support@surflog.tw` link (`SUPPORT_EMAIL`, not translated; the
-`aria-label` is `footer.emailLabel`), then a faded "© {year} Surflog".
+gets it, 2026-10-16): a full-width solid `bg-primary` banner, white text,
+content in `PAGE_COLUMN`. Below `sm` a centred stack: white wordmark (same
+`/surflog-logo.png` + `brightness-0 invert` markup as the headers, `h-5`,
+links to `/`, `aria-label` `footer.homeLabel`), the mail link, then a faded
+"© {year} Surflog". From `sm` (option B, approved) a split row: wordmark with
+the copyright under it on the left, the mail link on the right, vertically
+centred (CSS grid, same DOM order; banner about 84 px). The mail link is
+icon-only: a 20 px Lucide `Mail` in a 40 px circle with a 1.5 px white outline
+and transparent fill (hover: faint `white/15` fill, no movement; focus ring is
+an outline offset 4 px, apart from the border) to
+`mailto:support@surflog.tw` (`SUPPORT_EMAIL`; no visible address, no tooltip;
+`aria-label` `footer.emailLabel` carries the address); no negative margin, so the circle's right edge meets the column's right edge.
 `mt-auto` pins it to the bottom of short pages; a 40 px spacer sits above it.
-No wordmark (the header's is black by request, a white one is undecided), no
-Privacy/Terms links until those pages exist. The public share page keeps its
-own muted line above it (may read as doubled). The Google consent screen's
+No Privacy/Terms links until those pages exist. The public share page keeps
+its own muted line above it (may read as doubled). The Google consent screen's
 support email is set in the Google Cloud console, not here.
 
 **Landing** (`components/landing/landing.tsx`, signed-out `/`; preview at
@@ -688,6 +695,7 @@ load only when a session starts.
   it); `--badge` `#374151` for the avatar fallback and, via
   `--data`, the direction arrows and tide curve — readings are
   deliberately not blue.
+- **Tooltips**: one shared `Tooltip` (`components/tooltip.tsx`); no native `title` on icon buttons. Calendar day dots still use `title`.
 - Notes are rich text with a `- ` bullet shortcut. Avery writes notes in
   Chinese; don't break CJK handling.
 - Secrets: open `.env.local` in the editor for Avery to paste into.

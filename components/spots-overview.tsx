@@ -9,6 +9,7 @@ import { AddSpotDialog } from "@/components/add-spot-dialog";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
 import { SpotReviewsDialog, Stars } from "@/components/spot-reviews-dialog";
 import { SuggestSpotEditDialog } from "@/components/suggest-spot-edit-dialog";
+import { Tooltip } from "@/components/tooltip";
 import { Button } from "@/components/ui/button";
 import { compassLabel } from "@/lib/format";
 import { useLang, type Lang } from "@/lib/i18n";
@@ -316,19 +317,20 @@ function SpotRow({
             </span>
           )}
         </div>
+        <Tooltip tip={t(pinned ? "spots.unpin" : "spots.pin", { name })} className="-my-1 shrink-0">
         <button
           type="button"
           onClick={onPin}
           aria-pressed={pinned}
           aria-label={t(pinned ? "spots.unpin" : "spots.pin", { name })}
-          title={t(pinned ? "spots.unpin" : "spots.pin", { name })}
           className={cn(
-            "-my-1 flex size-8 shrink-0 items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
+            "flex size-8 items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
             pinned ? "text-primary" : "text-muted-foreground hover:text-foreground"
           )}
         >
           <Pin className={cn("size-4", pinned && "fill-current")} aria-hidden />
         </button>
+        </Tooltip>
         {onSuggestEdit && (
           <button
             type="button"

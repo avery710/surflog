@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
+import { Tooltip } from "@/components/tooltip";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpotPicker, recentSpotSlugs, usePendingRequests, type PendingRequest } from "@/components/spot-picker";
@@ -158,12 +159,12 @@ export function LogForm({
           label={t("form.spot")}
           htmlFor={spotId}
           aside={
+            <Tooltip tip={isDefault ? t("form.clearDefaultSpot") : t("form.setDefaultSpot")}>
             <button
               type="button"
               onClick={() => setDefaultSpot(isDefault ? null : spot)}
               aria-pressed={isDefault}
               aria-label={t("form.setDefaultSpot")}
-              title={isDefault ? t("form.clearDefaultSpot") : t("form.setDefaultSpot")}
               className={
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors " +
                 (isDefault
@@ -174,6 +175,7 @@ export function LogForm({
               {isDefault && <Check className="size-3" aria-hidden />}
               {isDefault ? t("form.defaultSpot") : t("form.setAsDefault")}
             </button>
+            </Tooltip>
           }
         >
           <SpotPicker

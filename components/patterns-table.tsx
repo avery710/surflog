@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Megaphone } from "lucide-react";
+import { Tooltip } from "@/components/tooltip";
 import { AnimatedHeight } from "@/components/animated-height";
 import { SpotReviewsDialog } from "@/components/spot-reviews-dialog";
 import { useSpotCatalog } from "@/lib/spot-catalog";
@@ -85,60 +85,19 @@ function NoteField({
   return <textarea ref={ref} {...props} />;
 }
 
-/**
- * The "Share as review" megaphone with its tooltip. The tooltip is portalled to
- * <body> with position: fixed, so the table scroller's overflow clipping can't
- * trim it and it sits above the sticky header (z-30) and dialogs. Shown on
- * mouse hover and keyboard focus only (touch has no sticky hover), placed under
- * the button's right edge and clamped to the viewport; closes on scroll.
- */
-function ShareButton({ label, tip, tipId, onClick }: { label: string; tip: string; tipId: string; onClick: () => void }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
-  function show() {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    setPos({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) });
-  }
-  useEffect(() => {
-    if (!pos) return;
-    const hide = () => setPos(null);
-    window.addEventListener("scroll", hide, true);
-    window.addEventListener("resize", hide);
-    return () => {
-      window.removeEventListener("scroll", hide, true);
-      window.removeEventListener("resize", hide);
-    };
-  }, [pos]);
+/** The "Share as review" megaphone, with the shared tooltip. */
+function ShareButton({ label, tip, onClick }: { label: string; tip: string; onClick: () => void }) {
   return (
-    <>
+    <Tooltip tip={tip}>
       <button
-        ref={ref}
         type="button"
         onClick={onClick}
         aria-label={label}
-        aria-describedby={pos ? tipId : undefined}
-        onPointerEnter={(e) => e.pointerType === "mouse" && show()}
-        onPointerLeave={() => setPos(null)}
-        onFocus={(e) => e.currentTarget.matches(":focus-visible") && show()}
-        onBlur={() => setPos(null)}
         className="flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Megaphone className="size-4" aria-hidden />
       </button>
-      {pos &&
-        createPortal(
-          <span
-            role="tooltip"
-            id={tipId}
-            style={{ top: pos.top, right: pos.right }}
-            className="pointer-events-none fixed z-[60] max-w-[calc(100vw-16px)] rounded-md bg-foreground px-2 py-1 text-[12px] font-medium whitespace-nowrap text-background shadow-sm"
-          >
-            {tip}
-          </span>,
-          document.body
-        )}
-    </>
+    </Tooltip>
   );
 }
 
@@ -333,7 +292,6 @@ export function PatternsTable({
                           <ShareButton
                             label={t("patterns.shareReviewLabel", { spot: label })}
                             tip={t("patterns.shareReview")}
-                            tipId={`share-tip-${spot.slug}`}
                             onClick={() => setSharing({ spot, note })}
                           />
                         ) : null}

@@ -13,6 +13,7 @@
 import { useRef, useState } from "react";
 import { Bold, Italic, List, ListOrdered } from "lucide-react";
 import { cn } from "cn";
+import { Tooltip } from "@/components/tooltip";
 import { sanitizeNotesHtml } from "@/lib/rich-text";
 import { useLang } from "@/lib/i18n";
 
@@ -141,10 +142,10 @@ function ToolbarButton({
   children: React.ReactNode;
 }) {
   return (
+    <Tooltip tip={label}>
     <button
       type="button"
       aria-label={label}
-      title={label}
       // keep the caret in the editor on mousedown, then run the command
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
@@ -152,5 +153,6 @@ function ToolbarButton({
     >
       {children}
     </button>
+    </Tooltip>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import { Tooltip } from "@/components/tooltip";
 
 /** The log-session button's "+" glyph — Avery's own icon (surflog+button.png,
  * 300x257, black on transparent, a chunky square-ended plus), rebuilt as inline
@@ -183,7 +184,7 @@ export function AddButton({
   force = false,
   focusRing = false,
 }: {
-  /** aria-label and title (already translated). */
+  /** aria-label and tooltip text (already translated). */
   label: string;
   /** Renders a link instead of a button (sub-page headers). */
   href?: string;
@@ -199,7 +200,6 @@ export function AddButton({
     className: "ab v3b",
     "data-focus": focusRing ? "true" : undefined,
     "aria-label": label,
-    title: label,
     ...handlers,
   };
   const inner = (
@@ -217,13 +217,17 @@ export function AddButton({
       </span>
     </>
   );
-  return href ? (
-    <Link href={href} {...props}>
-      {inner}
-    </Link>
-  ) : (
-    <button type="button" onClick={onClick} {...props}>
-      {inner}
-    </button>
+  return (
+    <Tooltip tip={label}>
+      {href ? (
+        <Link href={href} {...props}>
+          {inner}
+        </Link>
+      ) : (
+        <button type="button" onClick={onClick} {...props}>
+          {inner}
+        </button>
+      )}
+    </Tooltip>
   );
 }

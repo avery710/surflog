@@ -41,7 +41,6 @@ export function UserMenu({
       <DropdownMenuTrigger
         className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary outline-none transition-opacity hover:opacity-80"
         aria-label={name}
-        title={name}
       >
         {user.image ? (
           // eslint-disable-next-line @next/next/no-img-element
