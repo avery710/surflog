@@ -632,14 +632,14 @@ function MediaMosaic({
   };
 
   if (n === 1) return <div className={fill ? "absolute inset-0 grid grid-cols-1" : "grid aspect-video w-full max-h-[260px] grid-cols-1"}>{cell(0, "")}</div>;
-  if (n === 2) return <div className={fill ? "absolute inset-0 grid grid-cols-2 gap-1" : "grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-1"}>{[0, 1].map((i) => cell(i, ""))}</div>;
-  if (n === 3) return <div className="grid aspect-[3/1] w-full max-h-[260px] grid-cols-3 gap-1">{[0, 1, 2].map((i) => cell(i, ""))}</div>;
+  if (n === 2) return <div className={fill ? "absolute inset-0 grid grid-cols-2 gap-2" : "grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-2"}>{[0, 1].map((i) => cell(i, ""))}</div>;
+  if (n === 3) return <div className="grid aspect-[3/1] w-full max-h-[260px] grid-cols-3 gap-2">{[0, 1, 2].map((i) => cell(i, ""))}</div>;
   if (n === 4)
-    return <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 grid-rows-2 gap-1">{[0, 1, 2, 3].map((i) => cell(i, ""))}</div>;
+    return <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 grid-rows-2 gap-2">{[0, 1, 2, 3].map((i) => cell(i, ""))}</div>;
   return (
-    <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-1">
+    <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-2">
       {cell(0, "")}
-      <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-1">{[1, 2, 3, 4].map((i) => cell(i, ""))}</div>
+      <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">{[1, 2, 3, 4].map((i) => cell(i, ""))}</div>
     </div>
   );
 }
