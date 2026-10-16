@@ -10,6 +10,7 @@
 
 @theme inline {
   --shadow-soft: var(--card-shadow);
+  --shadow-menu: var(--menu-shadow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-funnel);
@@ -251,6 +252,10 @@
      stay borderless. Not for tiles, pills, inputs or the blue banners. */
   --card-shadow: 0 8px 24px 0 rgba(13, 13, 18, 0.04);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px -20px rgba(0, 0, 0, 0.28);
+  /* Floating menu/select/popover panels (utility `shadow-menu`), 2026-10-16: same
+     shape as --card-shadow but alpha .10, because a panel opens over white
+     cards and the blue header, where .04 would not separate it. No ring. */
+  --menu-shadow: 0 8px 24px 0 rgba(13, 13, 18, 0.10);
 }
 
 /*

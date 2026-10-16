@@ -518,6 +518,8 @@ in `step()`. Every signed-in
 page and the landing header use **`PAGE_COLUMN`** (`lib/layout.ts`) —
 change the width there only.
 
+**Menus**: dropdown panels are borderless, `--r-card` corners, `shadow-menu`. Submenus (only avatar → Language today) open inline as an accordion below `sm` so they never cover the parent, and as a side flyout (`sideOffset` 4) from `sm`; both live in `components/ui/dropdown-menu.tsx`. Not checked in a browser.
+
 **Footer** (`components/site-footer.tsx`, in the root layout so every page
 gets it, 2026-10-16): a full-width solid `bg-primary` banner, white text,
 content in `PAGE_COLUMN`. **One layout at every width** (option 2, approved;
@@ -690,10 +692,11 @@ load only when a session starts.
 - Times are local to the session's spot, no timezone suffix stored.
 - Single light theme, **light grey page** with white, outline-free cards with a soft shadow (`shadow-soft`).
   Rounded, Coinbase-ish but tight since 2026-10-16: cards `--r-card` 6px,
-  tiles `--r-tile` 4px, inputs/menus `--radius` 9px, pill buttons stay
+  tiles `--r-tile` 4px, inputs `--radius` 9px, pill buttons stay
   fully round. **Funnel Sans** for UI and notes, **IBM Plex Mono** for
   readings. The share images and landing sticker WebPs still use the old,
   rounder corners.
+- **Menus** (2026-10-16): dropdown, submenu, select and spot-picker panels are white, borderless, `--r-card` corners, items `--r-tile`, shadow `shadow-menu` (`--menu-shadow`, the card shadow at alpha .10 so a panel separates from the card or blue header under it). Dialogs keep `--shadow-card`; tooltips are their own dark style. Change it in `components/ui/dropdown-menu.tsx` / `select.tsx`.
 - Colour tokens (`app/globals.css`, whose comments hold the history):
   `--primary` `#0018FF` (8.16:1 on white) for buttons, header, badges
   (go-to badge, goal chip), focus rings; `--panel` `#f9fafa` (lightened 2026-10-16 after comparing Strava's
