@@ -180,8 +180,9 @@ TideEvent = { type: "high" | "low", time, heightM }
 
 - The three condition blocks stay **separate, never merged** (which number
   came from where). `condOpenMeteo` fills when the spot has coordinates,
-  `condCwaTide` when it has a township; both refetch when spot or date
-  changes. `cond` is manual only.
+  `condCwaTide` when it has a township; both refetch when the spot
+  changes (**date/time are fixed after creation**, 2026-10-16: a different
+  `when` on update is a 400, an unchanged one is accepted). `cond` is manual only.
 - Bracket picking for both tide sources: `pickBracket()` /
   `windowAround()` in `lib/tide-bracket.ts`.
 - **`lib/session-service.ts`** (`createSessionFor`, `updateSessionFor`,
@@ -347,7 +348,8 @@ apps, personal tokens for anything that can't open a browser.
   `list_spots`, `list_boards`, `get_goal`; write — `create_session`,
   `update_session`, `delete_session`, `set_goal`, `clear_goal` (not
   registered for a read token). The agent's choices, change if they bite:
-  `when` must be on the 2-hour grid; `notes` is plain text and
+  `when` must be on the 2-hour grid on create and **`update_session` has no
+  `when`** (fixed after creation, 2026-10-16); `notes` is plain text and
   `update_session` **replaces the whole note**; catalogue slugs only;
   `goalsAchieved` must match the current goal word for word; no media,
   boards or spot admin.
@@ -443,7 +445,10 @@ Session card ⋯ → Share → `components/share-dialog.tsx`: generated images
   (`GoalSection` in `components/goal.tsx`). The board chip's stem SVG must
   stay its **first child**.
 - Edit panel offers only fields the card shows; other `cond` values ride
-  along untouched. Button is "Refresh conditions" (no source name).
+  along untouched. Date and time show read-only (not editable, 2026-10-16);
+  the "Refresh conditions" button was removed then, and so was the
+  `refreshConditions` flag. Conditions refetch only on a spot change, so a
+  failed fetch has no retry (changing the spot away and back would).
 - **Dev preview** `/dev/session-card` (renamed from `entry-card`
   2026-10-16): every media count × 375 / 700 / 1100 px in real iframes
   (`frame/`, height by `postMessage`), because `sm:`/`lg:` follow the
@@ -453,7 +458,7 @@ Session card ⋯ → Share → `components/share-dialog.tsx`: generated images
 **Dashboard** (`components/journal.tsx`): white cards sit directly on the
 grey page (no wrapper), **12 px apart from `sm`, 8 px on phones** (`gap-2 sm:gap-3`; session cards `mt-2 sm:mt-3`; card padding 12 px on phones, page gutter 14 px, session card inner side padding 16 px, all restored at `sm`) —
 row 1 goal card + activity calendar (`sm:w-[260px]`, `items-start`), row 2
-"What you've surfed" table, row 3 board rack. Cards have **no outline**.
+"What you've surfed" table, row 3 board rack. Cards have **no outline** but a soft resting shadow (`shadow-soft`, `--card-shadow`, alpha 0.04).
 `app/dev/dashboard/page.tsx` mirrors this markup; keep in sync. The
 landing's own dashboard mirror is still `gap-4` / old spacing.
 - **"What you've surfed"** (`components/patterns-table.tsx`): the card
@@ -674,7 +679,8 @@ load only when a session starts.
   the real API and fail, width frames don't trigger `sm:`/`lg:`.
 - **`push-stag`**: commits and pushes to `staging` only, never main, never
   force; runs lint + typecheck first; keeps `.env*`, `reports/` and
-  Swelleye readings out; asks before applying migrations.
+  Swelleye readings out; asks before applying migrations; does not check the
+  deployment afterwards (Avery watches it).
 
 ## Conventions
 
@@ -682,7 +688,7 @@ load only when a session starts.
   exception: **board length is feet/inches** (stored as inches); volume
   in litres.
 - Times are local to the session's spot, no timezone suffix stored.
-- Single light theme, **light grey page** with white, outline-free cards.
+- Single light theme, **light grey page** with white, outline-free cards with a soft shadow (`shadow-soft`).
   Rounded, Coinbase-ish but tight since 2026-10-16: cards `--r-card` 6px,
   tiles `--r-tile` 4px, inputs/menus `--radius` 9px, pill buttons stay
   fully round. **Funnel Sans** for UI and notes, **IBM Plex Mono** for
@@ -690,7 +696,8 @@ load only when a session starts.
   rounder corners.
 - Colour tokens (`app/globals.css`, whose comments hold the history):
   `--primary` `#0018FF` (8.16:1 on white) for buttons, header, badges
-  (go-to badge, goal chip), focus rings; `--panel` `#f7f9f9` is the **page
+  (go-to badge, goal chip), focus rings; `--panel` `#f9fafa` (lightened 2026-10-16 after comparing Strava's
+  dashboard, whose side panels are `#fafafa`) is the **page
   background** (`bg-panel` on the body and the public share page, nothing
   else); `--secondary` / `--muted` `#f2f5f5` fill tiles, pills and board
   cards inside the white cards; `--background` stays white (inputs read

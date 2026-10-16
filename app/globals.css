@@ -9,6 +9,7 @@
  */
 
 @theme inline {
+  --shadow-soft: var(--card-shadow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-funnel);
@@ -185,7 +186,13 @@
      what this is — it's no longer a tint of --primary at all. Kept as its
      own token, not literally `var(--secondary)`, so the panel can diverge
      from the secondary-surface grey later without a rename again. */
-  --panel: #f7f9f9;
+  --panel: #f9fafa;
+  /* 2026-10-16, later still: page grey lightened from the chip grey (#f2f5f5) to
+     #f9fafa after comparing with Strava's dashboard (white feed cards on
+     #fafafa side panels, measured in Chrome). Kept a hair cooler than Strava's
+     neutral so it sits with the blue; --secondary/--muted unchanged. */
+  /* 2026-10-16, last: the page grey now IS the chip/tile grey (#f2f5f5), on
+     request (was #f7f9f9). One source of truth: change --secondary and both move. */
   /* 2026-10-16, later: the page grey lightened #f2f5f5 -> #f7f9f9 on request
      (--panel is read only by the body and the public share page, so
      --secondary/--muted, which fill tiles and pills, stay #f2f5f5 and are now
@@ -238,6 +245,11 @@
   --card-border: rgba(0, 0, 0, 0.16);
   --r-card: 6px;
   --r-tile: 4px;
+  /* Resting white cards (utility `shadow-soft`), 2026-10-16 on request, after
+     Strava's feed cards (0 8px 24px rgba(13,13,18,.04), measured). Alpha
+     .06 not .04: on the near-white page (#f9fafa) .04 is invisible. Cards
+     stay borderless. Not for tiles, pills, inputs or the blue banners. */
+  --card-shadow: 0 8px 24px 0 rgba(13, 13, 18, 0.04);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px -20px rgba(0, 0, 0, 0.28);
 }
 

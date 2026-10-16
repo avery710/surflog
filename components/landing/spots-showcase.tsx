@@ -88,7 +88,7 @@ function Feature({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col rounded-[var(--r-card)] bg-card p-5">
+    <div className="flex min-w-0 flex-col rounded-[var(--r-card)] bg-card shadow-soft p-5">
       {/* The mock first: a grey tile standing in for the dialog, growing to
           even out the cards in a row. Hidden from screen readers; the title
           and text under it say what it shows. */}

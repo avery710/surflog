@@ -42,9 +42,6 @@ export const DICT = {
   "toast.saved": { en: "Session saved", "zh-TW": "已儲存" },
   "toast.couldntSave": { en: "Couldn't save", "zh-TW": "無法儲存" },
   "toast.changesSaved": { en: "Changes saved", "zh-TW": "已儲存變更" },
-  "toast.conditionsRefreshed": { en: "Conditions refreshed", "zh-TW": "浪況已更新" },
-  "toast.stillNoCoords": { en: "Still no coordinates for this spot", "zh-TW": "這個浪點還沒有座標" },
-  "toast.couldntRefresh": { en: "Couldn't refresh", "zh-TW": "無法更新" },
 
   "tile.swellOpenMeteo": { en: "Swell", "zh-TW": "湧浪" },
   "tile.swellSwelleye": { en: "Swell (Swelleye)", "zh-TW": "湧浪（Swelleye）" },
@@ -85,7 +82,7 @@ export const DICT = {
   "tide.prevDay": { en: "−1d", "zh-TW": "前一天" },
 
   "entry.noCoords": {
-    en: "No coordinates yet for this spot — Open-Meteo can't fill in conditions automatically. Enter Swelleye's numbers by hand if you have them.",
+    en: "No coordinates yet for this spot — Open-Meteo can't fill in conditions automatically. Enter Swelleye's numbers manually if you have them.",
     "zh-TW": "這個浪點還沒有座標，Open-Meteo 無法自動帶入浪況。有 Swelleye 的數據的話，可以手動輸入。",
   },
   "entry.typeThemIn": { en: "Type them in", "zh-TW": "手動輸入" },
@@ -93,7 +90,7 @@ export const DICT = {
   "entry.removePhoto": { en: "Remove", "zh-TW": "移除" },
   "entry.example": { en: "Example — delete whenever", "zh-TW": "範例——可隨時刪除" },
   "badge.swelleyeForecast": { en: "Swelleye forecast", "zh-TW": "Swelleye 預報" },
-  "badge.enteredByHand": { en: "Entered by hand", "zh-TW": "手動輸入" },
+  "badge.enteredByHand": { en: "Manually entered", "zh-TW": "手動輸入" },
 
   "form.spot": { en: "Spot", "zh-TW": "浪點" },
   "form.setAsDefault": { en: "Set as default", "zh-TW": "設為預設" },
@@ -129,9 +126,7 @@ export const DICT = {
     "zh-TW": "儲存後會自動帶入 Open-Meteo 與氣象署的浪況、風和潮汐",
   },
 
-  "edit.conditionsHeader": { en: "Conditions (entered by hand)", "zh-TW": "浪況（手動輸入）" },
-  "edit.refreshing": { en: "Refreshing…", "zh-TW": "更新中…" },
-  "edit.refreshOpenMeteo": { en: "Refresh conditions", "zh-TW": "更新浪況" },
+  "edit.conditionsHeader": { en: "Conditions", "zh-TW": "浪況" },
   "edit.saveChanges": { en: "Save changes", "zh-TW": "儲存變更" },
   "edit.cancel": { en: "Cancel", "zh-TW": "取消" },
   "cond.swellHeightM": { en: "Swell m", "zh-TW": "湧浪 m" },
@@ -269,7 +264,7 @@ export const DICT = {
   },
   "landing.agent.title": { en: "Bring your own AI app", "zh-TW": "接上你自己的 AI App" },
   "landing.agent.body": {
-    en: "Connect the AI you already use: Claude, ChatGPT, Gemini and more. Log a session by just saying so, then have it analyse your journal and give you advice. Conditions fill in the same way as when you log by hand.",
+    en: "Connect the AI you already use: Claude, ChatGPT, Gemini and more. Log a session by just saying so, then have it analyse your journal and give you advice. Conditions fill in the same way as when you log manually.",
     "zh-TW": "連結你平常在用的 AI：Claude、ChatGPT、Gemini 等等。用一句話就能記錄一次下水，再請它分析你的日誌、給你建議。浪況會和手動記錄時一樣自動帶入。",
   },
   "landing.agent.ask": {
@@ -345,7 +340,7 @@ export const DICT = {
   "dialog.logSessionTitle": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "empty.title": { en: "Nothing logged yet", "zh-TW": "還沒有任何紀錄" },
   "empty.body": {
-    en: "Log a session — spot, date, the 2-hour slot you were out. Conditions from Open-Meteo fill in automatically; add Swelleye's numbers by hand whenever you have them.",
+    en: "Log a session — spot, date, the 2-hour slot you were out. Conditions from Open-Meteo fill in automatically; add Swelleye's numbers manually whenever you have them.",
     "zh-TW": "新增一筆紀錄——地點、日期、下水的兩小時時段。Open-Meteo 的浪況資料會自動帶入；有 Swelleye 的數據時，也可以手動補上。",
   },
   "menu.language": { en: "Language", "zh-TW": "語言" },

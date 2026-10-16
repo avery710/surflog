@@ -17,7 +17,7 @@ export function AiAppCard() {
   return (
     <Link
       href="/ai-apps"
-      className="group flex min-w-[72px] flex-1 flex-col rounded-[var(--r-card)] bg-card px-2.5 pt-2.5 pb-3 sm:px-3 sm:pt-3 sm:pb-3.5 outline-none transition-colors hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-5 sm:pb-5 lg:w-[200px] lg:flex-none"
+      className="group flex min-w-[72px] flex-1 flex-col rounded-[var(--r-card)] bg-card shadow-soft px-2.5 pt-2.5 pb-3 sm:px-3 sm:pt-3 sm:pb-3.5 outline-none transition-colors hover:bg-secondary/60 focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-5 sm:pb-5 lg:w-[200px] lg:flex-none"
     >
       {/* Same type style as the other dashboard titles. */}
       <h2 className="h-5 shrink-0 font-sans text-[13px] leading-5 font-bold text-muted-foreground">{t("aiCard.heading")}</h2>

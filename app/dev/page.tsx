@@ -79,7 +79,7 @@ export default function DevIndexPage() {
       </p>
       <ul className="mt-6 flex flex-col gap-3">
         {PAGES.map((p) => (
-          <li key={p.href} className="rounded-[var(--r-card)] border border-card-border bg-card p-4">
+          <li key={p.href} className="rounded-[var(--r-card)] bg-card shadow-soft p-4">
             <Link href={p.href} className="text-[15px] font-bold text-primary underline underline-offset-2">
               {p.title}
             </Link>

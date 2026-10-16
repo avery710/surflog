@@ -113,7 +113,7 @@ export function EntryCard({
   const cardClass = plain
     ? // every section's px-4 sm:px-6 (and the header's top padding) dropped from the outside
       "overflow-hidden [&>*]:px-0! [&>*:first-child]:pt-0!"
-    : "mt-2 sm:mt-3 overflow-hidden rounded-[var(--r-card)] bg-card";
+    : "mt-2 sm:mt-3 overflow-hidden rounded-[var(--r-card)] bg-card shadow-soft";
 
   if (editing) {
     return (

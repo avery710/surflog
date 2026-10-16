@@ -270,7 +270,7 @@ function Section({ n, title, body, children }: { n: string; title: string; body:
 
 function Panel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-[var(--r-card)] bg-card p-5", className)}>{children}</div>
+    <div className={cn("rounded-[var(--r-card)] bg-card shadow-soft p-5", className)}>{children}</div>
   );
 }
 

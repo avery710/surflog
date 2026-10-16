@@ -5,8 +5,8 @@ import { deleteSessionFor, updateSessionFor } from "@/lib/session-service";
 type Params = { params: Promise<{ id: string }> };
 
 /** PATCH /api/sessions/:id — partial update. Re-fetches condOpenMeteo when
- *  spot or when actually changes; pass `refreshConditions: true` to force a
- *  refetch. Logic in lib/session-service.ts. */
+ *  the spot changes; a different `when` is a 400 (date/time are fixed after
+ *  creation). Logic in lib/session-service.ts. */
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "unauthorized" }, { status: 401 });

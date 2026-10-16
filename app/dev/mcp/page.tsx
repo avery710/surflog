@@ -82,7 +82,7 @@ const NOT_AVAILABLE = [
   "Boards — read-only list. No adding, editing, deleting, reordering or go-to toggling.",
   "Spots — read-only catalogue. No adding spots, no spot requests, no per-spot notes.",
   "Rich text in notes — notes go in and come out as plain text; bullets and bold written in the app are flattened on read, and lost if the note is rewritten through MCP.",
-  "Hand-entered conditions, raw condition blobs (secondary swell, wind waves, full tide curve, grid node) and “Refresh conditions”.",
+  "Manually entered conditions, raw condition blobs (secondary swell, wind waves, full tide curve, grid node).",
   "Other people's data — every tool is bound to the token's owner; a foreign id answers “not found”.",
   "Token management — a token can't create, list or revoke tokens, or approve an app (browser sign-in only, at /ai-apps and the consent page).",
 ];
@@ -177,7 +177,7 @@ export default function McpDocPage() {
       <Section title={`Tools (${allTools.length})`}>
         <ul className="flex flex-col gap-3">
           {allTools.map((tool) => (
-            <li key={tool.name} className="rounded-[var(--r-card)] border border-card-border bg-card p-4">
+            <li key={tool.name} className="rounded-[var(--r-card)] bg-card shadow-soft p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <code className="font-mono text-[14px] font-bold">{tool.name}</code>
                 <span className="text-[13.5px] text-muted-foreground">{tool.title}</span>
