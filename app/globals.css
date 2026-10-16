@@ -396,7 +396,7 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 28px -20px rgba(0,0,0,.28); transition: transform .35s cubic-bezier(.34,1.56,.64,1), filter .2s; }
 .ab > svg { position: relative; z-index: 2; }
 .ab span.fx { position: absolute; inset: 0; border-radius: 9999px; pointer-events: none; opacity: 0; }
-.ab[data-focus="true"], .ab:focus-visible { box-shadow: 0 0 0 2px #0018ff, 0 0 0 4px #fff; }
+.ab[data-focus="true"] { box-shadow: 0 0 0 2px #0018ff, 0 0 0 4px #fff; }
 .ab:is(:hover, :active, [data-force="true"]) { will-change: transform; }
 
 /* 3b. Rising wave that follows the mouse. JS (a small spring loop, only while the
@@ -420,4 +420,17 @@
   .ab span.fx, .ab i { display: none; }
   .ab .wave, .ab .wf { display: none; }
   .ab:is(:hover, :active, [data-force="true"]) { transform: scale(1.06); filter: brightness(.95); }
+}
+
+/* No focus ring on buttons, links, role=button and images (Avery, 2026-10-16:
+   "remove the focus status (blue outline)"). One unlayered rule so it beats
+   every per-component focus-visible ring or outline utility (those live in
+   @layer utilities). Focus itself is untouched (media viewer still returns
+   it to the tapped cell); only the paint goes. Inputs, textareas, the date
+   field, select triggers and the spot-picker trigger (field-like buttons)
+   keep their rings. */
+button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible,
+:is(a, img, [role="button"], [role="switch"], [role="checkbox"]):focus-visible {
+  outline: none;
+  box-shadow: none;
 }
