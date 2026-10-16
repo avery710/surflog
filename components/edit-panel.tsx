@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SpotPicker, type PendingRequest } from "@/components/spot-picker";
+import { useSpotCatalog } from "@/lib/spot-catalog";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
 import {
@@ -48,8 +48,6 @@ export function EditPanel({
   session,
   boards = [],
   goal = null,
-  onRequestSpot,
-  pendingRequests,
   onSaved,
   onCancel,
 }: {
@@ -57,15 +55,12 @@ export function EditPanel({
   boards?: Board[];
   /** The owner's current goal — its points can be ticked on any session. */
   goal?: string | null;
-  /** Passed straight to SpotPicker — see its props. */
-  onRequestSpot?: (query: string) => void;
-  pendingRequests?: PendingRequest[];
   onSaved: (s: Session) => void;
   onCancel: () => void;
 }) {
-  const { t } = useLang();
-  const [spot, setSpot] = useState(session.spot);
-  // Date and time are fixed once a session exists: shown, never sent.
+  const { t, lang } = useLang();
+  const catalog = useSpotCatalog();
+  // Spot, date and time are fixed once a session exists: shown, never sent.
   const date = session.when.slice(0, 10);
   const time = session.when.slice(11, 16);
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
@@ -94,7 +89,6 @@ export function EditPanel({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        spot,
         notesHtml,
         cond: hasAnyCond(cond) ? cond : null,
         // only sent when changed, so an untouched board never needs a write
@@ -153,15 +147,7 @@ export function EditPanel({
     <div className="flex flex-col gap-4.5 p-6">
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Field label={t("form.spot")}>
-          {/* A legacy free-text spot ("custom:…") isn't in the catalogue; the
-              picker lists the current value under "Current" so it stays selectable. */}
-          <SpotPicker
-            value={spot}
-            onChange={setSpot}
-            onRequestSpot={onRequestSpot}
-            pendingRequests={pendingRequests}
-            className="bg-background"
-          />
+          <span className="flex h-9 items-center pl-0.5 text-sm">{catalog.label(session.spot, lang)}</span>
         </Field>
         <Field label={t("form.date")}>
           <span className="flex h-9 items-center pl-0.5 font-mono text-sm">{date}</span>

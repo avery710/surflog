@@ -20,6 +20,12 @@ const PAGES = [
       "components/entry-card.tsx — the session card: condition tiles, board/goal chips, notes, photos. Every media count (0-7, with and without conditions), every branch on missing data, both tide sources, wind extremes, en/zh-TW.",
   },
   {
+    href: "/dev/footer-options",
+    title: "Footer options",
+    description:
+      "Four static footer layouts (icon row, centred stack, link columns, minimal line) at 375 and 1100 px with 2 and 5 social links. Suggestions only.",
+  },
+  {
     href: "/dev/dashboard",
     title: "Dashboard panel",
     description:

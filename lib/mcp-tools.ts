@@ -309,12 +309,11 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       description:
         "Change one of the user's own sessions. Only the fields given are changed. `notes` REPLACES the whole " +
         "note (formatting such as bullets is lost) — read the session first and send the full new text. " +
-        "The date and time of a session cannot be changed; changing `spot` re-fetches the conditions. `goalsAchieved` REPLACES the session's whole list " +
+        "The spot, date and time of a session cannot be changed. `goalsAchieved` REPLACES the session's whole list " +
         "of ticked goal points (an empty list unticks all) — read the session first and send every point that " +
         "should stay ticked.",
       inputSchema: z.object({
         id: z.string(),
-        spot: z.string().min(1).optional().describe("Spot slug from list_spots"),
         notes: NOTES.optional().describe("Plain text; replaces the existing notes entirely"),
         boardId: z.string().nullable().optional().describe("Board id from list_boards, or null for no board"),
         goalsAchieved: GOALS_ACHIEVED.optional().describe(
@@ -323,13 +322,10 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
-    async ({ id, spot, notes, boardId, goalsAchieved }) => {
+    async ({ id, notes, boardId, goalsAchieved }) => {
       const limited = writeLimited();
       if (limited) return limited;
       const maps = await lookups(ownerId);
-      if (spot !== undefined && !maps.spots.has(spot)) {
-        return error(`unknown spot "${spot}" — pick a slug from list_spots`);
-      }
       let ticks: string[] | undefined;
       if (goalsAchieved !== undefined) {
         const existing = await getSession(id);
@@ -339,7 +335,6 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
         ticks = checked.achieved;
       }
       const result = await updateSessionFor(ownerId, id, {
-        ...(spot !== undefined ? { spot } : {}),
         ...(notes !== undefined ? { notesHtml: plainTextToHtml(notes) } : {}),
         ...(boardId !== undefined ? { boardId } : {}),
         ...(ticks !== undefined ? { goalAchieved: ticks } : {}),

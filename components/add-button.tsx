@@ -26,8 +26,7 @@ export function LogIcon({ className }: { className?: string }) {
  * app/globals.css.
  */
 const WAVE_PATH = "M0 4.5 " + Array.from({ length: 8 }, (_, i) => (i === 0 ? "Q5 0 10 4.5" : "T" + (i + 1) * 10 + " 4.5")).join(" ") + " V9 H0 Z";
-const SURFACE_OFF = 48; // px: surface below the 40px circle = no water showing
-const CALM_LEVEL = 18; // px from the top: the centred rising wave used for focus and touch
+const BASE = 40; // px: the header circle the spring numbers below were tuned on; other sizes scale from it
 
 /**
  * The water simulation behind the header "+" button, shared by AddButton (3b)
@@ -37,7 +36,10 @@ const CALM_LEVEL = 18; // px from the top: the centred rising wave used for focu
  * so nothing runs while idle. `handlers` go on the pointer-sensitive element
  * (any pointer event from its children bubbles to it).
  */
-export function useWaterSpring(force = false) {
+export function useWaterSpring(force = false, size = BASE) {
+  const k = size / BASE;
+  const SURFACE_OFF = 48 * k; // px: surface below the circle = no water showing
+  const CALM_LEVEL = 18 * k; // px from the top: the centred rising wave used for focus and touch
   const ref = useRef<HTMLElement>(null);
   const sim = useRef({
     level: SURFACE_OFF, levelV: 0, levelT: SURFACE_OFF,
@@ -79,7 +81,7 @@ export function useWaterSpring(force = false) {
   }
   function aim(x: number, y: number) {
     const m = sim.current;
-    m.levelT = Math.min(34, Math.max(6, y * 40));
+    m.levelT = Math.min(34 * k, Math.max(6 * k, y * 40 * k));
     m.tiltT = -(x - 0.5) * 36;
   }
   function drain() {
@@ -168,6 +170,23 @@ export function useWaterSpring(force = false) {
   return { ref, handlers };
 }
 
+/** The water layer (surface wave + body) drawn inside a circle that carries the
+ *  `.ab.v3b` or `.wv` styles. `fill` is the water colour (the footer passes
+ *  white and fades the whole layer with --wave-opacity so the wave/body overlap
+ *  doesn't show a seam). */
+export function WaterFill({ fill }: { fill: string }) {
+  return (
+    <span className="wf" aria-hidden>
+      <span className="surf">
+        <svg viewBox="0 0 80 9" preserveAspectRatio="none">
+          <path d={WAVE_PATH} fill={fill} />
+        </svg>
+      </span>
+      <span className="body" style={{ background: fill }} />
+    </span>
+  );
+}
+
 /**
  * Variant 3b. A cup of water in the circle: the surface height follows the
  * pointer's height, the crest leans toward the pointer's side, entering kicks
@@ -204,14 +223,7 @@ export function AddButton({
   };
   const inner = (
     <>
-      <span className="wf" aria-hidden>
-        <span className="surf">
-          <svg viewBox="0 0 80 9" preserveAspectRatio="none">
-            <path d={WAVE_PATH} fill="#cfd5ff" />
-          </svg>
-        </span>
-        <span className="body" />
-      </span>
+      <WaterFill fill="#cfd5ff" />
       <span className="ic">
         <LogIcon className="size-4" />
       </span>

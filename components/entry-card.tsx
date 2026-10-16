@@ -132,7 +132,7 @@ export function EntryCard({
     );
   }
 
-  const sideBySide = !!om && session.photos.length === 1;
+  const sideBySide = !!om && (session.photos.length === 1 || session.photos.length === 2);
   const tileGroupClass = sideBySide
     ? "grid grid-cols-3 gap-2 sm:min-w-0 sm:flex-[3]"
     : "grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap sm:items-stretch sm:overflow-x-auto [scrollbar-width:none] px-4 sm:px-6 pt-3 pb-1.5";
@@ -391,18 +391,18 @@ export function EntryCard({
 
       {session.notesHtml && (
         <div
-          className={`notes-html px-4 sm:px-6 ${board || achieved.length > 0 ? "pt-2" : "pt-1"} pb-2.5 font-sans text-[15px] leading-[1.6] text-foreground`}
+          className={`notes-html px-4 sm:px-6 ${board || achieved.length > 0 ? "pt-2" : "pt-1"} pb-0 font-sans text-[15px] leading-[1.6] text-foreground`}
           dangerouslySetInnerHTML={{ __html: session.notesHtml }}
         />
       )}
 
       {sideBySide ? (
-        // One media item next to the tiles (sm and up): the tiles keep the
+        // One or two media items next to the tiles (sm and up): the tiles keep the
         // phone's 3-column arrangement in ~60% of the row, the media fills the
         // rest at the tile block's height, cover-cropped. Stacked on phones.
         <div className="flex flex-col gap-2 px-4 sm:px-6 pt-3 pb-1.5 sm:flex-row sm:items-stretch">
           {omTiles}
-          <div className="relative aspect-video w-full max-h-[260px] sm:aspect-auto sm:min-w-0 sm:flex-[2]">{mosaic(true)}</div>
+          <div className={`relative w-full max-h-[260px] sm:aspect-auto sm:min-w-0 sm:flex-[2] ${session.photos.length === 2 ? "aspect-[2/1]" : "aspect-video"}`}>{mosaic(true)}</div>
         </div>
       ) : (
         omTiles
@@ -632,7 +632,7 @@ function MediaMosaic({
   };
 
   if (n === 1) return <div className={fill ? "absolute inset-0 grid grid-cols-1" : "grid aspect-video w-full max-h-[260px] grid-cols-1"}>{cell(0, "")}</div>;
-  if (n === 2) return <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-1">{[0, 1].map((i) => cell(i, ""))}</div>;
+  if (n === 2) return <div className={fill ? "absolute inset-0 grid grid-cols-2 gap-1" : "grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-1"}>{[0, 1].map((i) => cell(i, ""))}</div>;
   if (n === 3) return <div className="grid aspect-[3/1] w-full max-h-[260px] grid-cols-3 gap-1">{[0, 1, 2].map((i) => cell(i, ""))}</div>;
   if (n === 4)
     return <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 grid-rows-2 gap-1">{[0, 1, 2, 3].map((i) => cell(i, ""))}</div>;

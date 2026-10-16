@@ -203,8 +203,8 @@ export function BoardRack({
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
     <section>
-      <div className="rounded-[var(--r-card)] bg-card shadow-soft p-1 sm:p-1.5">
-        <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-2.5">
+      <div className="rounded-[var(--r-card)] bg-card shadow-soft p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3 pb-2">
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.boards")}
           </h2>
@@ -238,13 +238,13 @@ export function BoardRack({
           </div>
         </div>
         {sortingOn && (
-          <p className="px-3 pb-1 text-[12.5px] font-medium text-muted-foreground">{t("board.sortHint")}</p>
+          <p className="pb-2 text-[12.5px] font-medium text-muted-foreground">{t("board.sortHint")}</p>
         )}
         {boards.length === 0 ? (
-          <p className="px-3 pt-1 pb-3 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
+          <p className="pt-1 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {/* ONE flat list/SortableContext for every card, favourites
                   first (used to be two SortableContexts, one per group).
                   That split caused a visible flash whenever a card's

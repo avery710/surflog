@@ -319,6 +319,7 @@ export const DICT = {
   "action.signOut": { en: "Sign out", "zh-TW": "登出" },
   "footer.homeLabel": { en: "Surflog home", "zh-TW": "Surflog 首頁" },
   "footer.emailLabel": { en: "Email support: {email}", "zh-TW": "寄信給客服：{email}" },
+  "footer.navLabel": { en: "Contact and social links", "zh-TW": "聯絡與社群連結" },
   "section.sessions": { en: "Sessions", "zh-TW": "紀錄" },
   "goal.title": { en: "Goal for next session", "zh-TW": "下次衝浪的目標" },
   "goal.add": { en: "Add a technique goal to work on next time", "zh-TW": "新增下次要練習的技巧目標" },

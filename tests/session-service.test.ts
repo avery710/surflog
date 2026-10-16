@@ -138,31 +138,18 @@ describe("updateSessionFor", () => {
     expect(getConditions).not.toHaveBeenCalled();
   });
 
-  it("refetches conditions when the spot changes", async () => {
+  it("400s a different spot and writes nothing (fixed after creation)", async () => {
     vi.mocked(getSession).mockResolvedValue(stored({ spot: "other" }));
-    await updateSessionFor(ME, "s1", { spot: "waiao" });
-    expect(getConditions).toHaveBeenCalledWith(WAIAO.lat, WAIAO.lng, "2026-10-05T08:00", "Asia/Taipei");
-    expect(vi.mocked(updateSession).mock.calls[0][1]).toMatchObject({ condOpenMeteo: OM, condCwaTide: TIDE });
+    const r = await updateSessionFor(ME, "s1", { spot: "waiao" });
+    expect(r).toMatchObject({ ok: false, status: 400 });
+    expect(updateSession).not.toHaveBeenCalled();
+    expect(getConditions).not.toHaveBeenCalled();
   });
 
   it("doesn't refetch when spot and time are sent unchanged", async () => {
     vi.mocked(getSession).mockResolvedValue(stored());
     await updateSessionFor(ME, "s1", { spot: "waiao", when: "2026-10-05T08:00" });
     expect(getConditions).not.toHaveBeenCalled();
-  });
-
-  it("clears conditions when moved to a spot with no coordinates", async () => {
-    vi.mocked(getSession).mockResolvedValue(stored({ condOpenMeteo: OM as never }));
-    vi.mocked(resolveSpot).mockResolvedValue(undefined);
-    await updateSessionFor(ME, "s1", { spot: "req:mine" });
-    expect(vi.mocked(updateSession).mock.calls[0][1]).toMatchObject({ condOpenMeteo: null, condCwaTide: null });
-  });
-
-  it("keeps the old conditions when a refetch fails", async () => {
-    vi.mocked(getSession).mockResolvedValue(stored());
-    vi.mocked(getConditions).mockRejectedValue(new Error("down"));
-    await updateSessionFor(ME, "s1", { spot: "other" });
-    expect(vi.mocked(updateSession).mock.calls[0][1]).not.toHaveProperty("condOpenMeteo");
   });
 
   it("can't change the owner or id through the body", async () => {
