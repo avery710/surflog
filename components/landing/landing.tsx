@@ -14,6 +14,7 @@ import type { LandingSpot } from "@/lib/landing-spots";
 import { cn } from "cn";
 import { BoardRack } from "@/components/board-rack";
 import { BOARD_PHOTO_CREDITS, DEMO_BOARDS, demoSessions } from "./demo-data";
+import { CtaVideo } from "./cta-video";
 import { ShareShowcase } from "./share-showcase";
 import { SpotsShowcase } from "./spots-showcase";
 import { noop } from "@/app/dev/fixtures";
@@ -247,10 +248,17 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
       </Section>
 
       {/* Closing CTA */}
-      <section className="mt-16 rounded-[var(--r-card)] bg-primary px-6 py-12 text-center text-primary-foreground">
-        <h2 className="text-[28px] font-extrabold tracking-[-0.025em] sm:text-[34px]">{t("landing.cta.title")}</h2>
-        <p className="mt-2 text-[15px] opacity-85">{t("landing.cta.body")}</p>
-        <CtaButton action={signInAction} inverted className="mt-6 inline-flex" />
+      {/* The looping clip is bright (hazy sky, white water), so the video is left untinted (by request) and the text is dark with a
+          white glow, the button solid brand blue. */}
+      <section className="relative isolate mt-16 overflow-hidden rounded-[var(--r-card)] bg-primary px-6 py-16 text-center text-foreground sm:py-20">
+        <CtaVideo className="object-[50%_66%]" />
+        <div className="relative">
+          <h2 className="text-[28px] font-extrabold tracking-[-0.025em] [text-shadow:0_0_20px_rgb(255_255_255/0.7),0_0_6px_rgb(255_255_255/0.6)] sm:text-[34px]">
+            {t("landing.cta.title")}
+          </h2>
+          <p className="mt-2 text-[15.5px] font-medium [text-shadow:0_0_16px_rgb(255_255_255/0.75),0_0_5px_rgb(255_255_255/0.65)]">{t("landing.cta.body")}</p>
+          <CtaButton action={signInAction} className="mt-7 inline-flex shadow-[0_8px_24px_rgb(0_0_0/0.3)] rounded-full" />
+        </div>
       </section>
       </div>
     </>
@@ -300,7 +308,9 @@ function CtaButton({
         type="submit"
         className={cn(
           "inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-[16px] font-bold transition-[filter] hover:brightness-110 active:scale-[0.975]",
-          inverted ? "bg-card text-primary hover:brightness-95" : "bg-primary text-primary-foreground"
+          inverted
+            ? "bg-card text-primary shadow-[0_8px_24px_rgb(0_0_0/0.35)] hover:brightness-95"
+            : "bg-primary text-primary-foreground"
         )}
       >
         {t("signin.continueGoogle")}

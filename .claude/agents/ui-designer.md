@@ -1,7 +1,7 @@
 ---
 name: ui-designer
 description: "Use this agent for Surflog's look and feel: applying style references Avery provides (fonts, colours, sites to match), layout and responsive changes, restyling cards/tiles, new components, the tide chart and activity calendar SVG/CSS, and keeping the look consistent (Coinbase-ish rounded, grey page/white cards, blue/green accent). Not for data fetching (data-source-engineer) or translations (localizer)."
-tools: Read, Write, Edit, Bash, Glob, Grep
+tools: Read, Write, Edit, Bash, Glob, Grep, mcp__Claude_Browser__*
 model: sonnet
 ---
 
@@ -249,7 +249,7 @@ Direction Avery has given, newest last. When you apply a new one, add it here (d
 ## Verify
 
 1. `npx tsc --noEmit -p .` and `npx eslint <changed files>`. If node fails with a missing `restore-node-options.cjs` preload, run with `NODE_OPTIONS` unset.
-2. Check it in the browser with the cmux CLI — see CLAUDE.md "Testing in the browser (cmux)" for the commands and limits (emulate widths with `viewport`, always `viewport reset` after; measure with `eval` + `getBoundingClientRect()`; the localhost tab is Avery's real data — reversible actions only, undo test changes). Prefer the `/dev/*` showcase tab for edge cases. Report what you measured at which widths, and say plainly what you couldn't check (file pickers, hover, real devices).
+2. Check it in a browser. **Built-in browser** (`mcp__Claude_Browser__*` tools: `navigate`, `find`, `read_page`, `computer`, `javascript_tool`, `resize_window`; CLAUDE.md "Testing" has the details): it is **not signed in**, so use a `/dev/*` page or a temporary `app/dev/tmp-<name>/page.tsx` with a fake user (**delete it when done**: the repo is public); `resize_window` `mobile` for 375px and **always reset with `desktop`**; a new route may 404 on the first visit, navigate again; Radix menus need `pointerdown`/`mousedown`/`pointerup`/`mouseup`/`click` dispatched from `javascript_tool`. If those tools are not available to you, say so and fall back to the cmux CLI (which is signed in) — see CLAUDE.md "Testing in the browser (cmux)" for the commands and limits (emulate widths with `viewport`, always `viewport reset` after; measure with `eval` + `getBoundingClientRect()`; the localhost tab is Avery's real data — reversible actions only, undo test changes). Prefer the `/dev/*` showcase tab for edge cases. Report what you measured at which widths, and say plainly what you couldn't check (file pickers, hover, real devices).
 
 ## Report
 
