@@ -36,7 +36,7 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         align={align}
         className={cn(
-          "z-50 min-w-[220px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-[14px] border border-border bg-popover p-1.5 text-popover-foreground shadow-md ring-1 ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
+          "z-50 min-w-[220px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-[9px] border border-border bg-popover p-1.5 text-popover-foreground shadow-md ring-1 ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
           className
         )}
         {...props}
@@ -60,7 +60,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "relative flex w-full cursor-pointer items-center gap-2 rounded-[10px] px-2.5 py-2 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-disabled:pointer-events-none data-disabled:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:[&_svg]:text-destructive",
+        "relative flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-2 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-disabled:pointer-events-none data-disabled:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:[&_svg]:text-destructive",
         className
       )}
       {...props}
@@ -85,7 +85,7 @@ function DropdownMenuSubTrigger({
       data-slot="dropdown-menu-sub-trigger"
       data-inset={inset}
       className={cn(
-        "flex w-full cursor-pointer items-center gap-2 rounded-[10px] px-2.5 py-2 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-[state=open]:bg-secondary data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
+        "flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-2 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-[state=open]:bg-secondary data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground",
         className
       )}
       {...props}
@@ -105,7 +105,7 @@ function DropdownMenuSubContent({
       <DropdownMenuPrimitive.SubContent
         data-slot="dropdown-menu-sub-content"
         className={cn(
-          "z-50 min-w-[160px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-[14px] border border-border bg-popover p-1.5 text-popover-foreground shadow-md ring-1 ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "z-50 min-w-[160px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-[9px] border border-border bg-popover p-1.5 text-popover-foreground shadow-md ring-1 ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
@@ -129,7 +129,7 @@ function DropdownMenuRadioItem({
     <DropdownMenuPrimitive.RadioItem
       data-slot="dropdown-menu-radio-item"
       className={cn(
-        "relative flex w-full cursor-pointer items-center gap-2 rounded-[10px] py-2 pr-2.5 pl-8 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-disabled:pointer-events-none data-disabled:opacity-50",
+        "relative flex w-full cursor-pointer items-center gap-2 rounded-[7px] py-2 pr-2.5 pl-8 text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-disabled:pointer-events-none data-disabled:opacity-50",
         className
       )}
       {...props}

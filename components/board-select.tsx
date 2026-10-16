@@ -29,7 +29,7 @@ const ITEM_CLASS = "items-center gap-0 rounded-[var(--r-tile)] py-2 pl-2 pr-8";
 function BoardThumb({ board, small = false }: { board: Board; small?: boolean }) {
   const { t } = useLang();
   const size = small ? "size-5" : "size-9";
-  const radius = small ? "rounded-[6px]" : "rounded-[10px]";
+  const radius = small ? "rounded-[4px]" : "rounded-[7px]";
   const src = boardPhotoSrc(board);
   if (!src) {
     return <span className={`${size} shrink-0 ${radius} bg-secondary`} aria-hidden />;

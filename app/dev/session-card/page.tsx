@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EntryCard } from "@/components/entry-card";
+import { DEMO_BOARD, MEDIA_CASES, withDemo } from "@/app/dev/session-card/media-cases";
 import { LangSwitch } from "@/app/dev/lang-switch";
 import {
   fakeBoard,
@@ -324,6 +325,12 @@ const CASES: CaseDef[] = [
   },
 ];
 
+const FRAME_WIDTHS = [
+  { px: 375, label: "375px (phone)" },
+  { px: 700, label: "700px (tablet, past sm)" },
+  { px: 1100, label: "1100px (desktop)" },
+] as const;
+
 const WIDTHS = [
   { key: "375", label: "375px (phone)", px: 375 },
   { key: "768", label: "768px (tablet)", px: 768 },
@@ -340,15 +347,29 @@ function Frame({ px, children }: { px: number | null; children: React.ReactNode 
   );
 }
 
-export default function EntryCardPreviewPage() {
+export default function SessionCardPreviewPage() {
   const [width, setWidth] = useState<WidthKey>("auto");
+  // Frame heights reported by each iframe (see frame/page.tsx), keyed "case-width".
+  const [heights, setHeights] = useState<Record<string, number>>({});
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data as { type?: string; k?: string; h?: number };
+      if (d?.type === "session-card-frame-height" && d.k && typeof d.h === "number") {
+        const { k, h } = d;
+        setHeights((prev) => (prev[k] === h ? prev : { ...prev, [k]: h }));
+      }
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
   const activeWidth = WIDTHS.find((w) => w.key === width) ?? WIDTHS[3];
 
   return (
     <div className="mx-auto w-full max-w-[1260px] px-4.5 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-sans text-2xl font-extrabold">Entry card (dev only)</h1>
+          <h1 className="font-sans text-2xl font-extrabold">Session card (dev only)</h1>
           <p className="mt-1 max-w-[65ch] text-sm text-muted-foreground">
             components/entry-card.tsx in every case its branches produce — synthetic sessions from{" "}
             <code>app/dev/fixtures.ts</code>. Edit/Delete/upload inside each card hit the real API and will fail
@@ -367,17 +388,49 @@ export default function EntryCardPreviewPage() {
         that wide.
       </div>
 
-      <section className="mt-8">
+      <section className="mt-8 min-w-0">
+        <h2 className="font-sans text-[15px] font-bold">Media count × screen size</h2>
+        <p className="mt-1 max-w-[75ch] text-[13px] text-muted-foreground">
+          Each cell is an iframe of <code>/dev/session-card/frame</code> at the labelled width, so the card&apos;s
+          <code> sm:</code>/<code>lg:</code> classes react to the frame, not to this window. Each row scrolls
+          sideways inside its own box. Sample photos come from /landing; the video cell has no real video, only the
+          badge.
+        </p>
+        <div className="mt-3 flex flex-col gap-6">
+          {MEDIA_CASES.map((c) => (
+            <div key={c.id} className="min-w-0 max-w-full">
+              <div className="mb-1 font-sans text-[13px] font-bold">{c.title}</div>
+              <div className="max-w-full overflow-x-auto rounded-lg border border-dashed border-border p-2">
+                <div className="flex w-max items-start gap-4">
+                  {FRAME_WIDTHS.map((w) => (
+                    <div key={w.px}>
+                      <div className="mb-1 font-mono text-xs text-muted-foreground">{w.label}</div>
+                      <iframe
+                        title={`${c.title} at ${w.px}px`}
+                        src={`/dev/session-card/frame?case=${c.id}&k=${c.id}-${w.px}`}
+                        style={{ width: w.px, height: heights[`${c.id}-${w.px}`] ?? 320 }}
+                        className="block max-w-none rounded-md border-0 bg-panel"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
         <h2 className="font-sans text-[15px] font-bold">Widths, side by side</h2>
         <p className="mt-1 text-[13px] text-muted-foreground">
           The same full-data case at all three reference widths (see the note above about <code>lg:</code>).
         </p>
         <div className="mt-3 flex flex-wrap items-start gap-4">
           {WIDTHS.filter((w) => w.px != null).map((w) => (
-            <div key={w.key}>
+            <div key={w.key} className="min-w-0 max-w-full">
               <div className="mb-1 font-mono text-xs text-muted-foreground">{w.label}</div>
               <Frame px={w.px}>
-                <EntryCard session={CASES[0].session} boards={[]} onUpdated={onUpdated} onDeleted={onDeleted} />
+                <EntryCard session={withDemo(CASES[0].session)} boards={[DEMO_BOARD]} onUpdated={onUpdated} onDeleted={onDeleted} />
               </Frame>
             </div>
           ))}
@@ -412,7 +465,7 @@ export default function EntryCardPreviewPage() {
                 <p className="mt-0.5 max-w-[75ch] text-[12.5px] text-muted-foreground">{c.caption}</p>
               </div>
               <Frame px={activeWidth.px}>
-                <EntryCard session={c.session} boards={c.boards ?? []} onUpdated={onUpdated} onDeleted={onDeleted} />
+                <EntryCard session={withDemo(c.session)} boards={c.boards ?? [DEMO_BOARD]} onUpdated={onUpdated} onDeleted={onDeleted} />
               </Frame>
             </div>
           ))}

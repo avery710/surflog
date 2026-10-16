@@ -338,7 +338,7 @@ export function ActivityCalendar({
       <div
         ref={cardRef}
         className={cn(
-          "flex rounded-[var(--r-card)] border border-card-border bg-card pt-3.5 pr-5 pb-5 pl-5 sm:pr-6",
+          "flex rounded-[var(--r-card)] bg-card pt-3 pr-4 pb-4 pl-4 sm:pr-5",
           fit ? "flex-1" : "sm:flex-1"
         )}
       >

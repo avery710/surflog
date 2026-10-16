@@ -149,7 +149,7 @@ export function SpotDetail({
         </div>
       </div>
 
-      <section className="mt-6 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-4">
+      <section className="mt-6 rounded-[var(--r-card)] bg-card px-5 py-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-[13px] font-bold text-muted-foreground">{t("spotPage.about")}</h2>
           {!canManage && (
@@ -185,7 +185,7 @@ export function SpotDetail({
         </div>
       </section>
 
-      <section className="mt-4 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-4">
+      <section className="mt-4 rounded-[var(--r-card)] bg-card px-5 py-4">
         <h2 className="text-[13px] font-bold text-muted-foreground">{t("spotPage.history")}</h2>
         {history.length === 0 ? (
           <p className="mt-2 text-[13.5px] text-muted-foreground">{t("spotPage.noSessions")}</p>
@@ -246,7 +246,7 @@ export function SpotDetail({
         )}
 
         {history.length > 0 && (
-          <ul className="mt-4 flex flex-col divide-y divide-card-border rounded-[var(--r-tile)] border border-card-border">
+          <ul className="mt-4 flex flex-col divide-y divide-card-border">
             {history.map((h) => (
               <li key={h.id} className="px-3.5 py-2.5">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">

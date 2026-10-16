@@ -198,23 +198,23 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
       >
         <div>
           <Panel className="flex flex-col gap-2.5">
-            <p className="ml-auto max-w-[85%] rounded-[18px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
+            <p className="ml-auto max-w-[85%] rounded-[8px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
               {t("landing.agent.ask")}
             </p>
             <p className="max-w-[85%] self-start rounded-full bg-secondary px-3 py-1 font-mono text-[11.5px] text-muted-foreground">
               create_session · jialeshui · 06:00
             </p>
-            <p className="max-w-[85%] self-start rounded-[18px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
+            <p className="max-w-[85%] self-start rounded-[8px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
               {t("landing.agent.reply")}
             </p>
             {/* Second exchange: reading the journal back for patterns and advice. */}
-            <p className="mt-2 ml-auto max-w-[85%] rounded-[18px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
+            <p className="mt-2 ml-auto max-w-[85%] rounded-[8px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
               {t("landing.agent.ask2")}
             </p>
             <p className="max-w-[85%] self-start rounded-full bg-secondary px-3 py-1 font-mono text-[11.5px] text-muted-foreground">
               list_sessions · get_goal
             </p>
-            <p className="max-w-[92%] self-start whitespace-pre-line rounded-[18px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
+            <p className="max-w-[92%] self-start whitespace-pre-line rounded-[8px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
               {t("landing.agent.reply2")}
             </p>
           </Panel>
@@ -270,7 +270,7 @@ function Section({ n, title, body, children }: { n: string; title: string; body:
 
 function Panel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-[var(--r-card)] border border-card-border bg-card p-5", className)}>{children}</div>
+    <div className={cn("rounded-[var(--r-card)] bg-card p-5", className)}>{children}</div>
   );
 }
 

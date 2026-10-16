@@ -203,8 +203,8 @@ export function BoardRack({
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
     <section>
-      <div className="rounded-[var(--r-card)] border border-card-border bg-card p-2">
-        <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-3">
+      <div className="rounded-[var(--r-card)] bg-card p-1.5">
+        <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-2.5">
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.boards")}
           </h2>
@@ -446,7 +446,7 @@ function SortableBoardCard({
       */}
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
         <div
-          className="relative aspect-square h-full max-h-24 min-h-16 min-w-16 w-auto max-w-24 overflow-hidden rounded-[12px] bg-background"
+          className="relative aspect-square h-full max-h-24 min-h-16 min-w-16 w-auto max-w-24 overflow-hidden rounded-[4px] bg-background"
         >
           {photoSrc && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -700,7 +700,7 @@ function BoardForm({ board, onSaved }: { board: Board | null; onSaved: (b: Board
             <img
               src={shownPhoto}
               alt={t("board.photoAlt", { name: boardLabel({ brand, lengthIn: joinLength(ft, inches) || null }) })}
-              className="size-16 rounded-[12px] bg-secondary object-cover"
+              className="size-16 rounded-[4px] bg-secondary object-cover"
             />
           )}
           <Button

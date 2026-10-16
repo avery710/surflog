@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${funnel.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-panel text-foreground">
         <LanguageProvider>{children}</LanguageProvider>
         <Toaster position="bottom-center" />
       </body>

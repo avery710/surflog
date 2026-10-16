@@ -242,7 +242,7 @@ export function GoalCard({
     // not the other way round; flex-1 + h-full-ish fill keeps this card as
     // tall as the calendar's minimum when it has only a point or two.
     <section className="flex flex-1 flex-col">
-      <div className="flex flex-1 items-stretch gap-3 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-3.5">
+      <div className="flex flex-1 items-stretch gap-3 rounded-[var(--r-card)] bg-card px-4 py-3">
         <div className="flex min-w-0 flex-1 flex-col">
           {/* No horizontal padding here (unlike the px-2 used by the body
               rows below, for their own hover/input backgrounds) — the card's
@@ -318,7 +318,7 @@ export function GoalCard({
                         type="button"
                         onClick={startEdit}
                         aria-label={t("goal.edit")}
-                        className="absolute inset-0 rounded-[10px]"
+                        className="absolute inset-0 rounded-[4px]"
                       />
                     )}
                     <DndContext
@@ -351,7 +351,7 @@ export function GoalCard({
                     type="button"
                     onClick={startEdit}
                     aria-label={t("goal.edit")}
-                    className="w-full rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:opacity-80"
+                    className="w-full rounded-[4px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:opacity-80"
                   >
                     {t("goal.add")}
                   </button>
@@ -633,7 +633,7 @@ export function GoalCheck({
           return (
             <label
               key={p}
-              className="flex cursor-pointer items-start gap-2.5 rounded-[10px] px-1 py-1 hover:bg-background/60"
+              className="flex cursor-pointer items-start gap-2.5 rounded-[4px] px-1 py-1 hover:bg-background/60"
             >
               <input
                 type="checkbox"
@@ -645,7 +645,7 @@ export function GoalCheck({
               <span
                 aria-hidden
                 className={cn(
-                  "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[6px] border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-ring/30",
+                  "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[4px] border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-ring/30",
                   checked ? "border-primary bg-primary text-white" : "border-border bg-background"
                 )}
               >

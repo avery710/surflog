@@ -1,14 +1,88 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Megaphone } from "lucide-react";
+import { AnimatedHeight } from "@/components/animated-height";
 import { SpotReviewsDialog } from "@/components/spot-reviews-dialog";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
 import { INLINE_FIELD, INLINE_FIELD_IDLE } from "@/lib/inline-field";
 import type { Spot } from "@/lib/spots";
 import type { Session } from "@/lib/types";
+
+
+// --- smooth size changes of the inline note field ---------------------------
+// The field's own height eases (200-240 ms, like AnimatedHeight) when it opens
+// from the read-view button, as lines are added/removed, and when it closes.
+// While one of these runs the element carries `data-height-anim`;
+// AnimatedHeight sees that and lets the card follow frame by frame instead of
+// starting its own transition (which would ease the same change twice).
+const GLIDE = "height 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+const MAX_FIELD_HEIGHT = 220;
+
+function glide(el: HTMLElement, from: number, to: number, keep: boolean) {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const settle = () => {
+    el.removeAttribute("data-height-anim");
+    el.style.transition = "";
+    el.style.overflow = "";
+    if (!keep) el.style.height = "";
+    el.removeEventListener("transitionend", onEnd);
+  };
+  function onEnd(e: TransitionEvent) {
+    if (e.target === el && e.propertyName === "height") settle();
+  }
+  if (reduce || Math.abs(from - to) < 0.5) {
+    settle();
+    if (keep) el.style.height = `${to}px`;
+    return;
+  }
+  el.setAttribute("data-height-anim", "");
+  el.style.transition = "none";
+  el.style.overflow = "hidden";
+  el.style.height = `${from}px`;
+  void el.offsetHeight; // commit the start height before animating
+  el.style.transition = GLIDE;
+  el.style.height = `${to}px`;
+  el.addEventListener("transitionend", onEnd);
+}
+
+type FieldHeights = { close: { slug: string; h: number } | null };
+
+/** A textarea that grows to its text (min 3 rows, capped) with an eased height. */
+function NoteField({
+  slug,
+  fromHeight,
+  heights,
+  ...props
+}: React.ComponentProps<"textarea"> & { slug: string; fromHeight: number | null; heights: React.RefObject<FieldHeights> }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const first = useRef(true);
+
+  // Only height styles are touched here, never the value: safe for IME composition.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const from = first.current && fromHeight != null ? fromHeight : el.offsetHeight;
+    first.current = false;
+    el.style.transition = "none";
+    el.style.height = "auto";
+    const natural = Math.min(el.scrollHeight + (el.offsetHeight - el.clientHeight), MAX_FIELD_HEIGHT);
+    glide(el, from, natural, true);
+  }, [props.value, fromHeight]);
+
+  // Remember how tall the field was so the read view can ease down from it.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const h = heights;
+    return () => {
+      if (el) h.current.close = { slug, h: el.offsetHeight };
+    };
+  }, [slug, heights]);
+
+  return <textarea ref={ref} {...props} />;
+}
 
 const noop = () => {};
 
@@ -35,6 +109,8 @@ export function PatternsTable({
   const [sharing, setSharing] = useState<{ spot: Spot; note: string } | null>(null);
   // Esc unmounts the input, which can still fire a blur — don't save then.
   const cancelled = useRef(false);
+  const heights = useRef<FieldHeights>({ close: null });
+  const [openFrom, setOpenFrom] = useState<number | null>(null);
 
   if (sessions.length < 2) return null;
 
@@ -47,7 +123,8 @@ export function PatternsTable({
     .map(([slug, n]) => ({ slug, n }))
     .sort((a, b) => b.n - a.n);
 
-  function startEdit(slug: string) {
+  function startEdit(slug: string, fromHeight: number) {
+    setOpenFrom(fromHeight);
     cancelled.current = false;
     setDraft(spotNotes[slug] ?? "");
     setEditing(slug);
@@ -75,8 +152,9 @@ export function PatternsTable({
     // (min-w-[420px] on the <table>, overflow-auto below) handle anything
     // narrower than that, rather than forcing this section wider.
     <section className="w-full min-w-0">
-      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] border border-card-border bg-card p-2">
-        <h2 className="shrink-0 px-3 pt-2 font-sans text-[13px] font-bold text-muted-foreground">
+      <AnimatedHeight>
+      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] bg-card p-1.5">
+        <h2 className="shrink-0 px-2.5 pt-1.5 font-sans text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>
         {/* relative: makes this scroller the containing block of absolutely
@@ -131,7 +209,10 @@ export function PatternsTable({
                           <p className="px-3.5 py-[2px] text-[14px] leading-5 whitespace-pre-wrap break-words">{note}</p>
                         ) : null
                       ) : editing === r.slug ? (
-                        <textarea
+                        <NoteField
+                          slug={r.slug}
+                          fromHeight={openFrom}
+                          heights={heights}
                           autoFocus
                           rows={3}
                           value={draft}
@@ -151,12 +232,21 @@ export function PatternsTable({
                               setEditing(null);
                             }
                           }}
-                          className={`w-full resize-y text-[14px] leading-6 ${INLINE_FIELD}`}
+                          className={`w-full resize-none overflow-y-auto text-[14px] leading-6 ${INLINE_FIELD}`}
                         />
                       ) : (
                         <button
                           type="button"
-                          onClick={() => startEdit(r.slug)}
+                          data-slug={r.slug}
+                          ref={(el) => {
+                            // Closing: ease from the field's last height down to the read view's.
+                            const c = heights.current.close;
+                            if (el && c && c.slug === r.slug) {
+                              heights.current.close = null;
+                              glide(el, c.h, el.offsetHeight, false);
+                            }
+                          }}
+                          onClick={(e) => startEdit(r.slug, e.currentTarget.offsetHeight)}
                           aria-label={t("patterns.editDescription", { spot: label })}
                           className={
                             note
@@ -200,6 +290,7 @@ export function PatternsTable({
           </table>
         </div>
       </div>
+      </AnimatedHeight>
       <SpotReviewsDialog
         spot={sharing?.spot ?? null}
         draftBody={sharing?.note}

@@ -14,10 +14,10 @@ const PAGES = [
       "components/landing/landing.tsx — the signed-out “/” page, viewable while signed in. Sign-in buttons do nothing here.",
   },
   {
-    href: "/dev/entry-card",
-    title: "Entry card",
+    href: "/dev/session-card",
+    title: "Session card",
     description:
-      "components/entry-card.tsx — the session card: condition tiles, board/goal chips, notes, photos. Every branch on missing data, both tide sources, wind extremes, en/zh-TW.",
+      "components/entry-card.tsx — the session card: condition tiles, board/goal chips, notes, photos. Every media count (0-7, with and without conditions), every branch on missing data, both tide sources, wind extremes, en/zh-TW.",
   },
   {
     href: "/dev/dashboard",

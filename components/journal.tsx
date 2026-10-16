@@ -308,8 +308,8 @@ export function Journal({
             had been a tinted, padded group since 2026-09-29), so each
             section's white card runs the full column width, the same edges
             as the session cards below. Spacing between sections is this
-            wrapper's gap-4; mt-8 keeps the break under the blue header. */}
-        <div className="mt-8 flex flex-col gap-4">
+            wrapper's gap-3 (12px, tightened 2026-10-16); mt-5 keeps the break under the blue header. */}
+        <div className="mt-5 flex flex-col gap-3">
           {/* Row 1, sm: up: goal (flexible width) beside the calendar
               (content-sized — see ActivityCalendar's own comment for
               the arithmetic). The calendar used to get a fixed 344px column
@@ -337,17 +337,17 @@ export function Journal({
             // flex-wrap only matters on the narrowest phones (320px), where
             // the card drops under the calendar rather than widening the page;
             // the gap is 12px below `sm` to leave the card a little more room.
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
               <div className="flex min-w-0 flex-col lg:flex-1">
                 <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
               </div>
-              <div className="flex flex-wrap items-stretch gap-3 sm:gap-4 lg:flex-nowrap">
+              <div className="flex flex-wrap items-stretch gap-3 lg:flex-nowrap">
                 <ActivityCalendar sessions={sessions} fit />
                 <AiAppCard />
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
               <div className="flex min-w-0 flex-1 flex-col">
                 <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
               </div>
@@ -390,7 +390,7 @@ export function Journal({
           </DialogContent>
         </Dialog>
 
-        <section className="mt-6.5">
+        <section className="mt-5">
           <div className="pl-1 font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.sessions")}
           </div>
@@ -427,7 +427,7 @@ export function LogIcon({ className }: { className?: string }) {
 function EmptyState() {
   const { t } = useLang();
   return (
-    <div className="mt-3.5 rounded-[var(--r-card)] border border-card-border bg-card p-8">
+    <div className="mt-3 rounded-[var(--r-card)] bg-card p-6">
       <h3 className="text-xl font-bold tracking-[-0.02em]">{t("empty.title")}</h3>
       <p className="mt-1.5 text-[15px] font-medium text-muted-foreground">{t("empty.body")}</p>
     </div>

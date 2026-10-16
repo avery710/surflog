@@ -91,7 +91,7 @@ export function RichTextEditor({
   return (
     <div
       className={cn(
-        "rounded-[14px] border border-transparent bg-secondary transition-colors focus-within:border-ring focus-within:bg-background focus-within:ring-4 focus-within:ring-ring/15",
+        "rounded-[9px] border border-transparent bg-secondary transition-colors focus-within:border-ring focus-within:bg-background focus-within:ring-4 focus-within:ring-ring/15",
         className
       )}
     >

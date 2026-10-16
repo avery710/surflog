@@ -18,7 +18,10 @@ export const DICT = {
   "toast.uploadFailed": { en: "Upload failed", "zh-TW": "上傳失敗" },
   "entry.viewPhoto": { en: "View photo {n} of {total}", "zh-TW": "檢視第 {n} 張照片（共 {total} 個）" },
   "entry.viewVideo": { en: "Play video {n} of {total}", "zh-TW": "播放第 {n} 個影片（共 {total} 個）" },
+  "entry.moreMedia": { en: "+{n}", "zh-TW": "+{n}" },
   "viewer.title": { en: "Photos and videos", "zh-TW": "照片與影片" },
+  "viewer.zoomIn": { en: "Zoom in", "zh-TW": "放大" },
+  "viewer.zoomOut": { en: "Zoom out", "zh-TW": "縮小" },
   "viewer.prev": { en: "Previous", "zh-TW": "上一個" },
   "viewer.next": { en: "Next", "zh-TW": "下一個" },
   "toast.editMediaFailed": {
