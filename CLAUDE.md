@@ -451,7 +451,7 @@ Session card ⋯ → Share → `components/share-dialog.tsx`: generated images
   file.
 
 **Dashboard** (`components/journal.tsx`): white cards sit directly on the
-grey page (no wrapper), **12 px apart** (`gap-3`; session cards `mt-3`) —
+grey page (no wrapper), **12 px apart from `sm`, 8 px on phones** (`gap-2 sm:gap-3`; session cards `mt-2 sm:mt-3`; card padding 12 px on phones, page gutter 14 px, session card inner side padding 16 px, all restored at `sm`) —
 row 1 goal card + activity calendar (`sm:w-[260px]`, `items-start`), row 2
 "What you've surfed" table, row 3 board rack. Cards have **no outline**.
 `app/dev/dashboard/page.tsx` mirrors this markup; keep in sync. The

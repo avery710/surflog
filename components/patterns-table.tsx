@@ -171,7 +171,7 @@ export function PatternsTable({
     // cell wraps, even an unbroken run ([overflow-wrap:anywhere]).
     <section className="w-full min-w-0">
       <AnimatedHeight>
-      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] bg-card p-1.5">
+      <div className="flex max-h-[320px] flex-col rounded-[var(--r-card)] bg-card p-1 sm:p-1.5">
         <h2 className="shrink-0 px-1.5 pt-1.5 font-sans sm:px-4 text-[13px] font-bold text-muted-foreground">
           {t("patterns.title")}
         </h2>

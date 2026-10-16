@@ -111,9 +111,9 @@ export function EntryCard({
     trend ? <Figure value={<span className="capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>} /> : null;
 
   const cardClass = plain
-    ? // every section's px-6 (and the header's top padding) dropped from the outside
+    ? // every section's px-4 sm:px-6 (and the header's top padding) dropped from the outside
       "overflow-hidden [&>*]:px-0! [&>*:first-child]:pt-0!"
-    : "mt-3 overflow-hidden rounded-[var(--r-card)] bg-card";
+    : "mt-2 sm:mt-3 overflow-hidden rounded-[var(--r-card)] bg-card";
 
   if (editing) {
     return (
@@ -135,7 +135,7 @@ export function EntryCard({
   const sideBySide = !!om && session.photos.length === 1;
   const tileGroupClass = sideBySide
     ? "grid grid-cols-3 gap-2 sm:min-w-0 sm:flex-[3]"
-    : "grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap sm:items-stretch sm:overflow-x-auto [scrollbar-width:none] px-6 pt-3 pb-1.5";
+    : "grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap sm:items-stretch sm:overflow-x-auto [scrollbar-width:none] px-4 sm:px-6 pt-3 pb-1.5";
   const mosaic = (fill: boolean) => (
     <MediaMosaic
       photos={session.photos}
@@ -272,7 +272,7 @@ export function EntryCard({
           and a wrapped header (date under the title, or a two-line title)
           just grows past 40px with nothing to centre. ⋯ stays items-start
           (pinned top-right) when the group grows taller. */}
-      <div className="flex items-start gap-2 px-6 pt-4 pb-2">
+      <div className="flex items-start gap-2 px-4 sm:px-6 pt-3 sm:pt-4 pb-2">
         <div className="flex min-h-10 min-w-0 flex-1 flex-wrap content-center items-baseline gap-x-3 gap-y-1.5">
           <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
             {catalog.label(session.spot, lang)}
@@ -379,7 +379,7 @@ export function EntryCard({
         // beside the previous one; a wrapped goals group then shrinks to the
         // row and wraps its own pills. Gap 8px across, ~8px down (the chip's
         // 36px line already leaves 4px under its pill). No stem joins the two.
-        <div className="mx-6 mb-0.5 flex flex-wrap items-start gap-x-2 gap-y-0.5">
+        <div className="mx-4 sm:mx-6 mb-0.5 flex flex-wrap items-start gap-x-2 gap-y-0.5">
           {board && (
             <div className="max-w-full min-w-0 text-[13.5px] leading-9 break-words">
               <BoardChip board={board} />
@@ -391,7 +391,7 @@ export function EntryCard({
 
       {session.notesHtml && (
         <div
-          className={`notes-html px-6 ${board || achieved.length > 0 ? "pt-2" : "pt-1"} pb-2.5 font-sans text-[15px] leading-[1.6] text-foreground`}
+          className={`notes-html px-4 sm:px-6 ${board || achieved.length > 0 ? "pt-2" : "pt-1"} pb-2.5 font-sans text-[15px] leading-[1.6] text-foreground`}
           dangerouslySetInnerHTML={{ __html: session.notesHtml }}
         />
       )}
@@ -400,7 +400,7 @@ export function EntryCard({
         // One media item next to the tiles (sm and up): the tiles keep the
         // phone's 3-column arrangement in ~60% of the row, the media fills the
         // rest at the tile block's height, cover-cropped. Stacked on phones.
-        <div className="flex flex-col gap-2 px-6 pt-3 pb-1.5 sm:flex-row sm:items-stretch">
+        <div className="flex flex-col gap-2 px-4 sm:px-6 pt-3 pb-1.5 sm:flex-row sm:items-stretch">
           {omTiles}
           <div className="relative aspect-video w-full max-h-[260px] sm:aspect-auto sm:min-w-0 sm:flex-[2]">{mosaic(true)}</div>
         </div>
@@ -412,7 +412,7 @@ export function EntryCard({
           duplicates its tiles, so it's stored but not shown (and only
           shown when Open-Meteo has nothing for the session). */}
       {manual && om ? null : manual ? (
-        <div className="grid grid-cols-2 gap-2 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-6 pt-3 pb-1.5">
+        <div className="grid grid-cols-2 gap-2 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-4 sm:px-6 pt-3 pb-1.5">
           <ConditionTile
             label={t("tile.swellSwelleye")}
             value={fmt1(manual.swellHeightM)}
@@ -447,7 +447,7 @@ export function EntryCard({
           />
         </div>
       ) : !om ? (
-        <div className="mx-6 mb-2 mt-0.5 flex flex-wrap items-center gap-3 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4.5 py-4">
+        <div className="mx-4 sm:mx-6 mb-2 mt-0.5 flex flex-wrap items-center gap-3 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4.5 py-4">
           <p className="min-w-[180px] flex-1 text-[14.5px] font-medium text-foreground">
             {t("entry.noCoords")}
           </p>
@@ -464,7 +464,7 @@ export function EntryCard({
           cell dimmed with "+N" when there are more. Same on every width. */}
       {session.photos.length > 0 && (
         <>
-          {!sideBySide && <div className="px-6 pt-1.5 pb-1.5">{mosaic(false)}</div>}
+          {!sideBySide && <div className="px-4 sm:px-6 pt-1.5 pb-1.5">{mosaic(false)}</div>}
           <MediaViewer
             photos={session.photos}
             index={viewing}
@@ -477,7 +477,7 @@ export function EntryCard({
       )}
 
       {session.example || (manual && !om) ? (
-        <div className="flex flex-wrap items-center gap-2 px-6 pt-1.5 pb-4">
+        <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-1.5 pb-4">
         {session.example && (
           <span className="rounded-full bg-[var(--warm-soft)] px-3.5 py-1 text-[11.5px] font-semibold text-warm">
             {t("entry.example")}

@@ -203,7 +203,7 @@ export function BoardRack({
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
     <section>
-      <div className="rounded-[var(--r-card)] bg-card p-1.5">
+      <div className="rounded-[var(--r-card)] bg-card p-1 sm:p-1.5">
         <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-2.5">
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.boards")}
