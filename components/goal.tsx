@@ -13,7 +13,7 @@
  * touch the others.
  */
 import { PillNeck } from "@/components/pill-neck";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -224,6 +224,10 @@ export function GoalCard({
   // Optimistic order while a drag-reorder is being saved (see
   // handleDisplayDragEnd); null otherwise.
   const shownPoints = pendingOrder ?? goalPoints(goal);
+  // dnd-kit numbers its screen-reader description (aria-describedby) from a
+  // global counter, which differs between the server render and hydration;
+  // an explicit id per context keeps both sides identical.
+  const dndId = useId();
   // Stable sortable ids: the text, numbered when a point repeats.
   const seen = new Map<string, number>();
   const displayIds = shownPoints.map((p) => {
@@ -271,6 +275,7 @@ export function GoalCard({
               }}
             >
               <DndContext
+                id={`${dndId}-edit`}
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 modifiers={[verticalOnly]}
@@ -322,6 +327,7 @@ export function GoalCard({
                       />
                     )}
                     <DndContext
+                      id={`${dndId}-view`}
                       sensors={sensors}
                       collisionDetection={closestCenter}
                       modifiers={[verticalOnly]}

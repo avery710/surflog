@@ -187,7 +187,11 @@
      what this is — it's no longer a tint of --primary at all. Kept as its
      own token, not literally `var(--secondary)`, so the panel can diverge
      from the secondary-surface grey later without a rename again. */
-  --panel: #f9fafa;
+  --panel: #ffffff;
+  /* 2026-10-16, latest: the page is white, on request. White cards now separate
+     from the page by --card-shadow alone, so that was strengthened the same day.
+     The note below on greys is history; --secondary/--muted still fill tiles and
+     pills. */
   /* 2026-10-16, later still: page grey lightened from the chip grey (#f2f5f5) to
      #f9fafa after comparing with Strava's dashboard (white feed cards on
      #fafafa side panels, measured in Chrome). Kept a hair cooler than Strava's
@@ -247,15 +251,19 @@
   --r-card: 6px;
   --r-tile: 4px;
   /* Resting white cards (utility `shadow-soft`), 2026-10-16 on request, after
-     Strava's feed cards (0 8px 24px rgba(13,13,18,.04), measured). Alpha
-     .06 not .04: on the near-white page (#f9fafa) .04 is invisible. Cards
-     stay borderless. Not for tiles, pills, inputs or the blue banners. */
-  --card-shadow: 0 8px 24px 0 rgba(13, 13, 18, 0.04);
+     Strava's feed cards (0 8px 24px rgba(13,13,18,.04), measured).
+     Strengthened later the same day (.04 -> .10, plus a 1px contact line)
+     when the page itself went white: with no grey behind them the shadow is
+     all that separates a card from the page. Cards stay borderless. Not for
+     tiles, pills, inputs or the blue banners. */
+  /* 2026-10-17: switched off "for now" on request, then restored the same day;
+     blur then halved (8/24 -> 4/12), then alpha .10/.08 -> .06 on request. */
+  --card-shadow: 0 1px 2px 0 rgba(13, 13, 18, 0.06), 0 4px 12px 0 rgba(13, 13, 18, 0.06);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px -20px rgba(0, 0, 0, 0.28);
   /* Floating menu/select/popover panels (utility `shadow-menu`), 2026-10-16: same
-     shape as --card-shadow but alpha .10, because a panel opens over white
+     shape as the card's soft layer but alpha .16, because a panel opens over white
      cards and the blue header, where .04 would not separate it. No ring. */
-  --menu-shadow: 0 8px 24px 0 rgba(13, 13, 18, 0.10);
+  --menu-shadow: 0 8px 24px 0 rgba(13, 13, 18, 0.16);
 }
 
 /*

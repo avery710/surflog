@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Check, MoreHorizontal, Pencil, Star, Trash2, X } from "lucide-react";
 import {
@@ -82,6 +82,8 @@ export function BoardRack({
   onRackChanged: (boards: Board[]) => void;
 }) {
   const { t } = useLang();
+  // Explicit dnd-kit id: its default counter differs server vs client (hydration warning).
+  const dndId = useId();
   // null = closed, "new" = adding, otherwise the board being edited
   const [editing, setEditing] = useState<Board | "new" | null>(null);
   // Delete now goes through a confirm dialog (like entry-card's), not an
@@ -243,7 +245,7 @@ export function BoardRack({
         {boards.length === 0 ? (
           <p className="pt-1 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {/* ONE flat list/SortableContext for every card, favourites
                   first (used to be two SortableContexts, one per group).

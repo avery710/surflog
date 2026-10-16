@@ -570,9 +570,10 @@ synthetic hover doesn't apply `:hover`. Drive a file `<input>` with a
   `w-full`.
 - **When moving or renaming a module, fix its importers in the same step**
   (the dev server 500s for everyone meanwhile).
-- **Open, not fixed (2026-10-16):** dashboard hydration warning — goal
-  pills' drag handle `aria-describedby` (`DndDescribedBy-0` vs `-2`)
-  differs server vs client (the dev "1 Issue" badge).
+- **dnd-kit hydration warning** (fixed 2026-10-16): its default
+  `aria-describedby` id comes from a global counter that differs server vs
+  client. Give every `DndContext` an explicit `id={useId()}` (goal card has
+  two, board rack one).
 - Artifact only: db snapshots are frozen (copy before adding `id`);
   `claude.use()` can hang (race a timeout); the db only answers inside
   Claude's artifact viewer.
@@ -620,8 +621,9 @@ load only when a session starts.
 - **Metric**: metres, seconds, m/s, °C. Never feet or knots. Exception:
   **board length in feet/inches** (stored as inches); volume in litres.
 - Times are local to the session's spot, no timezone suffix stored.
-- Single light theme: **light grey page**, white outline-free cards with a
-  soft shadow (`shadow-soft`, `--card-shadow`). Rounded but tight since
+- Single light theme: **white page** (2026-10-16, by request; was light grey), white
+  outline-free cards separated by a stronger shadow (`shadow-soft`,
+  `--card-shadow`: 1px contact line + 4/12 blur at alpha .06). Rounded but tight since
   2026-10-16: cards `--r-card` 6px, tiles `--r-tile` 4px, inputs
   `--radius` 9px, pill buttons fully round. **Funnel Sans** for UI and
   notes, **IBM Plex Mono** for readings. Share images and landing sticker
@@ -634,7 +636,7 @@ load only when a session starts.
   keep `--shadow-card`.
 - Colour tokens (`app/globals.css`, whose comments hold the history):
   `--primary` `#0018FF` for buttons, header, badges, focus rings; `--panel`
-  `#f9fafa` is the **page background only** (body and public share page);
+  `#ffffff` is the **page background only** (body and public share page);
   `--secondary` / `--muted` `#f2f5f5` fill tiles, pills and board cards;
   `--background` stays white (inputs read it); `--badge` `#374151` for the
   avatar fallback and, via `--data`, direction arrows and tide curve —
