@@ -76,7 +76,7 @@ function DropdownMenuContent({
           onEscapeKeyDown?.(e)
         }}
         className={cn(
-          "z-50 min-w-[220px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-[var(--r-card)] bg-popover p-1.5 text-popover-foreground shadow-menu data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
+          "z-50 min-w-[220px] origin-(--radix-dropdown-menu-content-transform-origin) max-h-(--radix-dropdown-menu-content-available-height) overflow-y-auto overflow-x-hidden rounded-[var(--r-card)] bg-popover p-1.5 text-popover-foreground shadow-menu data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2",
           className
         )}
         {...props}
@@ -208,6 +208,69 @@ function DropdownMenuSubTrigger({
   )
 }
 
+// Height easing for the inline submenu: a 0fr -> 1fr grid-rows transition
+// (240ms ease-out, the same curve as AnimatedHeight), so the rows beneath
+// ride along frame by frame. Options are mounted only while open or while
+// the close transition runs, so closed options never enter the arrow-key
+// order. Under reduced motion it mounts/unmounts instantly.
+function InlineCollapse({
+  open,
+  className,
+  children,
+}: {
+  open: boolean
+  className?: string
+  children: React.ReactNode
+}) {
+  const [mounted, setMounted] = React.useState(open)
+  const [ready, setReady] = React.useState(false)
+  // State adjusted during render (not in an effect) when `open` flips.
+  if (open && !mounted) setMounted(true)
+  if (!open && ready) setReady(false)
+  const expanded = open && ready
+
+  React.useEffect(() => {
+    if (open) {
+      // Start collapsed for one painted frame, then expand.
+      let b = 0
+      const a = requestAnimationFrame(() => {
+        b = requestAnimationFrame(() => setReady(true))
+      })
+      return () => {
+        cancelAnimationFrame(a)
+        cancelAnimationFrame(b)
+      }
+    }
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const id = window.setTimeout(() => setMounted(false), reduce ? 0 : 260)
+    return () => window.clearTimeout(id)
+  }, [open])
+
+  if (!mounted) return null
+  return (
+    <div
+      data-slot="dropdown-menu-sub-content"
+      role="group"
+      className={cn(
+        "grid transition-[grid-template-rows] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+        expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+      )}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <div
+          className={cn(
+            "pl-2 transition-opacity duration-200 motion-reduce:transition-none",
+            expanded ? "opacity-100" : "opacity-0",
+            className
+          )}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DropdownMenuSubContent({
   className,
   ...props
@@ -215,20 +278,12 @@ function DropdownMenuSubContent({
   const inline = React.useContext(InlineSubContext)
   if (inline) {
     // Rendered inside the parent panel (no portal), so it can never cover
-    // it; mounted only while open so closed options stay out of the
-    // arrow-key order. Indented to read as belonging to the row above.
-    return inline.open ? (
-      <div
-        data-slot="dropdown-menu-sub-content"
-        role="group"
-        className={cn(
-          "pl-2 duration-200 animate-in fade-in-0 slide-in-from-top-1 motion-reduce:animate-none",
-          className
-        )}
-      >
+    // it. Indented to read as belonging to the row above.
+    return (
+      <InlineCollapse open={inline.open} className={className}>
         {props.children}
-      </div>
-    ) : null
+      </InlineCollapse>
+    )
   }
   return (
     <DropdownMenuPortal>
