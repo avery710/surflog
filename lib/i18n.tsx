@@ -322,6 +322,7 @@ export const DICT = {
 
   "action.logSession": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "action.signOut": { en: "Sign out", "zh-TW": "登出" },
+  "footer.emailLabel": { en: "Email support: {email}", "zh-TW": "寄信給客服：{email}" },
   "section.sessions": { en: "Sessions", "zh-TW": "紀錄" },
   "goal.title": { en: "Goal for next session", "zh-TW": "下次衝浪的目標" },
   "goal.add": { en: "Add a technique goal to work on next time", "zh-TW": "新增下次要練習的技巧目標" },

@@ -513,6 +513,17 @@ in `step()`. Every signed-in
 page and the landing header use **`PAGE_COLUMN`** (`lib/layout.ts`) —
 change the width there only.
 
+**Footer** (`components/site-footer.tsx`, in the root layout so every page
+gets it, 2026-10-16): a full-width solid `bg-primary` banner, centred, white
+text, content in `PAGE_COLUMN`. One line: a Lucide `Mail` icon + the bold
+`mailto:support@surflog.tw` link (`SUPPORT_EMAIL`, not translated; the
+`aria-label` is `footer.emailLabel`), then a faded "© {year} Surflog".
+`mt-auto` pins it to the bottom of short pages; a 40 px spacer sits above it.
+No wordmark (the header's is black by request, a white one is undecided), no
+Privacy/Terms links until those pages exist. The public share page keeps its
+own muted line above it (may read as doubled). The Google consent screen's
+support email is set in the Google Cloud console, not here.
+
 **Landing** (`components/landing/landing.tsx`, signed-out `/`; preview at
 `/dev/landing`): sections 01 conditions, 02 dashboard, 03 AI app, 04 spot
 list, 05 sharing. Real components on synthetic data
