@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
 import { SessionList } from "@/components/session-list";
+import { SessionFilterBar } from "@/components/session-filter";
+import type { SessionStat } from "@/lib/session-stats";
+import { useSessionFeed } from "@/lib/use-session-feed";
 import { PatternsTable } from "@/components/patterns-table";
 import { BoardRack } from "@/components/board-rack";
 import { GoalCard } from "@/components/goal";
@@ -35,7 +38,9 @@ interface JournalUser {
 }
 
 export function Journal({
-  initialSessions,
+  initialStats,
+  initialLoaded,
+  initialLatest,
   initialSpotNotes,
   initialBoards,
   initialGoal,
@@ -48,7 +53,12 @@ export function Journal({
   openLogForm = false,
   logSpot,
 }: {
-  initialSessions: Session[];
+  /** Every session, slim: all the dashboard (goal, calendar, spot table) needs. */
+  initialStats: SessionStat[];
+  /** The first page of full sessions (10, newest first) straight from the database; more load on scroll. */
+  initialLoaded: Session[];
+  /** The most recent session in full, for the calendar's phone panel. */
+  initialLatest: Session | null;
   initialSpotNotes: Record<string, string>;
   initialBoards: Board[];
   initialGoal: string | null;
@@ -69,7 +79,10 @@ export function Journal({
   logSpot?: string;
 }) {
   const { t } = useLang();
-  const [sessions, setSessions] = useState(initialSessions);
+  // `stats`: every session, slim, for the dashboard. `loaded`: the cards,
+  // 10 at a time as the list scrolls (lib/use-session-feed.ts).
+  const feed = useSessionFeed({ initialStats, initialLoaded, initialLatest });
+  const { stats } = feed;
   const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
   const [boards, setBoards] = useState(initialBoards);
   const [goal, setGoal] = useState(initialGoal);
@@ -119,7 +132,7 @@ export function Journal({
    *  mirror that locally so no card points at a board that's gone. */
   function removeBoard(id: string) {
     setBoards((prev) => prev.filter((b) => b.id !== id));
-    setSessions((prev) => prev.map((s) => (s.boardId === id ? { ...s, boardId: null } : s)));
+    feed.boardRemoved(id);
   }
 
   /** Resolves true if saved, so the table knows whether to leave edit mode. */
@@ -160,7 +173,7 @@ export function Journal({
         (body.sessions ?? []).map((s: { id: string; goalText: string }) => [s.id, s.goalText])
       );
       if (renamed.size) {
-        setSessions((prev) => prev.map((s) => (renamed.has(s.id) ? { ...s, goalText: renamed.get(s.id)! } : s)));
+        feed.goalsRenamed(renamed);
       }
       return true;
     } catch (e) {
@@ -170,21 +183,8 @@ export function Journal({
   }
 
   function handleCreated(s: Session) {
-    upsert(s);
+    feed.created(s);
     setFormOpen(false);
-  }
-
-  function upsert(s: Session) {
-    setSessions((prev) => {
-      const next = prev.some((x) => x.id === s.id)
-        ? prev.map((x) => (x.id === s.id ? s : x))
-        : [s, ...prev];
-      return [...next].sort((a, b) => (b.when || "").localeCompare(a.when || ""));
-    });
-  }
-
-  function remove(id: string) {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
   return (
@@ -311,25 +311,25 @@ export function Journal({
             // the gap is 12px below `sm` to leave the card a little more room.
             <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-stretch">
               <div className="flex min-w-0 flex-col lg:flex-1">
-                <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} />
               </div>
               <div className="flex flex-wrap items-stretch gap-2 sm:gap-3 lg:flex-nowrap">
-                <ActivityCalendar sessions={sessions} fit />
+                <ActivityCalendar sessions={stats} latest={feed.latest} fit />
                 <AiAppCard />
               </div>
             </div>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
               <div className="flex min-w-0 flex-1 flex-col">
-                <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} />
               </div>
-              <ActivityCalendar sessions={sessions} />
+              <ActivityCalendar sessions={stats} latest={feed.latest} />
             </div>
           )}
 
           {/* Row 2: the spot table, now full width on every breakpoint since
               it no longer shares a row with the calendar. */}
-          <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
+          <PatternsTable sessions={stats} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
 
           {/* Row 3: board rack, full width. */}
           <BoardRack boards={boards} onSaved={upsertBoard} onDeleted={removeBoard} onRackChanged={setBoards} />
@@ -352,25 +352,44 @@ export function Journal({
               onCreated={handleCreated}
               onBusyChange={setFormBusy}
               ownerId={user.id}
-              recentSpot={sessions[0]?.spot}
+              recentSpot={stats[0]?.spot}
               presetSpot={logSpot}
               onRequestSpot={openRequestDialog}
               boards={boards}
-              sessions={sessions}
+              sessions={stats}
               goal={goal}
             />
           </DialogContent>
         </Dialog>
 
         <section className="mt-4 sm:mt-5">
-          <div className="pl-1 font-sans text-[13px] font-bold text-muted-foreground">
-            {t("section.sessions")}
-          </div>
+          {stats.length === 0 ? (
+            <div className="pl-1 font-sans text-[13px] font-bold text-muted-foreground">{t("section.sessions")}</div>
+          ) : (
+            <SessionFilterBar
+              filter={feed.filter}
+              onChange={feed.setFilter}
+              stats={stats}
+              boards={boards}
+              matching={feed.total}
+            />
+          )}
           <div>
-            {sessions.length === 0 ? (
+            {stats.length === 0 ? (
               <EmptyState />
+            ) : feed.total === 0 ? (
+              <NoMatches />
             ) : (
-              <SessionList sessions={sessions} boards={boards} goal={goal} onUpdated={upsert} onDeleted={remove} />
+              <SessionList
+                sessions={feed.loaded}
+                boards={boards}
+                goal={goal}
+                hasMore={feed.hasMore}
+                status={feed.status}
+                onLoadMore={feed.loadMore}
+                onUpdated={feed.updated}
+                onDeleted={feed.removed}
+              />
             )}
           </div>
         </section>
@@ -380,6 +399,11 @@ export function Journal({
 }
 
 export { LogIcon } from "@/components/add-button";
+
+function NoMatches() {
+  const { t } = useLang();
+  return <p className="py-10 text-center text-[15px] font-medium text-muted-foreground">{t("filter.noMatchTitle")}</p>;
+}
 
 function EmptyState() {
   const { t } = useLang();

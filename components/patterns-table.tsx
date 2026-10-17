@@ -10,7 +10,7 @@ import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
 import { INLINE_FIELD, INLINE_FIELD_IDLE } from "@/lib/inline-field";
 import type { Spot } from "@/lib/spots";
-import type { Session } from "@/lib/types";
+import type { SessionStat } from "@/lib/session-stats";
 
 
 // --- smooth size changes of the inline note field ---------------------------
@@ -111,7 +111,7 @@ export function PatternsTable({
   onSaveSpotNote,
   readOnly = false,
 }: {
-  sessions: Session[];
+  sessions: Pick<SessionStat, "spot">[];
   spotNotes: Record<string, string>;
   onSaveSpotNote: (spot: string, description: string) => Promise<boolean>;
   /** Static display (landing demo): notes are plain text, no edit button. */

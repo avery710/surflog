@@ -440,6 +440,74 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   Reorder and 常用 are optimistic with rollback. Square photos use an
   absolutely-positioned `<img>` in a wrapper — a stretched `<img>` blows
   up in WebKit.
+- **Session list: paged by the database, infinite scroll** (2026-10-17):
+  `GET /api/sessions?page=N[&pageSize=M]` (`lib/db.ts` `listSessionsPage`,
+  10 per page, max 50, page clamped, ordered `session_when`, `created_at`
+  desc, `id` — the same order as `compareSessions` in
+  `lib/session-stats.ts`). The server page loads the first 10 in full plus
+  `listSessionStats()`: **every** session as a slim row (`SessionStat`: date,
+  spot, board, goal ticks, no notes/photos/conditions), which is all the goal
+  card, calendar, spot table and log form read. `lib/use-session-feed.ts`
+  owns both lists; `SessionList` has a sentinel (400 px ahead) that calls
+  `loadMore`. **`loaded` is always rows 0..n-1**, so the next fetch is
+  `pageToFetch(loaded.length)` (the page starting at or before the first
+  unloaded row; `mergePage` drops repeats). A delete therefore re-fetches the
+  page it shifted; a create joins `loaded` only if it ranks inside it
+  (`addToLoaded`); a fetch in flight during either is discarded. No `?page=`
+  on the homepage (a numbered page switcher was built first, then dropped
+  for infinite scroll; the API kept the page params). The calendar's phone
+  panel gets the newest session in full as `latest`. Checked in the built-in
+  browser on a temporary `/dev` page with a fake `fetch` (scroll to the end,
+  delete mid-scroll: nothing skipped or repeated); **not checked against real
+  Supabase, a real sign-in, a phone, or a failed load / Try again.**
+- **Session filter** (2026-10-17): a chip bar under the "Sessions" title
+  (`components/session-filter.tsx`; Avery picked it over a panel, a
+  toolbar, a dialog and presets-only): **Date · Spot · Board** chips, each
+  opens a radio menu. **Icon-first look** (picked 2026-10-17 from nine: filled,
+  outlined, soft tint, dark, underline, tiles, segmented, icon-first, dot): unset
+  is a small round grey icon button with a tooltip (`Tooltip`, aria-label =
+  its name); set it grows into a solid blue pill with the value and a chevron,
+  and Clear appears. **It is one element that morphs** (fill crossfade + the
+  value/chevron in a `0fr`↔`1fr` grid column, 200 ms ease-out; the last value
+  is kept while it closes); Clear, the custom-range row and the count fade in
+  (entry only); all off under `prefers-reduced-motion`. The chips tried the "+" button's water hover and it was
+  **removed on request 2026-10-17: don't add it back unasked** (hover is a
+  slight darkening of the idle chip). Measured on the real
+  page: 28→96 px open, 96→28 px shut. Date menu = All time / Last 30 days / Last 3 months / This year
+  (open-ended `from`, `datePresets()` in `lib/session-filter.ts`, today in
+  Asia/Taipei; also Last 3 days / Last week = 7 days) / Custom range… (exact From / To under the chips). From `lg`
+  the chips sit on the title's line, right-aligned; chips are 28 px high; the
+  match count is a small grey badge after the title (option B of 8; not its own line); the
+  chip menus are `min-w-[150px]`. **Board chip icon is lucide `WandSparkles`**
+  (a magic wand, picked 2026-10-17 over sun, drawn surfboards, a flying
+  broom and ~30 others; `Waves` was the original). The filter goes to `GET /api/sessions` (`spot`, `board`,
+  `from`, `to`; bad values ignored, `countSessions` and `listSessionsPage`
+  take it), so infinite scroll pages the filtered list; changing it empties
+  `loaded` and the sentinel loads page 1 (`setFilter` in
+  `lib/use-session-feed.ts`). The filtered count comes from the slim list
+  (`matchesFilter`) and shows only while a filter is set. The dashboard (goal,
+  calendar, spot table) is never filtered. A session edited out of the
+  active filter leaves the list; a new one joins it only if it passes. Spot
+  options are only spots you have sessions at. **Kept lists** (2026-10-17):
+  switching filters keeps the list you leave for `FILTER_CACHE_MS` = 60 s
+  (`lib/list-cache.ts`, a `Map` in `use-session-feed.ts`), so going back is
+  instant and scrolling resumes; any create/edit/delete/board/goal change
+  here clears all kept lists, so only changes made elsewhere (another tab,
+  MCP) can be up to a minute old. The list on screen is never auto-refreshed.
+  No library (React Query/SWR) on purpose. Checked in the built-in browser
+  on a temporary `/dev` page with a fake `fetch` (Last 30 days, scroll to the
+  end, 1280 and 375 px layout); the Spot / Board menus and Custom range were
+  only tried in an earlier panel version, **not in the chip bar, not against
+  real Supabase, not on a real phone.**
+- **Date picker** (2026-10-17, `components/date-picker.tsx`,
+  `lib/calendar-grid.ts`): the one date field in the app, a Radix Popover
+  month calendar (Sunday-first, en / zh-TW, fixed 6 rows) replacing the
+  browser's native picker (`DateField`, deleted). `size` "md" = an Input-sized
+  box with no icon (log form: not `clearable`, `today` = the chosen spot's
+  today); "sm" = 28 px with an icon (filter From / To, `min`/`max` grey out
+  days, × and Clear). Checked in the real log dialog (opens, picks, closes,
+  nothing saved); **keyboard arrow navigation between days is not built**
+  (Tab works), and it's unchecked on a phone.
 - Goal card counts show only the number (`✓ 3`), full text `sr-only`.
 
 **Header**: solid `bg-primary`, sticky, hides on scroll down
@@ -643,6 +711,9 @@ load only when a session starts.
   readings are deliberately not blue.
 - **Tooltips**: one shared `Tooltip` (`components/tooltip.tsx`); no native
   `title` on icon buttons (calendar day dots still use `title`).
+  A trigger that opens a menu passes `suppress` while open and ~400 ms after
+  closing (filter chips): closing returns focus to it, and that focus-visible
+  focus would otherwise show the tip.
 - Notes are rich text with a `- ` bullet shortcut. Avery writes notes in
   Chinese; don't break CJK handling.
 - Secrets: open `.env.local` in the editor for Avery to paste into.

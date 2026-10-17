@@ -37,7 +37,7 @@ import { cn } from "cn";
 import { achievedCounts, goalPoints, joinGoalPoints, MAX_GOAL, type GoalRename } from "@/lib/goal";
 import { INLINE_FIELD } from "@/lib/inline-field";
 import { useLang } from "@/lib/i18n";
-import type { Session } from "@/lib/types";
+import type { SessionStat } from "@/lib/session-stats";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 
 /** Animates the card's body height between read and edit view: the outer box
@@ -104,7 +104,7 @@ export function GoalCard({
   readOnly = false,
 }: {
   goal: string | null;
-  sessions: Session[];
+  sessions: Pick<SessionStat, "goalText" | "goalMet" | "goalPointsMet">[];
   /** Static display (landing demo): no edit/drag affordances, no hover tint. */
   readOnly?: boolean;
   /** Resolves true if saved, so the card knows whether to leave edit mode. */

@@ -7,6 +7,7 @@ import { useLang, type Lang, type TKey } from "@/lib/i18n";
 import { fmt1, taipeiToday } from "@/lib/format";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import type { Session } from "@/lib/types";
+import type { SessionStat } from "@/lib/session-stats";
 
 /** Dot grid geometry — small and fixed, never stretched to fill the card.
  *  A proper week grid: 7 per row, Sunday-first (2026-10-06, on request;
@@ -160,9 +161,15 @@ function easeInOutCubic(t: number): number {
 
 export function ActivityCalendar({
   sessions,
+  latest,
   fit = false,
 }: {
-  sessions: Session[];
+  /** Every session, slim (only `when` is read here). */
+  sessions: Pick<SessionStat, "when">[];
+  /** The most recent session in full, for the phone panel (the journal's own
+   *  list is paged, so it can't be found in `sessions`). Left out: the latest
+   *  of `sessions`, which shows no readings when those are slim rows. */
+  latest?: Session | null;
   /** Hug the content below `sm` too (default: full width there). */
   fit?: boolean;
 }) {
@@ -189,7 +196,10 @@ export function ActivityCalendar({
   // numbers, same rule.
   const todayStr = taipeiToday();
   // The most recent session (by its own local date and time), for the phone-only panel.
-  const last = sessions.reduce<Session | null>((a, x) => (!a || x.when > a.when ? x : a), null);
+  const last: LastSessionData | null =
+    latest !== undefined
+      ? latest
+      : sessions.reduce<(Pick<SessionStat, "when"> & Partial<Session>) | null>((a, x) => (!a || x.when > a.when ? x : a), null) as LastSessionData | null;
   const [ty, tm, td] = todayStr.split("-").map(Number);
   const todayWeekStart = weekStartOf(ty, tm - 1, td);
   const earliestWeekStart = earliestDay
@@ -558,7 +568,9 @@ function daysBetween(from: string, to: string): number {
 /** Phones only (hidden from `sm`): spot, how long ago, and the swell height
  *  and period of the most recent session, with the same source rule as the
  *  session card (Open-Meteo, else the typed-in numbers). */
-function LastSession({ session, today }: { session: Session; today: string }) {
+type LastSessionData = Pick<Session, "when" | "spot"> & Partial<Pick<Session, "cond" | "condOpenMeteo">>;
+
+function LastSession({ session, today }: { session: LastSessionData; today: string }) {
   const { lang, t } = useLang();
   const catalog = useSpotCatalog();
   const day = session.when.slice(0, 10);

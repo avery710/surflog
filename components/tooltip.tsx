@@ -17,17 +17,29 @@ export function Tooltip({
   tip,
   children,
   className,
+  suppress = false,
 }: {
   tip: string;
   children: React.ReactNode;
   /** Extra classes for the wrapper span (layout only). */
   className?: string;
+  /** While true the tip stays hidden and won't show. For a trigger that opens a
+   *  menu: closing it returns focus to the trigger, which would show the tip. */
+  suppress?: boolean;
 }) {
   const id = useId();
   const ref = useRef<HTMLSpanElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
+  // going quiet also clears a tip that is already showing
+  const [wasSuppressed, setWasSuppressed] = useState(suppress);
+  if (suppress !== wasSuppressed) {
+    setWasSuppressed(suppress);
+    if (suppress) setPos(null);
+  }
+
   function show() {
+    if (suppress) return;
     const r = ref.current?.getBoundingClientRect();
     if (!r) return;
     setPos({ top: r.bottom + 3, left: r.left + r.width / 2 });
