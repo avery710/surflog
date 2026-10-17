@@ -264,7 +264,7 @@ function Chip({
             "inline-flex h-7 shrink-0 items-center rounded-full text-[13px] font-medium outline-none transition-[background-color,color,padding] duration-200 ease-out focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none",
             set
               ? "bg-primary pr-2 pl-2.5 text-primary-foreground"
-              : "bg-secondary px-2 text-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_8%)]"
+              : "bg-secondary px-2 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_4%)] hover:text-foreground"
           )}
         >
           <span className="inline-flex items-center">
