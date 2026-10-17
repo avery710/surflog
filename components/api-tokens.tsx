@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,29 +17,33 @@ import { useLocalStamp } from "@/lib/use-local-stamp";
  *  connected by signing in (OAuth) and personal tokens, each revocable. */
 export function ApiTokens({ initialTokens, mcpUrl }: { initialTokens: ApiToken[]; mcpUrl: string }) {
   const { lang, t } = useLang();
-  const [tokens, setTokens] = useState(initialTokens);
-  const [watching, setWatching] = useState(false);
+  const client = useQueryClient();
+  // While an agent is picked in "Connect an agent", re-read the list every few
+  // seconds so a connection made in another app shows up here by itself. Only
+  // while the tab is visible (TanStack skips intervals in a hidden tab), and it
+  // stops after ten minutes.
+  const [watchUntil, setWatchUntil] = useState<number | null>(null);
+  const { data: tokens } = useQuery({
+    queryKey: ["tokens"],
+    queryFn: async ({ signal }) => {
+      const res = await fetch("/api/tokens", { cache: "no-store", signal });
+      const body = res.ok ? await res.json().catch(() => null) : null;
+      if (!Array.isArray(body?.tokens)) throw new Error("load failed");
+      return body.tokens as ApiToken[];
+    },
+    initialData: initialTokens,
+    staleTime: Infinity,
+    // dropped on leaving the page, so the server's list is used on return
+    gcTime: 0,
+    refetchInterval: () => (watchUntil !== null && Date.now() < watchUntil ? 4000 : false),
+  });
+  const setTokens = (change: (list: ApiToken[]) => ApiToken[]) =>
+    client.setQueryData<ApiToken[]>(["tokens"], (list) => change(list ?? []));
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const active = tokens.filter((tk) => !tk.revokedAt);
   const revoked = tokens.filter((tk) => tk.revokedAt);
   const day = useLocalStamp(lang);
-
-  // While an agent is picked in "Connect an agent", re-read the list every few
-  // seconds so a connection made in another app shows up here by itself. Only
-  // while the tab is visible, and it stops after ten minutes.
-  useEffect(() => {
-    if (!watching) return;
-    let ticks = 0;
-    const id = setInterval(async () => {
-      if (++ticks > 150) return clearInterval(id);
-      if (document.visibilityState !== "visible") return;
-      const res = await fetch("/api/tokens", { cache: "no-store" }).catch(() => null);
-      const body = res?.ok ? await res.json().catch(() => null) : null;
-      if (Array.isArray(body?.tokens)) setTokens(body.tokens as ApiToken[]);
-    }, 4000);
-    return () => clearInterval(id);
-  }, [watching]);
 
   async function revoke(id: string) {
     if (confirming !== id) {
@@ -71,7 +76,7 @@ export function ApiTokens({ initialTokens, mcpUrl }: { initialTokens: ApiToken[]
       <ConnectAgent
         mcpUrl={mcpUrl}
         tokens={tokens}
-        onSelect={setWatching}
+        onSelect={(selected) => setWatchUntil((until) => (selected ? (until ?? Date.now() + 10 * 60_000) : null))}
         onCreated={(record) => setTokens((list) => [record, ...list])}
       />
 

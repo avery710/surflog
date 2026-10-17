@@ -479,7 +479,7 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   page: 28→96 px open, 96→28 px shut. Date menu = All time / Last 30 days / Last 3 months / This year
   (open-ended `from`, `datePresets()` in `lib/session-filter.ts`, today in
   Asia/Taipei; also Last 3 days / Last week = 7 days) / Custom range… (exact From / To under the chips). From `lg`
-  the chips sit on the title's line, right-aligned; chips are 24 px high, `text-xs`, 12 px icons — the same size and weight as the board rack's 常用 badge (2026-10-17, by request); the
+  the chips sit on the title's line, right-aligned; chips are 28 px high, `text-[13px]`, 14 px icons — the same size as the board rack's 常用 badge (2026-10-17, by request; the badge's name row is `leading-7` to match); the
   match count is a small grey badge after the title (option B of 8; not its own line); the
   chip menus are `min-w-[150px]`. **Board chip icon is lucide `WandSparkles`**
   (a magic wand, picked 2026-10-17 over sun, drawn surfboards, a flying
@@ -493,15 +493,37 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   active filter leaves the list; a new one joins it only if it passes. Spot
   options are only spots you have sessions at. **Kept lists** (2026-10-17):
   switching filters keeps the list you leave for `FILTER_CACHE_MS` = 60 s
-  (`lib/list-cache.ts`, a `Map` in `use-session-feed.ts`), so going back is
+  (the infinite query's `gcTime`, counted from leaving it), so going back is
   instant and scrolling resumes; any create/edit/delete/board/goal change
   here clears all kept lists, so only changes made elsewhere (another tab,
   MCP) can be up to a minute old. The list on screen is never auto-refreshed.
-  No library (React Query/SWR) on purpose. Checked in the built-in browser
+  The no-library choice was reversed the same day on request: see
+  **Client data fetching** below. Checked in the built-in browser
   on a temporary `/dev` page with a fake `fetch` (Last 30 days, scroll to the
   end, 1280 and 375 px layout); the Spot / Board menus and Custom range were
   only tried in an earlier panel version, **not in the chip bar, not against
   real Supabase, not on a real phone.**
+- **Client data fetching = TanStack Query v5** (2026-10-17, by request;
+  `@tanstack/react-query`, `components/query-provider.tsx` in the root layout,
+  one client per page load, defaults `retry: false`,
+  `refetchOnWindowFocus: false`). **Reads only**: the session list
+  (`useInfiniteQuery`, key `["sessions","list",<filter params>]`,
+  `staleTime: Infinity`), the latest session, a spot's reviews
+  (`["reviews",slug]`, refetched on each open), a session's share link
+  (`["share",id]`, refetched on each open) and the `/ai-apps` token list
+  (`["tokens"]`, `initialData` from the server, `gcTime: 0`, 4 s
+  `refetchInterval` while an app tile is picked, 10 min max). **Writes stay
+  plain `fetch`** and write their result into the cache with `setQueryData`
+  (no `useMutation`). The journal seeds its unfiltered list from the server
+  on every mount (`seedLists`) and drops older lists. Session mutators
+  `cancelQueries` first (synchronous in v5: the in-flight page is rolled back
+  and its rows dropped), then rewrite the list as one page, so `loaded`
+  stays rows 0..n-1. Pages may overlap; `flatten` merges them with
+  `mergePage`. Server-rendered data (stats, boards, goal, spots) is not in
+  the cache. Checked in the built-in browser on a temporary `/dev` page with
+  a fake `fetch` (scroll to the end, delete during a page load, switch filter
+  and back within 60 s); **not checked: the 60 s expiry, reviews, share link,
+  token polling, real Supabase.**
 - **Date picker** (2026-10-17, `components/date-picker.tsx`,
   `lib/calendar-grid.ts`): the one date field in the app, a Radix Popover
   month calendar (Sunday-first, en / zh-TW, fixed 6 rows) replacing the

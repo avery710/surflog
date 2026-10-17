@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "radix-ui";
 import { Copy, Download, Link, Link2, Share2 } from "lucide-react";
 import { cn } from "cn";
@@ -453,29 +454,25 @@ export function ShareDialog({
 
 function LinkSection({ sessionId, open, onUrl }: { sessionId: string; open: boolean; onUrl: (url: string | null) => void }) {
   const { t } = useLang();
-  const [share, setShare] = useState<ShareState | null | undefined>(undefined); // undefined = loading
+  const client = useQueryClient();
+  const shareKey = ["share", sessionId];
+  // Asked again each time the dialog opens (someone may have turned it off
+  // elsewhere); the last answer shows meanwhile.
+  const shareQuery = useQuery({
+    queryKey: shareKey,
+    queryFn: async ({ signal }) => {
+      const r = await fetch(`/api/sessions/${sessionId}/share`, { cache: "no-store", signal });
+      if (!r.ok) throw new Error("status");
+      return ((await r.json()) as { share: ShareState | null }).share;
+    },
+    enabled: open,
+  });
+  // undefined = loading; a failed load reads as "off"
+  const share: ShareState | null | undefined = shareQuery.isError ? null : shareQuery.data;
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const apply = useCallback((s: ShareState | null) => {
-    setShare(s);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    fetch(`/api/sessions/${sessionId}/share`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("status"))))
-      .then((j: { share: ShareState | null }) => {
-        if (!cancelled) apply(j.share);
-      })
-      .catch(() => {
-        if (!cancelled) setShare(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, sessionId, apply]);
+  const apply = (s: ShareState | null) => client.setQueryData(shareKey, s);
 
   async function request(method: "PUT" | "DELETE"): Promise<boolean> {
     setBusy(true);

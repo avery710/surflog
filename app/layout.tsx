@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Funnel_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/lib/i18n";
+import { QueryProvider } from "@/components/query-provider";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
@@ -32,10 +33,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${funnel.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-panel text-foreground">
-        <LanguageProvider>
-          {children}
-          <SiteFooter />
-        </LanguageProvider>
+        <QueryProvider>
+          <LanguageProvider>
+            {children}
+            <SiteFooter />
+          </LanguageProvider>
+        </QueryProvider>
         <Toaster position="bottom-center" />
       </body>
     </html>
