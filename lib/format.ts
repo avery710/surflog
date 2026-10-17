@@ -38,6 +38,13 @@ export function fmtDate(date: string, lang: Lang = "en", weekday = true): string
   return `${weekday ? `${DAYS[dow]} ` : ""}${day} ${MONTHS[m - 1]} ${y}`;
 }
 
+/** "YYYY-MM-DD" → "25 Sep" / "9月25日": the date without its year. */
+export function fmtMonthDay(date: string, lang: Lang = "en"): string {
+  if (!date) return "";
+  const [, m, day] = date.split("-").map(Number);
+  return lang === "zh-TW" ? `${m}月${day}日` : `${day} ${MONTHS[m - 1]}`;
+}
+
 // CWA's own convention for the 16 compass points.
 const COMPASS_ZH: Record<string, string> = {
   N: "北", NNE: "北北東", NE: "東北", ENE: "東北東",

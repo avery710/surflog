@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { boardLabel, sortBoards } from "@/lib/boards";
-import { fmtDate, todayInZone } from "@/lib/format";
+import { fmtDate, fmtMonthDay, todayInZone } from "@/lib/format";
 import { useLang, type DICT } from "@/lib/i18n";
 import {
   activeFilterCount,
@@ -98,7 +98,10 @@ export function SessionFilterBar({
   const dateLabel =
     preset === "custom"
       ? filter.from && filter.to
-          ? `${fmtDate(filter.from, lang, false)} - ${fmtDate(filter.to, lang, false)}`
+          ? `${fmtDate(filter.from, lang, false)} - ${
+              // same year: the end date's year is already on the start date
+              filter.from.slice(0, 4) === filter.to.slice(0, 4) ? fmtMonthDay(filter.to, lang) : fmtDate(filter.to, lang, false)
+            }`
           : filter.from
             ? t("filter.since", { d: fmtDate(filter.from, lang, false) })
             : t("filter.until", { d: fmtDate(filter.to ?? "", lang, false) })
@@ -306,7 +309,7 @@ function RangeField({
   const { t } = useLang();
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <span className="pl-0.5 text-[11px] font-semibold text-muted-foreground">{label}</span>
+      <span className="pl-0.5 text-[13px] font-semibold text-muted-foreground">{label}</span>
       <DatePicker size="sm" value={value} onChange={onChange} placeholder={t("filter.anyDate")} label={label} min={min} max={max} />
     </div>
   );
