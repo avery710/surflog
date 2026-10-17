@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { LogForm } from "@/components/log-form";
@@ -84,6 +84,17 @@ export function Journal({
   // 10 at a time as the list scrolls (lib/use-session-feed.ts).
   const feed = useSessionFeed({ initialStats, initialLoaded, initialLatest });
   const { stats } = feed;
+
+  // While the list reloads (a new filter empties it) the page must keep its
+  // length: a shorter page makes the browser pull a scrolled-down view up to
+  // the new bottom, which brings the footer on screen. So the list box keeps
+  // its last settled height until the load finishes (2026-10-17, on request).
+  const listBox = useRef<HTMLDivElement>(null);
+  const [heldHeight, setHeldHeight] = useState(0);
+  useLayoutEffect(() => {
+    const h = listBox.current?.offsetHeight ?? 0;
+    if (feed.status !== "loading" && h !== heldHeight) setHeldHeight(h);
+  }, [feed.status, feed.loaded, heldHeight]);
   const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
   const [boards, setBoards] = useState(initialBoards);
   const [goal, setGoal] = useState(initialGoal);
@@ -275,7 +286,11 @@ export function Journal({
           viewport instead of staying capped at it, a real horizontal-
           scroll regression caught via `document.documentElement.scrollWidth`
           at 375px while verifying the header restyle, not by eye. */}
-      <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18`}>
+      {/* At least one screen tall (2026-10-17, on request): while the log
+          loads the page is short, and without this the footer (mt-auto)
+          sits on screen and then drops below the fold once the cards
+          arrive. Now the footer always starts below the first screen. */}
+      <div className={`${PAGE_COLUMN} min-h-dvh min-w-0 flex-1 pb-18`}>
         {/* The dashboard: goal + activity calendar, spot table, board rack.
             2026-10-08, on request: no grey `--panel` wrapper any more (it
             had been a tinted, padded group since 2026-09-29), so each
@@ -375,7 +390,7 @@ export function Journal({
               matching={feed.total}
             />
           )}
-          <div>
+          <div ref={listBox} style={feed.status === "loading" ? { minHeight: heldHeight } : undefined}>
             {stats.length === 0 ? (
               <EmptyState />
             ) : feed.total === 0 ? (
