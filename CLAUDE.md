@@ -430,7 +430,10 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   back**.
 - **Activity calendar**: its header comment is the source of truth.
   Sunday-first week rows, "Days in the water". Below `sm` at full width
-  it also shows the last session (`LastSession`), cramped at 320 px.
+  it also shows the last session (`LastSession`) as **its own white card beside
+  the calendar card** (2026-10-17, by request; it used to share the calendar's
+  card behind a divider), same height, 8 px gap; at 320 px it is 90 px wide and
+  its title wraps to two lines.
 - **AI app card** (`components/ai-app-card.tsx`): only while the owner has
   no un-revoked token (`hasConnectedApp()`, fails soft to hidden); beside
   the calendar, goal card on its own row below `lg`.

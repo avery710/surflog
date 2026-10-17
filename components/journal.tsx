@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
@@ -402,7 +403,10 @@ export { LogIcon } from "@/components/add-button";
 
 function NoMatches() {
   const { t } = useLang();
-  return <p className="py-10 text-center text-[15px] font-medium text-muted-foreground">{t("filter.noMatchTitle")}</p>;
+  return <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+      <SearchX className="size-4 shrink-0" aria-hidden />
+      <p className="font-sans text-[13px] leading-5 font-bold">{t("filter.noMatchTitle")}</p>
+    </div>;
 }
 
 function EmptyState() {

@@ -339,7 +339,7 @@ export function ActivityCalendar({
     // goal card's height (2026-10-08): the extra height shows more weeks.
     // `fit`: hug the content at every width, phones too (the journal's row
     // with the AI app card beside it).
-    <section className={fit ? "flex w-fit shrink-0 flex-col" : "w-full sm:flex sm:w-fit sm:shrink-0 sm:flex-col"}>
+    <section className={fit ? "flex w-fit shrink-0 flex-col" : "flex w-full gap-2 sm:w-fit sm:shrink-0 sm:flex-col sm:gap-0"}>
       {/* Below `sm` (2026-10-09, on request) the ↑/↓ buttons sit at the end
           of the title row instead of in the side rail, which is hidden there,
           so the card is 32px narrower on phones (rail + its gap + the wider
@@ -349,7 +349,7 @@ export function ActivityCalendar({
         ref={cardRef}
         className={cn(
           "flex rounded-[var(--r-card)] bg-card shadow-soft pt-2.5 pr-3 pb-3 pl-3 sm:pt-3 sm:pr-5 sm:pb-4 sm:pl-4",
-          fit ? "flex-1" : "sm:flex-1"
+          fit ? "flex-1" : "shrink-0 sm:flex-1"
         )}
       >
         {/* The calendar itself. Beside it, below `sm` and only when the card
@@ -547,13 +547,9 @@ export function ActivityCalendar({
             </div>
           </div>
         </div>
-        {!fit && last && (
-          <>
-            <div aria-hidden className="mx-4 w-px shrink-0 bg-card-border sm:hidden" />
-            <LastSession session={last} today={todayStr} />
-          </>
-        )}
       </div>
+      {/* Below `sm`, beside the calendar card (not inside it), its own white card. */}
+      {!fit && last && <LastSession session={last} today={todayStr} />}
     </section>
   );
 }
@@ -565,7 +561,9 @@ function daysBetween(from: string, to: string): number {
   return Math.round((ms(to) - ms(from)) / 86_400_000);
 }
 
-/** Phones only (hidden from `sm`): spot, how long ago, and the swell height
+/** Phones only (hidden from `sm`): its own white card beside the calendar's,
+ *  stretched to the same height (2026-10-17, on request; it used to share the
+ *  calendar's card behind a divider). Spot, how long ago, and the swell height
  *  and period of the most recent session, with the same source rule as the
  *  session card (Open-Meteo, else the typed-in numbers). */
 type LastSessionData = Pick<Session, "when" | "spot"> & Partial<Pick<Session, "cond" | "condOpenMeteo">>;
@@ -581,8 +579,8 @@ function LastSession({ session, today }: { session: LastSessionData; today: stri
   const height = fmt1(om ? om.swellHeightM : session.cond?.swellHeightM);
   const period = fmt1(om ? om.swellPeriodS : session.cond?.swellPeriodS);
   return (
-    <div className="flex min-w-0 flex-1 flex-col sm:hidden">
-      <h3 className="mb-3 h-5 shrink-0 truncate font-sans text-[13px] leading-5 font-bold text-muted-foreground">
+    <div className="flex min-w-0 flex-1 flex-col rounded-[var(--r-card)] bg-card pt-2.5 pr-3 pb-3 pl-3 shadow-soft sm:hidden">
+      <h3 className="mb-3 min-h-5 shrink-0 font-sans text-[13px] leading-5 font-bold break-words text-muted-foreground">
         {t("calendar.last.title")}
       </h3>
       <p className="text-[14px] leading-snug font-bold break-words">{catalog.label(session.spot, lang)}</p>
