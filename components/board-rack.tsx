@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, MoreHorizontal, Pencil, Star, Trash2, X } from "lucide-react";
+import { MoreHorizontal, Pencil, Star, Trash2, X, Zap } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -378,7 +378,7 @@ function SortableBoardCard({
   // un-favourite control: clicking it calls the same toggleFavorite() the
   // ⋯ menu's "取消常用" item uses (2026-09-30 → extended here), since the
   // badge only ever appears on favourites, a click can only mean "remove".
-  // The ✓ swaps to an × on hover/focus so the badge still reads as a quiet
+  // The ⚡ (Zap, picked 2026-10-17 from ~50 options) swaps to an × on hover/focus so the badge still reads as a quiet
   // status label at rest, but signals "clickable, this removes" once you're
   // on it (group-hover/group-focus-visible on the two icons; the badge
   // itself carries `group`). While sorting, the whole card is the drag
@@ -388,7 +388,7 @@ function SortableBoardCard({
   const favoriteBadge = b.isFavorite && (
     sorting ? (
       <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground">
-        <Check className="size-3" aria-hidden />
+        <Zap className="size-3" aria-hidden />
         {t("board.favorite")}
       </span>
     ) : (
@@ -401,7 +401,7 @@ function SortableBoardCard({
         aria-label={t("board.removeFavoriteLabel", { name })}
         className="group inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary/80 focus-visible:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary/40"
       >
-        <Check className="size-3 group-hover:hidden group-focus-visible:hidden" aria-hidden />
+        <Zap className="size-3 group-hover:hidden group-focus-visible:hidden" aria-hidden />
         <X className="hidden size-3 group-hover:block group-focus-visible:block" aria-hidden />
         {t("board.favorite")}
       </button>

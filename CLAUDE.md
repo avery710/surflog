@@ -479,7 +479,7 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   page: 28→96 px open, 96→28 px shut. Date menu = All time / Last 30 days / Last 3 months / This year
   (open-ended `from`, `datePresets()` in `lib/session-filter.ts`, today in
   Asia/Taipei; also Last 3 days / Last week = 7 days) / Custom range… (exact From / To under the chips). From `lg`
-  the chips sit on the title's line, right-aligned; chips are 28 px high; the
+  the chips sit on the title's line, right-aligned; chips are 24 px high, `text-xs`, 12 px icons — the same size and weight as the board rack's 常用 badge (2026-10-17, by request); the
   match count is a small grey badge after the title (option B of 8; not its own line); the
   chip menus are `min-w-[150px]`. **Board chip icon is lucide `WandSparkles`**
   (a magic wand, picked 2026-10-17 over sun, drawn surfboards, a flying

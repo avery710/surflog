@@ -6,7 +6,8 @@ import { cn } from "cn";
 
 /**
  * The one tooltip style in the app (dark grey --badge fill, 11px medium text, 4px corners,
- * no arrow, 3px under the trigger, centred and clamped to the viewport).
+ * no arrow, 3px under the trigger, centred, then nudged to stay 8px inside the
+ * viewport sideways and flipped above the trigger when there is no room below).
  * Portalled to <body> with position: fixed so scroll containers can't clip it
  * and it sits above the sticky header (z-30) and dialogs. Shown on mouse hover
  * and keyboard focus only (touch has no sticky hover); hides on press, scroll
@@ -29,7 +30,7 @@ export function Tooltip({
 }) {
   const id = useId();
   const ref = useRef<HTMLSpanElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; above: number; left: number } | null>(null);
 
   // going quiet also clears a tip that is already showing
   const [wasSuppressed, setWasSuppressed] = useState(suppress);
@@ -42,7 +43,7 @@ export function Tooltip({
     if (suppress) return;
     const r = ref.current?.getBoundingClientRect();
     if (!r) return;
-    setPos({ top: r.bottom + 3, left: r.left + r.width / 2 });
+    setPos({ top: r.bottom + 3, above: r.top - 3, left: r.left + r.width / 2 });
   }
   const hide = () => setPos(null);
 
@@ -73,6 +74,16 @@ export function Tooltip({
           <span
             role="tooltip"
             id={id}
+            ref={(el) => {
+              // measured once it exists: keep the whole tip on screen
+              if (!el) return;
+              const w = el.offsetWidth;
+              const h = el.offsetHeight;
+              const vw = document.documentElement.clientWidth;
+              const left = Math.min(Math.max(pos.left, 8 + w / 2), Math.max(vw - 8 - w / 2, 8 + w / 2));
+              el.style.left = `${left}px`;
+              if (pos.top + h > window.innerHeight - 8 && pos.above - h >= 8) el.style.top = `${pos.above - h}px`;
+            }}
             style={{ top: pos.top, left: pos.left }}
             className="pointer-events-none fixed z-[60] max-w-[calc(100vw-16px)] -translate-x-1/2 rounded-[var(--r-tile)] bg-badge px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-badge-foreground shadow-sm"
           >

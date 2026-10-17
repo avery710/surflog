@@ -133,8 +133,8 @@ export function SessionFilterBar({
 
         <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 py-0.5 lg:mt-0 lg:justify-end">
           <Chip
-            icon={<CalendarDays className="size-3.5" aria-hidden />}
-            label={t("filter.date")}
+            icon={<CalendarDays className="size-3" aria-hidden />}
+            label={t("filter.byDate")}
             value={dateLabel}
             wide={preset === "custom"}
           >
@@ -156,7 +156,7 @@ export function SessionFilterBar({
             </DropdownMenuRadioGroup>
           </Chip>
 
-          <Chip icon={<MapPin className="size-3.5" aria-hidden />} label={t("form.spot")} value={spotName}>
+          <Chip icon={<MapPin className="size-3" aria-hidden />} label={t("filter.bySpot")} value={spotName}>
             <DropdownMenuRadioGroup
               value={filter.spot ?? ANY}
               onValueChange={(v) => set({ spot: v === ANY ? undefined : v })}
@@ -171,7 +171,7 @@ export function SessionFilterBar({
           </Chip>
 
           {(sortedBoards.length > 0 || filter.board) && (
-            <Chip icon={<WandSparkles className="size-3.5" aria-hidden />} label={t("filter.board")} value={boardName}>
+            <Chip icon={<WandSparkles className="size-3" aria-hidden />} label={t("filter.byBoard")} value={boardName}>
               <DropdownMenuRadioGroup
                 value={filter.board ?? ANY}
                 onValueChange={(v) => set({ board: v === ANY ? undefined : v })}
@@ -196,9 +196,9 @@ export function SessionFilterBar({
                 setCustomOpen(false);
                 onChange({});
               }}
-              className="inline-flex h-7 shrink-0 animate-in items-center gap-1 rounded-full px-2 text-[13px] font-medium text-muted-foreground duration-200 fade-in-0 slide-in-from-left-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:animate-none"
+              className="inline-flex h-6 shrink-0 animate-in items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground duration-200 fade-in-0 slide-in-from-left-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:animate-none"
             >
-              <X className="size-3.5" aria-hidden />
+              <X className="size-3" aria-hidden />
               {t("filter.clearAll")}
             </button>
           )}
@@ -258,10 +258,10 @@ function Chip({
         <DropdownMenuTrigger
           aria-label={value ? `${label}: ${value}` : label}
           className={cn(
-            "inline-flex h-7 shrink-0 items-center rounded-full text-[13px] font-medium outline-none transition-[background-color,color,padding] duration-200 ease-out focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none",
+            "inline-flex h-6 shrink-0 items-center rounded-full text-xs font-semibold outline-none transition-[background-color,color,padding] duration-200 ease-out focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none",
             set
-              ? "bg-primary pr-2 pl-2.5 text-primary-foreground"
-              : "bg-secondary px-2 text-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_8%)]"
+              ? "bg-primary px-2 text-primary-foreground"
+              : "bg-secondary px-1.5 text-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_8%)]"
           )}
         >
           <span className="inline-flex items-center">
@@ -275,7 +275,7 @@ function Chip({
             >
               <span className="flex items-center gap-1 overflow-hidden whitespace-nowrap">
                 <span className={cn("truncate", wide ? "max-w-[18rem]" : "max-w-[8rem]")}>{shown}</span>
-                <ChevronDown className="size-3.5 shrink-0 opacity-70" />
+                <ChevronDown className="size-3 shrink-0 opacity-70" />
               </span>
             </span>
           </span>
