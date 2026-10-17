@@ -43,7 +43,7 @@ const PRESET_KEY: Record<DatePresetId, keyof typeof DICT> = {
  * (Date · Spot · Board). Each chip opens a small menu; unset it is just an
  * icon, set it grows into a blue pill with its value and a Clear button
  * appears. The Date menu has
- * quick ranges plus "Custom range…", which shows exact From / To fields under
+ * quick ranges plus "Custom range", which shows exact From / To fields under
  * the chips. The filter itself lives in the session feed
  * (lib/use-session-feed.ts), which re-queries the paged API; this only edits
  * it. Spots offered are the ones the owner has sessions at; boards are the
@@ -97,7 +97,11 @@ export function SessionFilterBar({
 
   const dateLabel =
     preset === "custom"
-      ? `${filter.from ? fmtDate(filter.from, lang, false) : "…"} → ${filter.to ? fmtDate(filter.to, lang, false) : "…"}`
+      ? filter.from && filter.to
+          ? `${fmtDate(filter.from, lang, false)} - ${fmtDate(filter.to, lang, false)}`
+          : filter.from
+            ? t("filter.since", { d: fmtDate(filter.from, lang, false) })
+            : t("filter.until", { d: fmtDate(filter.to ?? "", lang, false) })
       : preset === "all"
         ? undefined
         : t(PRESET_KEY[preset]);
@@ -127,7 +131,7 @@ export function SessionFilterBar({
           )}
         </div>
 
-        <div className="-mx-1 mt-1.5 flex min-w-0 items-center gap-2 overflow-x-auto px-1 py-0.5 lg:mt-0 lg:justify-end">
+        <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 py-0.5 lg:mt-0 lg:justify-end">
           <Chip
             icon={<CalendarDays className="size-3" aria-hidden />}
             label={t("filter.date")}
@@ -270,7 +274,7 @@ function Chip({
               )}
             >
               <span className="flex items-center gap-1 overflow-hidden whitespace-nowrap">
-                <span className={cn("truncate", wide ? "max-w-[14rem]" : "max-w-[8rem]")}>{shown}</span>
+                <span className={cn("truncate", wide ? "max-w-[18rem]" : "max-w-[8rem]")}>{shown}</span>
                 <ChevronDown className="size-3 shrink-0 opacity-70" />
               </span>
             </span>
