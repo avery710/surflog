@@ -44,7 +44,8 @@ export function DateField({
         aria-hidden
         className={cn(
           inputClassName,
-          "flex items-center overflow-hidden whitespace-nowrap peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50",
+          // 14px like the spot, time and board triggers beside it (inputClassName is 16px on phones)
+          "flex items-center overflow-hidden text-sm whitespace-nowrap peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50",
           className
         )}
       >
