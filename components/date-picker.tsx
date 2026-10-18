@@ -73,7 +73,7 @@ export function DatePicker({
             aria-label={label}
             className={cn(
               "flex w-full min-w-0 items-center border border-input bg-transparent outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 data-[state=open]:border-ring",
-              small ? "h-7 gap-1.5 rounded-md pl-2 text-[13px]" : "h-8 rounded-lg pl-2.5 text-base md:text-sm",
+              small ? "h-7 gap-1.5 rounded-md pl-2 text-[13px]" : "h-8 rounded-lg pl-2.5 text-sm",
               canClear ? (small ? "pr-7" : "pr-8") : small ? "pr-2" : "pr-2.5"
             )}
           >
