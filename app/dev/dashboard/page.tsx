@@ -75,7 +75,7 @@ function DashboardPanel({
     // blue 2026-10-02, once the header above took the solid blue instead;
     // no border since 2026-10-01) while each section keeps a white
     // bg-card surface.
-    <div className="mt-6.5 flex flex-col gap-4">
+    <div className="mt-4 sm:mt-5 flex flex-col gap-2 sm:gap-3">
       {/* Row 1, sm: up — goal (flexible) beside the calendar (content-sized,
           fit-content), sm:items-stretch (2026-10-01). See journal.tsx for
           why: the calendar's own content is only ~200px wide, so pairing it
@@ -85,17 +85,17 @@ function DashboardPanel({
           weeks. */}
       {aiCard ? (
         // With the AI app card: see journal.tsx's comment on this branch.
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+        <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-stretch">
           <div className="flex min-w-0 flex-col lg:flex-1">
             <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
           </div>
-          <div className="flex flex-wrap items-stretch gap-3 sm:gap-4 lg:flex-nowrap">
+          <div className="flex flex-wrap items-stretch gap-2 sm:gap-3 lg:flex-nowrap">
             <ActivityCalendar sessions={sessions} fit />
             <AiAppCard />
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
           <div className="flex min-w-0 flex-1 flex-col">
             <GoalCard goal={goal} sessions={sessions} onSave={devSaveGoal} />
           </div>
@@ -454,6 +454,21 @@ const CASES: DashboardCase[] = [
     sessions: [],
     boards: [],
     spotNotes: {},
+  },
+  {
+    id: "long-text",
+    group: "Overview",
+    title: "Long unbroken text in What you've surfed",
+    caption:
+      "Typical sessions, but one spot note is a 120-character URL-like run with no spaces, one is long wrapping Chinese, and one spot has a very long unbroken slug as its name — checks that the table wraps and never scrolls sideways.",
+    goal: typicalGoal,
+    sessions: typicalSessions.map((s, i) => (i % 3 === 2 ? { ...s, spot: "an-extremely-long-spot-name-without-any-spaces-to-break-on-x".repeat(2) } : s)),
+    boards: [typicalBoardA, typicalBoardB],
+    spotNotes: {
+      jialeshui: "https://example.com/" + "a-very-long-unbroken-link-segment-".repeat(4),
+      waiao: "今天佳樂水浪況意外地不錯，早上退潮的時候浪型很乾淨，胸肩高，偶爾有頭高的浪進來，風是離岸風，浪面很漂亮，幾乎沒有雜浪。",
+      ["an-extremely-long-spot-name-without-any-spaces-to-break-on-x".repeat(2)]: "x".repeat(140),
+    },
   },
   {
     id: "typical",

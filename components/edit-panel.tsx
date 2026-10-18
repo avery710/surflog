@@ -1,13 +1,11 @@
 "use client";
 
-import { DateField } from "@/components/date-field";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SpotPicker, type PendingRequest } from "@/components/spot-picker";
+import { useSpotCatalog } from "@/lib/spot-catalog";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
 import {
@@ -21,7 +19,6 @@ import { attachFiles } from "@/lib/upload-client";
 import { GoalCheck } from "@/components/goal";
 import { goalOptions, sessionAchieved } from "@/lib/goal";
 import { useLang, type TKey } from "@/lib/i18n";
-import { TIME_SLOTS } from "@/lib/time-slots";
 import type { Board, Cond, Session } from "@/lib/types";
 
 // Only fields entry-card.tsx can actually display (the manual Swelleye
@@ -51,8 +48,6 @@ export function EditPanel({
   session,
   boards = [],
   goal = null,
-  onRequestSpot,
-  pendingRequests,
   onSaved,
   onCancel,
 }: {
@@ -60,16 +55,14 @@ export function EditPanel({
   boards?: Board[];
   /** The owner's current goal — its points can be ticked on any session. */
   goal?: string | null;
-  /** Passed straight to SpotPicker — see its props. */
-  onRequestSpot?: (query: string) => void;
-  pendingRequests?: PendingRequest[];
   onSaved: (s: Session) => void;
   onCancel: () => void;
 }) {
-  const { t } = useLang();
-  const [spot, setSpot] = useState(session.spot);
-  const [date, setDate] = useState(session.when.slice(0, 10));
-  const [time, setTime] = useState(session.when.slice(11, 16));
+  const { t, lang } = useLang();
+  const catalog = useSpotCatalog();
+  // Spot, date and time are fixed once a session exists: shown, never sent.
+  const date = session.when.slice(0, 10);
+  const time = session.when.slice(11, 16);
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
@@ -79,7 +72,6 @@ export function EditPanel({
   // has since been removed from the goal (kept so it can be unticked).
   const goalChoices = goalOptions(goal, initialAchieved);
   const [saving, setSaving] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   // Media changes are staged like every other field: photos marked for
   // removal and files picked here only take effect on Save.
   const [removedPhotos, setRemovedPhotos] = useState<string[]>([]);
@@ -92,20 +84,17 @@ export function EditPanel({
     setCond((c) => ({ ...c, [key]: value }));
   }
 
-  async function save(extra?: Record<string, unknown>) {
+  async function save() {
     const res = await fetch(`/api/sessions/${session.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        spot,
-        when: `${date}T${time}`,
         notesHtml,
         cond: hasAnyCond(cond) ? cond : null,
         // only sent when changed, so an untouched board never needs a write
         ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
         // only sent when changed, like the board
         ...(achieved.join("\n") !== initialAchieved.join("\n") ? { goalAchieved: achieved } : {}),
-        ...extra,
       }),
     });
     const body = await res.json();
@@ -154,69 +143,25 @@ export function EditPanel({
     }
   }
 
-  async function handleRefreshConditions() {
-    setRefreshing(true);
-    try {
-      const saved = await save({ refreshConditions: true });
-      onSaved(saved);
-      toast.success(
-        saved.condOpenMeteo != null ? t("toast.conditionsRefreshed") : t("toast.stillNoCoords")
-      );
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t("toast.couldntRefresh"));
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4.5 p-6">
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Field label={t("form.spot")}>
-          {/* A legacy free-text spot ("custom:…") isn't in the catalogue; the
-              picker lists the current value under "Current" so it stays selectable. */}
-          <SpotPicker
-            value={spot}
-            onChange={setSpot}
-            onRequestSpot={onRequestSpot}
-            pendingRequests={pendingRequests}
-            className="bg-background"
-          />
+          <span className="flex h-9 items-center pl-0.5 text-sm">{catalog.label(session.spot, lang)}</span>
         </Field>
         <Field label={t("form.date")}>
-          <DateField className="bg-background" value={date} onChange={setDate} />
+          <span className="flex h-9 items-center pl-0.5 font-mono text-sm">{date}</span>
         </Field>
         <Field label={t("form.time")}>
-          <Select value={time} onValueChange={setTime}>
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TIME_SLOTS.map((slot) => (
-                <SelectItem key={slot} value={slot}>
-                  {slot}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <span className="flex h-9 items-center pl-0.5 font-mono text-sm">{time}</span>
         </Field>
       </div>
 
       <div>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="mb-2">
           <span className="pl-0.5 text-xs font-semibold text-muted-foreground">
             {t("edit.conditionsHeader")}
           </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-auto px-2 py-1 text-xs"
-            onClick={handleRefreshConditions}
-            disabled={refreshing}
-          >
-            {refreshing ? t("edit.refreshing") : t("edit.refreshOpenMeteo")}
-          </Button>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {COND_FIELDS.map((f) => (

@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
+import { Tooltip } from "@/components/tooltip";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SpotPicker, recentSpotSlugs, usePendingRequests, type PendingRequest } from "@/components/spot-picker";
@@ -10,7 +11,7 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
 import { goalOptions } from "@/lib/goal";
-import { DateField } from "@/components/date-field";
+import { DatePicker } from "@/components/date-picker";
 import { nearestSlotInZone, todayInZone } from "@/lib/format";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
@@ -26,6 +27,7 @@ import {
   type UploadProgressState,
 } from "@/components/media-picker";
 import { attachFiles } from "@/lib/upload-client";
+import type { SessionStat } from "@/lib/session-stats";
 import type { Board, Session } from "@/lib/types";
 
 export function LogForm({
@@ -47,8 +49,8 @@ export function LogForm({
   /** A spot to start on (from a spot's page): wins over the saved default if it exists. */
   presetSpot?: string;
   boards?: Board[];
-  /** The owner's sessions — only used to pre-select the last-used board. */
-  sessions?: Session[];
+  /** The owner's sessions, slim — only used to pre-select the last-used board and list recent spots. */
+  sessions?: Pick<SessionStat, "when" | "spot" | "boardId">[];
   /** The owner's current goal for next session — its points are the checkboxes. */
   goal?: string | null;
   /** Passed straight to SpotPicker — see its props. */
@@ -158,12 +160,12 @@ export function LogForm({
           label={t("form.spot")}
           htmlFor={spotId}
           aside={
+            <Tooltip tip={isDefault ? t("form.clearDefaultSpot") : t("form.setDefaultSpot")}>
             <button
               type="button"
               onClick={() => setDefaultSpot(isDefault ? null : spot)}
               aria-pressed={isDefault}
               aria-label={t("form.setDefaultSpot")}
-              title={isDefault ? t("form.clearDefaultSpot") : t("form.setDefaultSpot")}
               className={
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors " +
                 (isDefault
@@ -174,6 +176,7 @@ export function LogForm({
               {isDefault && <Check className="size-3" aria-hidden />}
               {isDefault ? t("form.defaultSpot") : t("form.setAsDefault")}
             </button>
+            </Tooltip>
           }
         >
           <SpotPicker
@@ -186,7 +189,7 @@ export function LogForm({
           />
         </Field>
         <Field label={t("form.date")}>
-          <DateField value={date} onChange={setDate} />
+          <DatePicker value={date} onChange={setDate} label={t("form.date")} clearable={false} today={todayInZone(spotTimezone)} />
         </Field>
         <Field label={t("form.timeInWater")}>
           <Select value={time} onValueChange={setTime}>

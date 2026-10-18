@@ -9,6 +9,7 @@ import { AddSpotDialog } from "@/components/add-spot-dialog";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
 import { SpotReviewsDialog, Stars } from "@/components/spot-reviews-dialog";
 import { SuggestSpotEditDialog } from "@/components/suggest-spot-edit-dialog";
+import { Tooltip } from "@/components/tooltip";
 import { Button } from "@/components/ui/button";
 import { compassLabel } from "@/lib/format";
 import { useLang, type Lang } from "@/lib/i18n";
@@ -209,14 +210,14 @@ export function SpotsOverview({
         {pinnedShown.length > 0 && (
           <section className="mt-6" data-group="pinned">
             <GroupHeading title={t("spots.pinned")} count={pinnedShown.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">{pinnedShown.map((s) => row(s))}</ul>
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">{pinnedShown.map((s) => row(s))}</ul>
           </section>
         )}
 
         {pending.length > 0 && (
           <section className="mt-6" data-group="pending">
             <GroupHeading title={t("picker.pending")} count={pending.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
               {pending.map((r) => (
                 <li key={r.id} className="border-b border-card-border px-4 py-3 text-[14.5px] font-semibold break-words last:border-b-0">
                   {r.name}
@@ -229,7 +230,7 @@ export function SpotsOverview({
         {groups.map((g) => (
           <section key={g.key} className="mt-6" data-group={g.key}>
             <GroupHeading title={g.title} count={g.list.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-card">
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
               {g.list.map((s) => row(s, true))}
             </ul>
           </section>
@@ -316,19 +317,20 @@ function SpotRow({
             </span>
           )}
         </div>
+        <Tooltip tip={t(pinned ? "spots.unpin" : "spots.pin", { name })} className="-my-1 shrink-0">
         <button
           type="button"
           onClick={onPin}
           aria-pressed={pinned}
           aria-label={t(pinned ? "spots.unpin" : "spots.pin", { name })}
-          title={t(pinned ? "spots.unpin" : "spots.pin", { name })}
           className={cn(
-            "-my-1 flex size-8 shrink-0 items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
+            "flex size-8 items-center justify-center rounded-full outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
             pinned ? "text-primary" : "text-muted-foreground hover:text-foreground"
           )}
         >
           <Pin className={cn("size-4", pinned && "fill-current")} aria-hidden />
         </button>
+        </Tooltip>
         {onSuggestEdit && (
           <button
             type="button"

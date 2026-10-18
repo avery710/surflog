@@ -41,7 +41,6 @@ export function UserMenu({
       <DropdownMenuTrigger
         className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary outline-none transition-opacity hover:opacity-80"
         aria-label={name}
-        title={name}
       >
         {user.image ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -121,7 +120,7 @@ export function UserMenu({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem asChild className="text-destructive focus:bg-destructive/10">
+        <DropdownMenuItem asChild variant="destructive">
           <form action={googleSignOut} className="contents">
             <button type="submit" className="flex w-full items-center gap-2">
               <LogOut />

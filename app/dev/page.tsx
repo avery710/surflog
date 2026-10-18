@@ -14,16 +14,28 @@ const PAGES = [
       "components/landing/landing.tsx — the signed-out “/” page, viewable while signed in. Sign-in buttons do nothing here.",
   },
   {
-    href: "/dev/entry-card",
-    title: "Entry card",
+    href: "/dev/session-card",
+    title: "Session card",
     description:
-      "components/entry-card.tsx — the session card: condition tiles, board/goal chips, notes, photos. Every branch on missing data, both tide sources, wind extremes, en/zh-TW.",
+      "components/entry-card.tsx — the session card: condition tiles, board/goal chips, notes, photos. Every media count (0-7, with and without conditions), every branch on missing data, both tide sources, wind extremes, en/zh-TW.",
+  },
+  {
+    href: "/dev/footer-options",
+    title: "Footer options",
+    description:
+      "Four static footer layouts (icon row, centred stack, link columns, minimal line) at 375 and 1100 px with 2 and 5 social links. Suggestions only.",
   },
   {
     href: "/dev/dashboard",
     title: "Dashboard panel",
     description:
       "The teal-tinted panel above the session list (components/journal.tsx): GoalCard, activity calendar, the “What you've surfed” table, and the board rack together. Empty/typical/edge cases per section, en/zh-TW, fixed widths.",
+  },
+  {
+    href: "/dev/add-button",
+    title: "Add button hover",
+    description:
+      "Seven water-themed hover animations (ripples, floating, rising wave, a rising wave that follows the mouse with the “+” held still — now the real header button, splash, swell, gentle) for the header's white “+” button, on a replica of the blue header, with a force-hover switch and the focus ring.",
   },
   {
     href: "/dev/board-rack",
@@ -73,7 +85,7 @@ export default function DevIndexPage() {
       </p>
       <ul className="mt-6 flex flex-col gap-3">
         {PAGES.map((p) => (
-          <li key={p.href} className="rounded-[var(--r-card)] border border-card-border bg-card p-4">
+          <li key={p.href} className="rounded-[var(--r-card)] bg-card shadow-soft p-4">
             <Link href={p.href} className="text-[15px] font-bold text-primary underline underline-offset-2">
               {p.title}
             </Link>

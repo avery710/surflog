@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Check, MoreHorizontal, Pencil, Star, Trash2, X } from "lucide-react";
+import { MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -20,6 +20,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { WhiteCard } from "@/components/white-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,6 +67,7 @@ import type { Board, Rocker } from "@/lib/types";
  * below the Activity calendar and "What you've surfed" table. State lives in
  * Journal (sessions need the list too); this component does the fetches.
  */
+
 export function BoardRack({
   boards,
   onSaved,
@@ -82,6 +84,8 @@ export function BoardRack({
   onRackChanged: (boards: Board[]) => void;
 }) {
   const { t } = useLang();
+  // Explicit dnd-kit id: its default counter differs server vs client (hydration warning).
+  const dndId = useId();
   // null = closed, "new" = adding, otherwise the board being edited
   const [editing, setEditing] = useState<Board | "new" | null>(null);
   // Delete now goes through a confirm dialog (like entry-card's), not an
@@ -203,8 +207,9 @@ export function BoardRack({
     // No mt here — this card sits inside journal.tsx's shared dashboard
     // panel now, which spaces its sections itself (gap-4).
     <section>
-      <div className="rounded-[var(--r-card)] border border-card-border bg-card p-2">
-        <div className="flex items-center justify-between gap-3 py-1 pr-1 pl-3">
+      <WhiteCard>
+      <div className="p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3 pb-2">
           <h2 className="font-sans text-[13px] font-bold text-muted-foreground">
             {t("section.boards")}
           </h2>
@@ -238,13 +243,13 @@ export function BoardRack({
           </div>
         </div>
         {sortingOn && (
-          <p className="px-3 pb-1 text-[12.5px] font-medium text-muted-foreground">{t("board.sortHint")}</p>
+          <p className="pb-2 text-[12.5px] font-medium text-muted-foreground">{t("board.sortHint")}</p>
         )}
         {boards.length === 0 ? (
-          <p className="px-3 pt-1 pb-3 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
+          <p className="pt-1 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <ul className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {/* ONE flat list/SortableContext for every card, favourites
                   first (used to be two SortableContexts, one per group).
                   That split caused a visible flash whenever a card's
@@ -278,6 +283,7 @@ export function BoardRack({
           </DndContext>
         )}
       </div>
+      </WhiteCard>
 
       <Dialog open={editing != null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-lg" closeLabel={t("entry.close")}>
@@ -373,17 +379,14 @@ function SortableBoardCard({
   // un-favourite control: clicking it calls the same toggleFavorite() the
   // ⋯ menu's "取消常用" item uses (2026-09-30 → extended here), since the
   // badge only ever appears on favourites, a click can only mean "remove".
-  // The ✓ swaps to an × on hover/focus so the badge still reads as a quiet
-  // status label at rest, but signals "clickable, this removes" once you're
-  // on it (group-hover/group-focus-visible on the two icons; the badge
-  // itself carries `group`). While sorting, the whole card is the drag
-  // surface and the ⋯ menu is hidden, so the badge must stay a plain
-  // non-interactive <span> here too — a drag starting on it must never be
-  // read as a click, and must never fire the toggle mid-drag.
+  // No icon (2026-10-17, by request): the badge is just the label. While
+  // sorting, the whole card is the drag surface and the ⋯ menu is hidden, so
+  // the badge must stay a plain non-interactive <span> here too — a drag
+  // starting on it must never be read as a click, and must never fire the
+  // toggle mid-drag.
   const favoriteBadge = b.isFavorite && (
     sorting ? (
-      <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground">
-        <Check className="size-3" aria-hidden />
+      <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-primary px-2.5 text-[13px] font-medium text-primary-foreground">
         {t("board.favorite")}
       </span>
     ) : (
@@ -394,10 +397,8 @@ function SortableBoardCard({
           onToggleFavorite(b);
         }}
         aria-label={t("board.removeFavoriteLabel", { name })}
-        className="group inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-primary px-2 text-xs font-semibold text-primary-foreground outline-none transition-colors hover:bg-primary/80 focus-visible:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="inline-flex h-7 shrink-0 items-center rounded-full bg-primary px-2.5 text-[13px] font-medium text-primary-foreground outline-none transition-colors hover:bg-primary/80 focus-visible:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary/40"
       >
-        <Check className="size-3 group-hover:hidden group-focus-visible:hidden" aria-hidden />
-        <X className="hidden size-3 group-hover:block group-focus-visible:block" aria-hidden />
         {t("board.favorite")}
       </button>
     )
@@ -446,7 +447,7 @@ function SortableBoardCard({
       */}
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
         <div
-          className="relative aspect-square h-full max-h-24 min-h-16 min-w-16 w-auto max-w-24 overflow-hidden rounded-[12px] bg-background"
+          className="relative aspect-square h-full max-h-24 min-h-16 min-w-16 w-auto max-w-24 overflow-hidden rounded-[4px] bg-background"
         >
           {photoSrc && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -465,12 +466,12 @@ function SortableBoardCard({
               <li>), with no handle icon. ⋯ has no fill at rest; the
               round background only shows on hover / while open. */}
           <div className="flex min-w-0 items-center gap-2">
-            {/* leading-6 (24px) matches the 常用 badge's h-6 exactly, so the
+            {/* leading-7 (28px) matches the 常用 badge's h-7 exactly, so the
                 row's height — and the specs/note lines below it — don't
                 shift by the ~2px gap between the text's own line box and
                 the badge when the badge appears/disappears (Avery's
                 report, 2026-10-01). Truncate still keeps it one line. */}
-            <span className="min-w-0 truncate text-[15px] leading-6 font-bold tracking-[-0.015em]">
+            <span className="min-w-0 truncate text-[15px] leading-7 font-bold tracking-[-0.015em]">
               {b.brand || name}
             </span>
             {favoriteBadge}
@@ -700,7 +701,7 @@ function BoardForm({ board, onSaved }: { board: Board | null; onSaved: (b: Board
             <img
               src={shownPhoto}
               alt={t("board.photoAlt", { name: boardLabel({ brand, lengthIn: joinLength(ft, inches) || null }) })}
-              className="size-16 rounded-[12px] bg-secondary object-cover"
+              className="size-16 rounded-[4px] bg-secondary object-cover"
             />
           )}
           <Button

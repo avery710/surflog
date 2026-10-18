@@ -253,7 +253,10 @@ function itemWidth(t: ShareTile, m: Metrics): number {
   return Math.max(sansEm(t.label) * m.label, value, lines);
 }
 
-const STRIP_RADIUS = 30;
+/** Corner radii: the session card's --r-tile (4px) and --r-card (6px) scaled by
+ *  about the same 1.75 as the 8px tile gap becomes 14px. */
+const TILE_RADIUS = 7;
+const PLATE_RADIUS = 10;
 
 /** Strip, card and og put the date beside the spot (the session card's header); the column stacks them. */
 const rowHeader = (m: Metrics) => m.kind !== "column";
@@ -304,10 +307,10 @@ function contentHeight(m: Metrics, l: ShareLayout, data: ShareCardData): number 
   const blocks: number[] = [];
   const h = headerHeight(m, l);
   if (h) blocks.push(h);
-  const d = dataHeight(m, l);
-  if (d) blocks.push(d);
   if (l.parts.board && data.boardName) blocks.push(chipH(m));
   if (l.noteLines.length) blocks.push(notesHeight(m, l));
+  const d = dataHeight(m, l);
+  if (d) blocks.push(d);
   blocks.push(BRAND_H);
   return blocks.reduce((a, b) => a + b, 0) + (blocks.length - 1) * BLOCK_GAP;
 }
@@ -323,8 +326,9 @@ function shapeBandsOf(m: Metrics, l: ShareLayout, data: ShareCardData): [number,
     y += h + BLOCK_GAP;
   };
   push(headerHeight(m, l), false);
-  push(dataHeight(m, l), m.kind === "strip" && l.tiles.length > 0);
   push(l.parts.board && data.boardName ? chipH(m) : 0, true);
+  push(notesHeight(m, l), false);
+  push(dataHeight(m, l), m.kind === "strip" && l.tiles.length > 0);
   return bands;
 }
 
@@ -373,7 +377,7 @@ function Tile({ tile, m, c, mono, data, width, stroke }: { tile: ShareTile; m: M
         minWidth: 0,
         height: m.tileH,
         padding: `${Math.round(m.tileH * 0.09)}px ${m.tilePadX}px`,
-        borderRadius: m.kind === "strip" ? STRIP_RADIUS : 28,
+        borderRadius: TILE_RADIUS,
         background: c.tile,
       }}
     >
@@ -611,7 +615,7 @@ export function shareElement(data: ShareCardData, variant: ShareVariant, layout:
     </div>
   );
 
-  const blocks = [header, dataBlock, board, notes].filter((b): b is ReactElement => !!b);
+  const blocks = [header, board, notes, dataBlock].filter((b): b is ReactElement => !!b);
   const body: ReactElement[] = [];
   blocks.forEach((b, i) => {
     body.push(
@@ -640,7 +644,7 @@ export function shareElement(data: ShareCardData, variant: ShareVariant, layout:
           width: "100%",
           height: "100%",
           padding: m.pad,
-          borderRadius: 56,
+          borderRadius: PLATE_RADIUS,
           background: c.plate,
           color: c.text,
           ...(isStrip ? {} : { textShadow: c.textShadow }),

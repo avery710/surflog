@@ -1,16 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
 import { SessionList } from "@/components/session-list";
+import { SessionFilterBar } from "@/components/session-filter";
+import type { SessionStat } from "@/lib/session-stats";
+import { useSessionFeed } from "@/lib/use-session-feed";
 import { PatternsTable } from "@/components/patterns-table";
 import { BoardRack } from "@/components/board-rack";
 import { GoalCard } from "@/components/goal";
 import { AiAppCard } from "@/components/ai-app-card";
 import { UserMenu } from "@/components/user-menu";
-import { Button } from "@/components/ui/button";
+import { AddButton } from "@/components/add-button";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +28,7 @@ import type { Spot } from "@/lib/spots";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
 import { PAGE_COLUMN } from "@/lib/layout";
+import { WhiteCard } from "@/components/white-card";
 import type { Board, Session } from "@/lib/types";
 
 interface JournalUser {
@@ -34,7 +39,9 @@ interface JournalUser {
 }
 
 export function Journal({
-  initialSessions,
+  initialStats,
+  initialLoaded,
+  initialLatest,
   initialSpotNotes,
   initialBoards,
   initialGoal,
@@ -47,7 +54,12 @@ export function Journal({
   openLogForm = false,
   logSpot,
 }: {
-  initialSessions: Session[];
+  /** Every session, slim: all the dashboard (goal, calendar, spot table) needs. */
+  initialStats: SessionStat[];
+  /** The first page of full sessions (10, newest first) straight from the database; more load on scroll. */
+  initialLoaded: Session[];
+  /** The most recent session in full, for the calendar's phone panel. */
+  initialLatest: Session | null;
   initialSpotNotes: Record<string, string>;
   initialBoards: Board[];
   initialGoal: string | null;
@@ -68,7 +80,21 @@ export function Journal({
   logSpot?: string;
 }) {
   const { t } = useLang();
-  const [sessions, setSessions] = useState(initialSessions);
+  // `stats`: every session, slim, for the dashboard. `loaded`: the cards,
+  // 10 at a time as the list scrolls (lib/use-session-feed.ts).
+  const feed = useSessionFeed({ initialStats, initialLoaded, initialLatest });
+  const { stats } = feed;
+
+  // While the list reloads (a new filter empties it) the page must keep its
+  // length: a shorter page makes the browser pull a scrolled-down view up to
+  // the new bottom, which brings the footer on screen. So the list box keeps
+  // its last settled height until the load finishes (2026-10-17, on request).
+  const listBox = useRef<HTMLDivElement>(null);
+  const [heldHeight, setHeldHeight] = useState(0);
+  useLayoutEffect(() => {
+    const h = listBox.current?.offsetHeight ?? 0;
+    if (feed.status !== "loading" && h !== heldHeight) setHeldHeight(h);
+  }, [feed.status, feed.loaded, heldHeight]);
   const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
   const [boards, setBoards] = useState(initialBoards);
   const [goal, setGoal] = useState(initialGoal);
@@ -118,7 +144,7 @@ export function Journal({
    *  mirror that locally so no card points at a board that's gone. */
   function removeBoard(id: string) {
     setBoards((prev) => prev.filter((b) => b.id !== id));
-    setSessions((prev) => prev.map((s) => (s.boardId === id ? { ...s, boardId: null } : s)));
+    feed.boardRemoved(id);
   }
 
   /** Resolves true if saved, so the table knows whether to leave edit mode. */
@@ -159,7 +185,7 @@ export function Journal({
         (body.sessions ?? []).map((s: { id: string; goalText: string }) => [s.id, s.goalText])
       );
       if (renamed.size) {
-        setSessions((prev) => prev.map((s) => (renamed.has(s.id) ? { ...s, goalText: renamed.get(s.id)! } : s)));
+        feed.goalsRenamed(renamed);
       }
       return true;
     } catch (e) {
@@ -169,21 +195,8 @@ export function Journal({
   }
 
   function handleCreated(s: Session) {
-    upsert(s);
+    feed.created(s);
     setFormOpen(false);
-  }
-
-  function upsert(s: Session) {
-    setSessions((prev) => {
-      const next = prev.some((x) => x.id === s.id)
-        ? prev.map((x) => (x.id === s.id ? s : x))
-        : [s, ...prev];
-      return [...next].sort((a, b) => (b.when || "").localeCompare(a.when || ""));
-    });
-  }
-
-  function remove(id: string) {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
   }
 
   return (
@@ -250,40 +263,11 @@ export function Journal({
             />
           </h1>
           <div className="flex items-center gap-2.5">
-            <Button
-              size="icon-lg"
-              onClick={() => setFormOpen(true)}
-              /* White fill + blue glyph (2026-10-02, replacing the dark-grey
-                 bg-badge treatment from the white-header era): bg-badge's
-                 #374151 on #0018ff is a shape with almost no contrast
-                 against its own background, so on the solid-blue bar it
-                 goes white instead — a plain white circle reads clearly as
-                 a button on blue, and the blue "+" glyph ties it back to
-                 the brand colour rather than introducing a third hue.
-                 focus-visible:ring-ring/50 (also blue) is overridden to a
-                 white ring, since the default would otherwise disappear
-                 against the same blue background it needs to stand out
-                 from. `hover:bg-card` is an explicit, not redundant,
-                 override: `components/ui/button.tsx`'s default variant
-                 carries its own `hover:bg-primary/80`, and `cn()`/`cva`
-                 here only dedupes same-modifier Tailwind class *groups*
-                 (e.g. two different `bg-*` utilities at the same
-                 modifier) — `hover:bg-primary/80` and plain `bg-card`
-                 aren't such a pair (one's unmodified, one's `hover:`), so
-                 without a matching `hover:bg-*` of its own the default
-                 survived and, on real hover, tinted the white circle blue
-                 — against the header's own blue background this read as
-                 the whole button vanishing, not dimming (caught live, not
-                 by eye: cmux's synthetic `hover` doesn't trigger real
-                 `:hover`, so a first check missed it — see CLAUDE.md
-                 "Testing in the browser (cmux)"). `hover:brightness-95`
-                 alone now does the "a little darker on hover" job. */
-              className="size-10 rounded-full bg-card text-primary shadow-[var(--shadow-card)] hover:bg-card hover:brightness-95 focus-visible:ring-white"
-              aria-label={t("action.logSession")}
-              title={t("action.logSession")}
-            >
-              <LogIcon className="size-4" />
-            </Button>
+            {/* White circle + blue glyph with the rising-wave hover (components/add-button.tsx, 2026-10-16).
+                History of the white-on-blue look: the dark-grey bg-badge treatment vanished against #0018ff, so
+                the button is white; the focus ring is white for the same reason; and the old Button's default
+                hover:bg-primary/80 turned the white circle blue on real hover, which is why this no longer uses it. */}
+            <AddButton label={t("action.logSession")} onClick={() => setFormOpen(true)} />
             <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
           </div>
         </div>
@@ -302,14 +286,18 @@ export function Journal({
           viewport instead of staying capped at it, a real horizontal-
           scroll regression caught via `document.documentElement.scrollWidth`
           at 375px while verifying the header restyle, not by eye. */}
-      <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18`}>
+      {/* At least one screen tall (2026-10-17, on request): while the log
+          loads the page is short, and without this the footer (mt-auto)
+          sits on screen and then drops below the fold once the cards
+          arrive. Now the footer always starts below the first screen. */}
+      <div className={`${PAGE_COLUMN} min-h-dvh min-w-0 flex-1 pb-18`}>
         {/* The dashboard: goal + activity calendar, spot table, board rack.
             2026-10-08, on request: no grey `--panel` wrapper any more (it
             had been a tinted, padded group since 2026-09-29), so each
             section's white card runs the full column width, the same edges
             as the session cards below. Spacing between sections is this
-            wrapper's gap-4; mt-8 keeps the break under the blue header. */}
-        <div className="mt-8 flex flex-col gap-4">
+            wrapper's gap-3 (12px, tightened 2026-10-16); mt-5 keeps the break under the blue header. */}
+        <div className="mt-4 sm:mt-5 flex flex-col gap-2 sm:gap-3">
           {/* Row 1, sm: up: goal (flexible width) beside the calendar
               (content-sized — see ActivityCalendar's own comment for
               the arithmetic). The calendar used to get a fixed 344px column
@@ -337,27 +325,27 @@ export function Journal({
             // flex-wrap only matters on the narrowest phones (320px), where
             // the card drops under the calendar rather than widening the page;
             // the gap is 12px below `sm` to leave the card a little more room.
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+            <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-stretch">
               <div className="flex min-w-0 flex-col lg:flex-1">
-                <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} />
               </div>
-              <div className="flex flex-wrap items-stretch gap-3 sm:gap-4 lg:flex-nowrap">
-                <ActivityCalendar sessions={sessions} fit />
+              <div className="flex flex-wrap items-stretch gap-2 sm:gap-3 lg:flex-nowrap">
+                <ActivityCalendar sessions={stats} latest={feed.latest} fit />
                 <AiAppCard />
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
               <div className="flex min-w-0 flex-1 flex-col">
-                <GoalCard goal={goal} sessions={sessions} onSave={saveGoal} />
+                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} />
               </div>
-              <ActivityCalendar sessions={sessions} />
+              <ActivityCalendar sessions={stats} latest={feed.latest} />
             </div>
           )}
 
           {/* Row 2: the spot table, now full width on every breakpoint since
               it no longer shares a row with the calendar. */}
-          <PatternsTable sessions={sessions} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
+          <PatternsTable sessions={stats} spotNotes={spotNotes} onSaveSpotNote={saveSpotNote} />
 
           {/* Row 3: board rack, full width. */}
           <BoardRack boards={boards} onSaved={upsertBoard} onDeleted={removeBoard} onRackChanged={setBoards} />
@@ -380,25 +368,44 @@ export function Journal({
               onCreated={handleCreated}
               onBusyChange={setFormBusy}
               ownerId={user.id}
-              recentSpot={sessions[0]?.spot}
+              recentSpot={stats[0]?.spot}
               presetSpot={logSpot}
               onRequestSpot={openRequestDialog}
               boards={boards}
-              sessions={sessions}
+              sessions={stats}
               goal={goal}
             />
           </DialogContent>
         </Dialog>
 
-        <section className="mt-6.5">
-          <div className="pl-1 font-sans text-[13px] font-bold text-muted-foreground">
-            {t("section.sessions")}
-          </div>
-          <div>
-            {sessions.length === 0 ? (
+        <section className="mt-4 sm:mt-5">
+          {stats.length === 0 ? (
+            <div className="pl-1 font-sans text-[13px] font-bold text-muted-foreground">{t("section.sessions")}</div>
+          ) : (
+            <SessionFilterBar
+              filter={feed.filter}
+              onChange={feed.setFilter}
+              stats={stats}
+              boards={boards}
+              matching={feed.total}
+            />
+          )}
+          <div ref={listBox} style={feed.status === "loading" ? { minHeight: heldHeight } : undefined}>
+            {stats.length === 0 ? (
               <EmptyState />
+            ) : feed.total === 0 ? (
+              <NoMatches />
             ) : (
-              <SessionList sessions={sessions} boards={boards} goal={goal} onUpdated={upsert} onDeleted={remove} />
+              <SessionList
+                sessions={feed.loaded}
+                boards={boards}
+                goal={goal}
+                hasMore={feed.hasMore}
+                status={feed.status}
+                onLoadMore={feed.loadMore}
+                onUpdated={feed.updated}
+                onDeleted={feed.removed}
+              />
             )}
           </div>
         </section>
@@ -407,29 +414,24 @@ export function Journal({
   );
 }
 
-/** The log-session button's "+" glyph — Avery's own icon
- * (surflog+button.png, 300x257, black on transparent, a chunky
- * square-ended plus), rebuilt as inline SVG rather than the PNG so it
- * stays crisp at any size and takes `currentColor` (the button's own
- * `text-primary`, no separate colour prop needed). Geometry measured
- * directly from the PNG's alpha channel: two rectangles, not a single
- * centred cross — the vertical bar is 80 wide, the horizontal 63 tall,
- * deliberately unequal (kept as drawn, not squared off to match). */
-export function LogIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 300 257" fill="currentColor" aria-hidden className={className}>
-      <rect x="110" y="0" width="80" height="257" />
-      <rect x="0" y="97" width="300" height="63" />
-    </svg>
-  );
+export { LogIcon } from "@/components/add-button";
+
+function NoMatches() {
+  const { t } = useLang();
+  return <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+      <SearchX className="size-4 shrink-0" aria-hidden />
+      <p className="font-sans text-[13px] leading-5 font-bold">{t("filter.noMatchTitle")}</p>
+    </div>;
 }
 
 function EmptyState() {
   const { t } = useLang();
   return (
-    <div className="mt-3.5 rounded-[var(--r-card)] border border-card-border bg-card p-8">
-      <h3 className="text-xl font-bold tracking-[-0.02em]">{t("empty.title")}</h3>
-      <p className="mt-1.5 text-[15px] font-medium text-muted-foreground">{t("empty.body")}</p>
-    </div>
+    <WhiteCard className="mt-2 sm:mt-3">
+      <div className="p-4 sm:p-6">
+        <h3 className="text-xl font-bold tracking-[-0.02em]">{t("empty.title")}</h3>
+        <p className="mt-1.5 text-[15px] font-medium text-muted-foreground">{t("empty.body")}</p>
+      </div>
+    </WhiteCard>
   );
 }

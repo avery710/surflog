@@ -6,7 +6,7 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint app components lib tests",
     "test": "vitest run",
     "compare": "npx tsx scripts/compare-sources.ts"
   },
@@ -16,6 +16,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@modelcontextprotocol/server": "^2.3.1",
     "@supabase/supabase-js": "^2.116.0",
+    "@tanstack/react-query": "^5.103.3",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "lucide-react": "^1.47.0",

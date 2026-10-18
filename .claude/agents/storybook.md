@@ -11,7 +11,7 @@ Read `CLAUDE.md` ("Status", "Entry schema", "Conventions") first: it says which 
 
 ## Where it lives
 
-- `app/dev/` — one folder per showcase page, e.g. `app/dev/entry-card/page.tsx`. Existing pages (`activity-preview`, `signin-preview`, `color-preview`) predate you; fold them in or leave them, but keep the index up to date.
+- `app/dev/` — one folder per showcase page, e.g. `app/dev/session-card/page.tsx`. Existing pages (`activity-preview`, `signin-preview`, `color-preview`) predate you; fold them in or leave them, but keep the index up to date.
 - `app/dev/page.tsx` — the index: a list of every showcase page with a one-line description.
 - `app/dev/fixtures.ts` — shared synthetic data builders (`fakeSession({...overrides})`, `fakeBoard(...)`, tide event series, etc.). Build every case from these; typed against `lib/types.ts` so a schema change breaks the build instead of silently drifting.
 

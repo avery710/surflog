@@ -47,7 +47,7 @@ export function SpotsShowcase() {
         </div>
         <ul className="mt-2 flex flex-col gap-1.5">
           {reviews.map((r) => (
-            <li key={r.name} className="flex gap-2.5 rounded-[12px] bg-card px-3 py-2.5">
+            <li key={r.name} className="flex gap-2.5 rounded-[4px] bg-card px-3 py-2.5">
               <span
                 aria-hidden
                 className="flex size-7 shrink-0 items-center justify-center rounded-full bg-badge text-[12px] font-semibold text-badge-foreground"
@@ -88,7 +88,7 @@ function Feature({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col rounded-[var(--r-card)] border border-card-border bg-card p-5">
+    <div className="flex min-w-0 flex-col rounded-[var(--r-card)] bg-card shadow-soft p-5">
       {/* The mock first: a grey tile standing in for the dialog, growing to
           even out the cards in a row. Hidden from screen readers; the title
           and text under it say what it shows. */}
@@ -108,7 +108,7 @@ function MockField({ label, value, mono = false }: { label: string; value: strin
   return (
     <div className="mb-2 last:mb-0">
       <p className="px-1 text-[12px] font-semibold text-muted-foreground">{label}</p>
-      <p className={cn("mt-1 truncate rounded-[10px] bg-card px-3 py-1.5 text-[13.5px] font-semibold", mono && "font-mono text-[12.5px]")}>
+      <p className={cn("mt-1 truncate rounded-[4px] bg-card px-3 py-1.5 text-[13.5px] font-semibold", mono && "font-mono text-[12.5px]")}>
         {value}
       </p>
     </div>
@@ -117,7 +117,7 @@ function MockField({ label, value, mono = false }: { label: string; value: strin
 
 function MockChange({ label, from, to }: { label: string; from: string; to: string }) {
   return (
-    <div className="mt-2 rounded-[10px] bg-card px-3 py-2">
+    <div className="mt-2 rounded-[4px] bg-card px-3 py-2">
       <p className="text-[12px] font-semibold text-muted-foreground">{label}</p>
       <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[13.5px] font-semibold">
         <span className="text-muted-foreground line-through">{from}</span>

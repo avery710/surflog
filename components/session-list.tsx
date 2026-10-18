@@ -1,22 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
 import { EntryCard } from "@/components/entry-card";
+import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/i18n";
+import type { FeedStatus } from "@/lib/use-session-feed";
 import type { Board, Session } from "@/lib/types";
 
-/** Cards rendered up front, and how many more each reveal adds. */
-const PAGE = 5;
-
 /**
- * The session list, lazy-rendered: the full `sessions` array is still
- * loaded (the dashboard's stats need all of it) — only the cards are
- * revealed PAGE at a time, as a sentinel after the last card nears the
- * viewport.
+ * The session cards, loaded as you scroll: a sentinel after the last card
+ * asks for the next 10 (`onLoadMore`, see lib/use-session-feed.ts) when it
+ * comes within 400 px of the viewport. The observer is set up again after
+ * every load, and a fresh `observe()` always reports the sentinel's current
+ * state, so if the cards still don't fill the screen the next page follows
+ * until they do. A failed load stops the auto-loading and shows Try again.
  */
 export function SessionList({
   sessions,
   boards,
   goal,
+  hasMore,
+  status,
+  onLoadMore,
   onUpdated,
   onDeleted,
 }: {
@@ -24,50 +30,49 @@ export function SessionList({
   boards: Board[];
   /** The owner's current goal — passed down to each card's edit panel. */
   goal: string | null;
+  hasMore: boolean;
+  status: FeedStatus;
+  onLoadMore: () => void;
   onUpdated: (s: Session) => void;
   onDeleted: (id: string) => void;
 }) {
-  const [shown, setShown] = useState(PAGE);
-  // A newly logged session grows the list by one; grow `shown` with it so
-  // the new card appears without the bottom card disappearing. Adjusted
-  // during render (React's "storing info from previous renders" pattern),
-  // not in an effect. A delete leaves `shown` alone, so the next card
-  // below simply moves up into view.
-  const [prevLength, setPrevLength] = useState(sessions.length);
-  if (sessions.length !== prevLength) {
-    if (sessions.length > prevLength) setShown((n) => n + (sessions.length - prevLength));
-    setPrevLength(sessions.length);
-  }
-
-  const visible = sessions.slice(0, shown);
-  const hasMore = shown < sessions.length;
+  const { t } = useLang();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Re-observed after every reveal: a fresh observe() always reports the
-  // sentinel's current state, so if it's still on screen (the cards didn't
-  // fill the viewport) the next batch is revealed too, until it isn't.
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el || !hasMore) return;
+    if (!el || !hasMore || status !== "idle") return;
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
           io.disconnect();
-          setShown((n) => n + PAGE);
+          onLoadMore();
         }
       },
       { rootMargin: "0px 0px 400px 0px" }
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [shown, hasMore]);
+  }, [hasMore, status, onLoadMore]);
 
   return (
     <>
-      {visible.map((s) => (
+      {sessions.map((s) => (
         <EntryCard key={s.id} session={s} boards={boards} goal={goal} onUpdated={onUpdated} onDeleted={onDeleted} />
       ))}
-      {hasMore && <div ref={sentinelRef} aria-hidden className="h-px" />}
+      {hasMore && (
+        <div ref={sentinelRef} className="flex min-h-10 items-center justify-center py-4" aria-live="polite">
+          {status === "loading" && <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label={t("list.loading")} />}
+          {status === "failed" && (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <p className="text-[14px] font-medium text-muted-foreground">{t("list.loadFailed")}</p>
+              <Button variant="secondary" onClick={onLoadMore}>
+                {t("list.retry")}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

@@ -9,6 +9,8 @@
  */
 
 @theme inline {
+  --shadow-soft: var(--card-shadow);
+  --shadow-menu: var(--menu-shadow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-funnel);
@@ -185,7 +187,26 @@
      what this is — it's no longer a tint of --primary at all. Kept as its
      own token, not literally `var(--secondary)`, so the panel can diverge
      from the secondary-surface grey later without a rename again. */
-  --panel: #f2f5f5;
+  --panel: #ffffff;
+  /* 2026-10-16, latest: the page is white, on request. White cards now separate
+     from the page by --card-shadow alone, so that was strengthened the same day.
+     The note below on greys is history; --secondary/--muted still fill tiles and
+     pills. */
+  /* 2026-10-16, later still: page grey lightened from the chip grey (#f2f5f5) to
+     #f9fafa after comparing with Strava's dashboard (white feed cards on
+     #fafafa side panels, measured in Chrome). Kept a hair cooler than Strava's
+     neutral so it sits with the blue; --secondary/--muted unchanged. */
+  /* 2026-10-16, last: the page grey now IS the chip/tile grey (#f2f5f5), on
+     request (was #f7f9f9). One source of truth: change --secondary and both move. */
+  /* 2026-10-16, later: the page grey lightened #f2f5f5 -> #f7f9f9 on request
+     (--panel is read only by the body and the public share page, so
+     --secondary/--muted, which fill tiles and pills, stay #f2f5f5 and are now
+     a step darker than the page, which reads fine inside white cards).
+     Earlier the same day: --panel became the PAGE background
+     (app/layout.tsx body, public share page) and card outlines are gone
+     (--card-border is now used only for dividers inside cards). --background
+     stays white on purpose: inputs, checkboxes and photo placeholders inside
+     white cards read it and must not turn grey. */
   --secondary: #f2f5f5; /* surface-2 */
   --secondary-foreground: #000000;
   --muted: #f2f5f5;
@@ -201,7 +222,7 @@
   --chart-3: #8a9699;
   --chart-4: #b35a28;
   --chart-5: #000000;
-  --radius: 0.875rem; /* 14px — matches --r-input; cards/tiles use explicit radii, see below */
+  --radius: 0.5625rem; /* 9px (was 14px, 2026-10-16) — matches --r-input; cards/tiles use explicit radii, see below */
   --sidebar: #f2f5f5;
   --sidebar-foreground: #000000;
   --sidebar-primary: #0018ff;
@@ -227,9 +248,22 @@
   /* Card outline, heavier than --border (which stays light for inputs,
      dividers and table rows), 2026-10-01 on request. */
   --card-border: rgba(0, 0, 0, 0.16);
-  --r-card: 16px;
-  --r-tile: 12px;
+  --r-card: 6px;
+  --r-tile: 4px;
+  /* Resting white cards (utility `shadow-soft`), 2026-10-16 on request, after
+     Strava's feed cards (0 8px 24px rgba(13,13,18,.04), measured).
+     Strengthened later the same day (.04 -> .10, plus a 1px contact line)
+     when the page itself went white: with no grey behind them the shadow is
+     all that separates a card from the page. Cards stay borderless. Not for
+     tiles, pills, inputs or the blue banners. */
+  /* 2026-10-17: switched off "for now" on request, then restored the same day;
+     blur then halved (8/24 -> 4/12), then alpha .10/.08 -> .06 on request. */
+  --card-shadow: 0 1px 2px 0 rgba(13, 13, 18, 0.06), 0 4px 12px 0 rgba(13, 13, 18, 0.06);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px -20px rgba(0, 0, 0, 0.28);
+  /* Floating menu/select/popover panels (utility `shadow-menu`), 2026-10-16: same
+     shape as the card's soft layer but alpha .16, because a panel opens over white
+     cards and the blue header, where .04 would not separate it. No ring. */
+  --menu-shadow: 0 8px 24px 0 rgba(13, 13, 18, 0.16);
 }
 
 /*
@@ -361,4 +395,59 @@
       font-size: 16px;
     }
   }
+}
+
+/* --- Header "+" button: shared base + variant 3b (rising wave that follows the mouse), 2026-10-16.
+   Source of truth; /dev/add-button's other variants build on the .ab base. --- */
+.ab { position: relative; display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center;
+  border-radius: 9999px; background: #fff; color: #0018ff; border: 0; cursor: pointer; outline: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 28px -20px rgba(0,0,0,.28); transition: transform .35s cubic-bezier(.34,1.56,.64,1), filter .2s; }
+.ab > svg { position: relative; z-index: 2; }
+.ab span.fx { position: absolute; inset: 0; border-radius: 9999px; pointer-events: none; opacity: 0; }
+.ab[data-focus="true"] { box-shadow: 0 0 0 2px #0018ff, 0 0 0 4px #fff; }
+.ab:is(:hover, :active, [data-force="true"]) { will-change: transform; }
+
+/* 3b. Rising wave that follows the mouse. JS (a small spring loop, only while the
+   water is moving) writes --wy (surface height in px from the top) and --wr (tilt
+   in deg); CSS just reads them into transforms. */
+.ab.v3b { overflow: hidden; }
+.ab.v3b .wf, .wv .wf { position: absolute; left: -100%; top: 0; width: 300%; height: 300%; transform-origin: 50% 0; pointer-events: none;
+  transform: translateY(calc(var(--wy, 48) * 1px)) rotate(calc(var(--wr, 0) * 1deg)); }
+.ab.v3b .wf .surf, .wv .wf .surf { position: absolute; left: 0; right: 0; top: -7px; height: 9px; overflow: hidden; }
+.ab.v3b .wf .surf svg, .wv .wf .surf svg { display: block; width: 200%; height: 100%; animation: ab-wave 2.2s linear infinite; animation-play-state: paused; }
+.ab.v3b[data-live="true"] .wf .surf svg, .wv[data-live="true"] .wf .surf svg { animation-play-state: running; }
+.ab.v3b .wf .body, .wv .wf .body { position: absolute; left: 0; right: 0; top: 1px; bottom: 0; background: #cfd5ff; }
+.ab.v3b .ic, .wv .ic { position: relative; z-index: 2; display: inline-flex; } /* the glyph never moves */
+
+/* Same water in the footer's circle links (components/site-footer.tsx). The clip
+   is its own inner span, not the link, so the link's invisible 44px ::before
+   touch area isn't clipped. White water at 28% over the blue banner: white icon
+   on it stays ~5:1. */
+.wv-clip { position: absolute; inset: 0; border-radius: 9999px; overflow: hidden; pointer-events: none; }
+.wv .wf { opacity: .28; }
+
+.ab.v3b:hover { filter: brightness(.95); }
+@keyframes ab-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1.5px) } }
+@keyframes ab-wave { to { transform: translateX(-50%) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ab, .ab * { animation: none !important; transition: none !important; }
+  .ab span.fx, .ab i { display: none; }
+  .ab .wave, .ab .wf, .wv .wf { display: none; }
+  .wv, .wv * { animation: none !important; }
+  .wv:hover { background: rgba(255,255,255,.15); }
+  .ab:is(:hover, :active, [data-force="true"]) { transform: scale(1.06); filter: brightness(.95); }
+}
+
+/* No focus ring on buttons, links, role=button and images (Avery, 2026-10-16:
+   "remove the focus status (blue outline)"). One unlayered rule so it beats
+   every per-component focus-visible ring or outline utility (those live in
+   @layer utilities). Focus itself is untouched (media viewer still returns
+   it to the tapped cell); only the paint goes. Inputs, textareas, the date
+   field, select triggers and the spot-picker trigger (field-like buttons)
+   keep their rings. */
+button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible,
+:is(a, img, [role="button"], [role="switch"], [role="checkbox"]):focus-visible {
+  outline: none;
+  box-shadow: none;
 }

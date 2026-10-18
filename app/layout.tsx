@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Funnel_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/lib/i18n";
+import { QueryProvider } from "@/components/query-provider";
+import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 // Fonts per CLAUDE.md: Funnel Sans for UI and notes (og.com's body font),
@@ -30,8 +32,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${funnel.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <LanguageProvider>{children}</LanguageProvider>
+      <body className="min-h-full flex flex-col bg-panel text-foreground">
+        <QueryProvider>
+          <LanguageProvider>
+            {children}
+            <SiteFooter />
+          </LanguageProvider>
+        </QueryProvider>
         <Toaster position="bottom-center" />
       </body>
     </html>

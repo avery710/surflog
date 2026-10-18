@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
@@ -53,6 +54,14 @@ export function SpotReviewsDialog({
   );
 }
 
+class ReviewLoadError extends Error {
+  code: string | undefined;
+  constructor(code: string | undefined) {
+    super("reviews");
+    this.code = code;
+  }
+}
+
 const errorKey: Record<string, TKey> = {
   rate_limited: "review.limit",
   unavailable: "review.unavailable",
@@ -72,9 +81,29 @@ export function Reviews({
   onCancel?: () => void;
 }) {
   const { lang, t } = useLang();
-  const [reviews, setReviews] = useState<PublicReview[] | null>(null);
-  const [canModerate, setCanModerate] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const client = useQueryClient();
+  const url = `/api/spots/${encodeURIComponent(spot.slug)}/reviews`;
+  const reviewsKey = ["reviews", spot.slug];
+  // Shared with every user, so asked again on each open; the last list shows meanwhile.
+  const query = useQuery({
+    queryKey: reviewsKey,
+    queryFn: async ({ signal }) => {
+      const res = await fetch(url, { signal });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new ReviewLoadError(data?.code);
+      return { reviews: data.reviews as PublicReview[], canModerate: !!data.canModerate };
+    },
+  });
+  const reviews = query.data?.reviews ?? null;
+  const canModerate = query.data?.canModerate ?? false;
+  const loadError = query.isError
+    ? t((query.error instanceof ReviewLoadError && errorKey[query.error.code ?? ""]) || "review.failed")
+    : null;
+  const setReviews = (list: PublicReview[]) =>
+    client.setQueryData<{ reviews: PublicReview[]; canModerate: boolean }>(reviewsKey, (d) => ({
+      canModerate: d?.canModerate ?? false,
+      reviews: list,
+    }));
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -82,40 +111,24 @@ export function Reviews({
   // posted, the form closes and the review shows in the list with Edit / Delete.
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const url = `/api/spots/${encodeURIComponent(spot.slug)}/reviews`;
 
-  useEffect(() => {
-    let alive = true;
-    fetch(url)
-      .then(async (res) => {
-        const data = await res.json().catch(() => null);
-        if (!alive) return;
-        if (!res.ok) {
-          setLoadError(t(errorKey[data?.code] ?? "review.failed"));
-          return;
-        }
-        const list = data.reviews as PublicReview[];
-        setReviews(list);
-        setCanModerate(!!data.canModerate);
-        const mine = list.find((r) => r.mine);
-        if (mine) {
-          setRating(mine.rating);
-          setBody(mine.body ?? "");
-        }
-        // Started from the private notes: the text goes in the form (open for
-        // editing if there is already a review); nothing posts until "Post".
-        if (draftBody) {
-          setBody(draftBody.slice(0, MAX_REVIEW_BODY));
-          if (mine) setEditing(true);
-        }
-      })
-      .catch(() => alive && setLoadError(t("review.failed")));
-    return () => {
-      alive = false;
-    };
-    // t changes with the language; refetching for that isn't needed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
+  // The first list to arrive fills the form with the viewer's own review (a
+  // refetch later leaves the form alone).
+  const [formFilled, setFormFilled] = useState(false);
+  if (reviews && !formFilled) {
+    setFormFilled(true);
+    const own = reviews.find((r) => r.mine);
+    if (own) {
+      setRating(own.rating);
+      setBody(own.body ?? "");
+    }
+    // Started from the private notes: the text goes in the form (open for
+    // editing if there is already a review); nothing posts until "Post".
+    if (draftBody) {
+      setBody(draftBody.slice(0, MAX_REVIEW_BODY));
+      if (own) setEditing(true);
+    }
+  }
 
   const report = (list: PublicReview[]) => {
     const s = summarize(list.map((r) => ({ spot_slug: spot.slug, rating: r.rating })));

@@ -113,9 +113,9 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
   return { ok: true, data: await createSession(newSession) };
 }
 
-/** Partial update. Re-fetches condOpenMeteo / condCwaTide when spot or when
- *  actually changes (the readings depend on both); `refreshConditions: true`
- *  forces a refetch without changing either. */
+/** Partial update. `spot` and `when` are fixed at creation (2026-10-16): sending
+ *  a different value is a 400; the same value echoed back is accepted and
+ *  ignored. So the condition blocks are never refetched here. */
 export async function updateSessionFor(
   ownerId: string,
   id: string,
@@ -129,17 +129,16 @@ export async function updateSessionFor(
 
   const patch: Partial<Session> = {};
 
-  if (typeof body.spot === "string" && body.spot.trim()) patch.spot = body.spot.trim();
-  if (typeof body.when === "string" && WHEN_RE.test(body.when)) patch.when = body.when;
+  if (typeof body.spot === "string" && body.spot.trim() && body.spot.trim() !== existing.spot) {
+    return fail(400, "spot can't be changed after a session is created");
+  }
+  if (body.when !== undefined && body.when !== existing.when) {
+    return fail(400, "when can't be changed after a session is created");
+  }
   if (typeof body.notesHtml === "string") {
     const notesHtml = sanitizeNotesHtml(body.notesHtml);
     patch.notesHtml = notesHtml;
     patch.notes = htmlToPlainText(notesHtml);
-  }
-
-  // Moving a session onto a `req:<id>` spot: only the caller's own pending request.
-  if (patch.spot && patch.spot !== existing.spot && !(await checkRequestSpot(patch.spot, ownerId)).ok) {
-    return fail(404, "spot not found");
   }
 
   // The goal points ticked as achieved — the whole list, replacing what was
@@ -187,31 +186,6 @@ export async function updateSessionFor(
     next.filledAt = new Date().toISOString();
     if (next.source !== "swelleye") next.source = "manual";
     patch.cond = next;
-  }
-
-  const spotChanged = patch.spot != null && patch.spot !== existing.spot;
-  const whenChanged = patch.when != null && patch.when !== existing.when;
-  if (spotChanged || whenChanged || body.refreshConditions === true) {
-    const spot = await resolveSpot(patch.spot ?? existing.spot);
-    if (spot?.lat != null && spot.lng != null) {
-      try {
-        patch.condOpenMeteo = await getConditions(spot.lat, spot.lng, patch.when ?? existing.when, spot.timezone);
-      } catch {
-        // leave condOpenMeteo as-is if the refetch fails
-      }
-    } else if (spotChanged) {
-      patch.condOpenMeteo = null;
-    }
-
-    if (spot?.tideTownship) {
-      try {
-        patch.condCwaTide = await getTide(spot.tideTownship, patch.when ?? existing.when);
-      } catch {
-        // leave condCwaTide as-is if the refetch fails
-      }
-    } else if (spotChanged) {
-      patch.condCwaTide = null;
-    }
   }
 
   return { ok: true, data: await updateSession(id, patch) };

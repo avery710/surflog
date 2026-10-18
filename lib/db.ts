@@ -15,6 +15,8 @@
  */
 import { applyGoalRenames, type GoalRename } from "./goal";
 import { getSupabase } from "./supabase";
+import { NO_BOARD, type SessionFilter } from "./session-filter";
+import { toStat, type SessionStat } from "./session-stats";
 import type { Board, Session } from "./types";
 
 const TABLE = "sessions";
@@ -94,9 +96,81 @@ export async function listSessions(ownerId: string): Promise<Session[]> {
     .from(TABLE)
     .select("*")
     .eq("owner_id", ownerId)
-    .order("session_when", { ascending: false });
+    .order("session_when", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true });
   const rows = assertNoError(result) as SessionRow[];
   return rows.map(rowToSession);
+}
+
+/** One page of an owner's sessions (optionally filtered), newest first, in the
+ *  same order as `compareSessions` (lib/session-stats.ts). `page` is 1-based;
+ *  callers clamp it against `countSessions` for the same filter first (an
+ *  out-of-range `range()` is an error). */
+export async function listSessionsPage(
+  ownerId: string,
+  page: number,
+  pageSize: number,
+  filter: SessionFilter = {}
+): Promise<Session[]> {
+  const from = (page - 1) * pageSize;
+  let query = getSupabase().from(TABLE).select("*").eq("owner_id", ownerId);
+  // `session_when` is text ("YYYY-MM-DDTHH:mm"), so a bare day compares correctly:
+  // "2026-09-01" sorts before every time on that day, "…T23:59" after them all.
+  if (filter.spot) query = query.eq("spot", filter.spot);
+  if (filter.board === NO_BOARD) query = query.is("board_id", null);
+  else if (filter.board) query = query.eq("board_id", filter.board);
+  if (filter.from) query = query.gte("session_when", filter.from);
+  if (filter.to) query = query.lte("session_when", `${filter.to}T23:59`);
+  const result = await query
+    .order("session_when", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .range(from, from + pageSize - 1);
+  const rows = assertNoError(result) as SessionRow[];
+  return rows.map(rowToSession);
+}
+
+/** How many sessions an owner has that match `filter` (no rows transferred). */
+export async function countSessions(ownerId: string, filter: SessionFilter = {}): Promise<number> {
+  let query = getSupabase().from(TABLE).select("id", { count: "exact", head: true }).eq("owner_id", ownerId);
+  if (filter.spot) query = query.eq("spot", filter.spot);
+  if (filter.board === NO_BOARD) query = query.is("board_id", null);
+  else if (filter.board) query = query.eq("board_id", filter.board);
+  if (filter.from) query = query.gte("session_when", filter.from);
+  if (filter.to) query = query.lte("session_when", `${filter.to}T23:59`);
+  const result = await query;
+  if (result.error) throw new Error(`Supabase: ${result.error.message}`);
+  return result.count ?? 0;
+}
+
+/** Every session as a slim row (see SessionStat), newest first. The one query
+ *  that touches all of an owner's sessions; it leaves out notes, photos and
+ *  the condition blocks, which are most of each row's weight. */
+export async function listSessionStats(ownerId: string): Promise<SessionStat[]> {
+  const result = await getSupabase()
+    .from(TABLE)
+    .select("id, spot, session_when, board_id, goal_text, goal_met, goal_points_met, created_at")
+    .eq("owner_id", ownerId)
+    .order("session_when", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true });
+  const rows = assertNoError(result) as Pick<
+    SessionRow,
+    "id" | "spot" | "session_when" | "board_id" | "goal_text" | "goal_met" | "goal_points_met" | "created_at"
+  >[];
+  return rows.map((row) =>
+    toStat({
+      id: row.id,
+      spot: row.spot,
+      when: row.session_when,
+      boardId: row.board_id ?? null,
+      goalText: row.goal_text ?? null,
+      goalMet: row.goal_met ?? null,
+      goalPointsMet: row.goal_points_met ?? null,
+      createdAt: row.created_at,
+    } as Session)
+  );
 }
 
 /** Every owner's sessions logged at one spot value. Only for spot-request

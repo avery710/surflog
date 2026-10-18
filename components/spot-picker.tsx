@@ -241,7 +241,7 @@ export function SpotPicker({
             }}
             onCloseAutoFocus={onCloseAutoFocus}
             onEscapeKeyDown={onEscapeKeyDown}
-            className="z-50 flex w-[max(var(--radix-popover-trigger-width),320px)] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[var(--r-tile)] border border-card-border bg-popover text-popover-foreground shadow-[var(--shadow-card)] outline-none duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+            className="z-50 flex w-[max(var(--radix-popover-trigger-width),320px)] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[var(--r-card)] bg-popover text-popover-foreground shadow-menu outline-none duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
             style={{ maxHeight: "min(420px, var(--radix-popover-content-available-height))" }}
           >
             {body}

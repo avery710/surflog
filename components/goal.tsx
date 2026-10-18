@@ -13,7 +13,7 @@
  * touch the others.
  */
 import { PillNeck } from "@/components/pill-neck";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -37,7 +37,7 @@ import { cn } from "cn";
 import { achievedCounts, goalPoints, joinGoalPoints, MAX_GOAL, type GoalRename } from "@/lib/goal";
 import { INLINE_FIELD } from "@/lib/inline-field";
 import { useLang } from "@/lib/i18n";
-import type { Session } from "@/lib/types";
+import type { SessionStat } from "@/lib/session-stats";
 import { usePrefersReducedMotion } from "@/lib/use-prefers-reduced-motion";
 
 /** Animates the card's body height between read and edit view: the outer box
@@ -104,7 +104,7 @@ export function GoalCard({
   readOnly = false,
 }: {
   goal: string | null;
-  sessions: Session[];
+  sessions: Pick<SessionStat, "goalText" | "goalMet" | "goalPointsMet">[];
   /** Static display (landing demo): no edit/drag affordances, no hover tint. */
   readOnly?: boolean;
   /** Resolves true if saved, so the card knows whether to leave edit mode. */
@@ -224,6 +224,10 @@ export function GoalCard({
   // Optimistic order while a drag-reorder is being saved (see
   // handleDisplayDragEnd); null otherwise.
   const shownPoints = pendingOrder ?? goalPoints(goal);
+  // dnd-kit numbers its screen-reader description (aria-describedby) from a
+  // global counter, which differs between the server render and hydration;
+  // an explicit id per context keeps both sides identical.
+  const dndId = useId();
   // Stable sortable ids: the text, numbered when a point repeats.
   const seen = new Map<string, number>();
   const displayIds = shownPoints.map((p) => {
@@ -242,7 +246,7 @@ export function GoalCard({
     // not the other way round; flex-1 + h-full-ish fill keeps this card as
     // tall as the calendar's minimum when it has only a point or two.
     <section className="flex flex-1 flex-col">
-      <div className="flex flex-1 items-stretch gap-3 rounded-[var(--r-card)] border border-card-border bg-card px-5 py-3.5">
+      <div className="flex flex-1 items-stretch gap-3 rounded-[var(--r-card)] bg-card shadow-soft px-3 py-2.5 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 flex-col">
           {/* No horizontal padding here (unlike the px-2 used by the body
               rows below, for their own hover/input backgrounds) — the card's
@@ -271,6 +275,7 @@ export function GoalCard({
               }}
             >
               <DndContext
+                id={`${dndId}-edit`}
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 modifiers={[verticalOnly]}
@@ -318,10 +323,11 @@ export function GoalCard({
                         type="button"
                         onClick={startEdit}
                         aria-label={t("goal.edit")}
-                        className="absolute inset-0 rounded-[10px]"
+                        className="absolute inset-0 rounded-[4px]"
                       />
                     )}
                     <DndContext
+                      id={`${dndId}-view`}
                       sensors={sensors}
                       collisionDetection={closestCenter}
                       modifiers={[verticalOnly]}
@@ -351,7 +357,7 @@ export function GoalCard({
                     type="button"
                     onClick={startEdit}
                     aria-label={t("goal.edit")}
-                    className="w-full rounded-[10px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:opacity-80"
+                    className="w-full rounded-[4px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:opacity-80"
                   >
                     {t("goal.add")}
                   </button>
@@ -633,7 +639,7 @@ export function GoalCheck({
           return (
             <label
               key={p}
-              className="flex cursor-pointer items-start gap-2.5 rounded-[10px] px-1 py-1 hover:bg-background/60"
+              className="flex cursor-pointer items-start gap-2.5 rounded-[4px] px-1 py-1 hover:bg-background/60"
             >
               <input
                 type="checkbox"
@@ -645,7 +651,7 @@ export function GoalCheck({
               <span
                 aria-hidden
                 className={cn(
-                  "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[6px] border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-ring/30",
+                  "mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-[4px] border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-ring/30",
                   checked ? "border-primary bg-primary text-white" : "border-border bg-background"
                 )}
               >
@@ -678,7 +684,7 @@ export function GoalCheck({
  *  left | up-circle | up-pill. SSR and first paint have none, so no stem is
  *  ever drawn in the wrong place. A session records only the points that were
  *  ticked (lib/goal.ts), so no "missed" state. */
-export function GoalSection({ achieved }: { achieved: string[] }) {
+export function GoalSection({ achieved, inline = false }: { achieved: string[]; inline?: boolean }) {
   const { t } = useLang();
   const listRef = useRef<HTMLUListElement>(null);
   useLayoutEffect(() => {
@@ -707,7 +713,12 @@ export function GoalSection({ achieved }: { achieved: string[] }) {
   }, [achieved]);
   if (!achieved.length) return null;
   return (
-    <section data-goal-section className="mx-6 mt-1.5 mb-0.5 max-w-[calc(100%-3rem)]">
+    <section
+      data-goal-section
+      // inline: a flex item beside the board chip (entry-card.tsx), which
+      // supplies the side margins and the gap; otherwise its own row.
+      className={inline ? "mt-[3px] max-w-full min-w-0" : "mx-6 mt-1.5 mb-0.5 max-w-[calc(100%-3rem)]"}
+    >
       <ul
         ref={listRef}
         role="list"

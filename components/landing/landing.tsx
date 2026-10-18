@@ -14,6 +14,7 @@ import type { LandingSpot } from "@/lib/landing-spots";
 import { cn } from "cn";
 import { BoardRack } from "@/components/board-rack";
 import { BOARD_PHOTO_CREDITS, DEMO_BOARDS, demoSessions } from "./demo-data";
+import { CtaVideo } from "./cta-video";
 import { ShareShowcase } from "./share-showcase";
 import { SpotsShowcase } from "./spots-showcase";
 import { noop } from "@/app/dev/fixtures";
@@ -198,23 +199,23 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
       >
         <div>
           <Panel className="flex flex-col gap-2.5">
-            <p className="ml-auto max-w-[85%] rounded-[18px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
+            <p className="ml-auto max-w-[85%] rounded-[8px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
               {t("landing.agent.ask")}
             </p>
             <p className="max-w-[85%] self-start rounded-full bg-secondary px-3 py-1 font-mono text-[11.5px] text-muted-foreground">
               create_session · jialeshui · 06:00
             </p>
-            <p className="max-w-[85%] self-start rounded-[18px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
+            <p className="max-w-[85%] self-start rounded-[8px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
               {t("landing.agent.reply")}
             </p>
             {/* Second exchange: reading the journal back for patterns and advice. */}
-            <p className="mt-2 ml-auto max-w-[85%] rounded-[18px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
+            <p className="mt-2 ml-auto max-w-[85%] rounded-[8px] rounded-br-md bg-primary px-3.5 py-2.5 text-[14.5px] font-medium text-primary-foreground">
               {t("landing.agent.ask2")}
             </p>
             <p className="max-w-[85%] self-start rounded-full bg-secondary px-3 py-1 font-mono text-[11.5px] text-muted-foreground">
               list_sessions · get_goal
             </p>
-            <p className="max-w-[92%] self-start whitespace-pre-line rounded-[18px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
+            <p className="max-w-[92%] self-start whitespace-pre-line rounded-[8px] rounded-bl-md bg-secondary px-3.5 py-2.5 text-[14.5px] font-medium">
               {t("landing.agent.reply2")}
             </p>
           </Panel>
@@ -247,10 +248,17 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
       </Section>
 
       {/* Closing CTA */}
-      <section className="mt-16 rounded-[var(--r-card)] bg-primary px-6 py-12 text-center text-primary-foreground">
-        <h2 className="text-[28px] font-extrabold tracking-[-0.025em] sm:text-[34px]">{t("landing.cta.title")}</h2>
-        <p className="mt-2 text-[15px] opacity-85">{t("landing.cta.body")}</p>
-        <CtaButton action={signInAction} inverted className="mt-6 inline-flex" />
+      {/* The looping clip is a blue sea, so the video is left untinted (by request) and the text is white with a
+          dark shadow, the button white. */}
+      <section className="relative isolate mt-16 overflow-hidden rounded-[var(--r-card)] bg-primary px-6 pb-[60px] pt-[100px] text-center text-primary-foreground sm:pb-[72px] sm:pt-28">
+        <CtaVideo className="object-[50%_10%]" />
+        <div className="relative">
+          <h2 className="text-[28px] font-extrabold tracking-[-0.025em] [text-shadow:0_1px_3px_rgb(0_0_0/0.4),0_2px_20px_rgb(0_0_0/0.45)] sm:text-[34px]">
+            {t("landing.cta.title")}
+          </h2>
+          <p className="mt-2 text-[15.5px] font-medium [text-shadow:0_1px_3px_rgb(0_0_0/0.5),0_1px_14px_rgb(0_0_0/0.5)]">{t("landing.cta.body")}</p>
+          <CtaButton action={signInAction} inverted className="mt-7 inline-flex" />
+        </div>
       </section>
       </div>
     </>
@@ -270,7 +278,7 @@ function Section({ n, title, body, children }: { n: string; title: string; body:
 
 function Panel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-[var(--r-card)] border border-card-border bg-card p-5", className)}>{children}</div>
+    <div className={cn("rounded-[var(--r-card)] bg-card shadow-soft p-5", className)}>{children}</div>
   );
 }
 
@@ -300,7 +308,9 @@ function CtaButton({
         type="submit"
         className={cn(
           "inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-[16px] font-bold transition-[filter] hover:brightness-110 active:scale-[0.975]",
-          inverted ? "bg-card text-primary hover:brightness-95" : "bg-primary text-primary-foreground"
+          inverted
+            ? "bg-card text-primary shadow-[0_8px_24px_rgb(0_0_0/0.35)] hover:brightness-95"
+            : "bg-primary text-primary-foreground"
         )}
       >
         {t("signin.continueGoogle")}

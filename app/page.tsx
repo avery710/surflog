@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
-import { getGoal, listBoards, listSessions, listSpotNotes } from "@/lib/db";
+import { getGoal, listBoards, listSessionsPage, listSessionStats, listSpotNotes } from "@/lib/db";
+import { PAGE_SIZE } from "@/lib/pagination";
 import { isSpotAdmin } from "@/lib/spot-admin";
 import { listSpots } from "@/lib/spot-store";
 import { pendingAdminWork } from "@/lib/spot-edit-requests";
@@ -28,8 +29,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   }
 
   const canManageSpots = isSpotAdmin(session.user);
-  const [sessions, spotNotes, boards, goal, spots, requestRows, pendingSpotRequests, aiConnected] = await Promise.all([
-    listSessions(session.user.id),
+  const query = await searchParams;
+  // Sessions are paged by the database: the slim list of all of them (small,
+  // for the dashboard) plus the first 10 in full; the rest load on scroll
+  // from GET /api/sessions.
+  const stats = await listSessionStats(session.user.id);
+  const firstPage = stats.length ? listSessionsPage(session.user.id, 1, PAGE_SIZE) : Promise.resolve([]);
+  const [sessions, latest, spotNotes, boards, goal, spots, requestRows, pendingSpotRequests, aiConnected] = await Promise.all([
+    firstPage,
+    firstPage.then((rows) => rows[0] ?? null),
     listSpotNotes(session.user.id),
     listBoards(session.user.id),
     getGoal(session.user.id),
@@ -55,6 +63,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   // column, so Journal applies that column itself to everything below
   // its header instead. See journal.tsx's own comment.
   return (
-    <Journal initialSessions={sessions} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} showAiAppCard={!aiConnected} user={session.user} openLogForm={(await searchParams).log === "1"} logSpot={(await searchParams).spot} />
+    <Journal initialStats={stats} initialLoaded={sessions} initialLatest={latest} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} showAiAppCard={!aiConnected} user={session.user} openLogForm={query.log === "1"} logSpot={query.spot} />
   );
 }

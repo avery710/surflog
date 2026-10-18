@@ -6,7 +6,7 @@ import { fakeSession as buildFakeSession } from "@/app/dev/fixtures";
 /**
  * DEV-ONLY preview — not linked from anywhere in the app, no auth, no real
  * data (every session below is synthetic, built from ../fixtures). Visit
- * /dev/entry-card locally for a fuller card showcase, or here to compare the
+ * /dev/session-card locally for a fuller card showcase, or here to compare the
  * Activity block with 1/2/3/4 months of history before deciding on sizing.
  * See CLAUDE.md "Project agents" (storybook) — this whole app/dev/ folder
  * 404s in production builds and requires no sign-in locally.

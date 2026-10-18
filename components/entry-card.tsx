@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,8 @@ export function EntryCard({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   // Which photo/video is open full-screen (index into session.photos), or null.
+  // The cell that opened the viewer, so focus can go back to it on close.
+  const openerRef = useRef<HTMLElement | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
 
   const catalog = useSpotCatalog();
@@ -109,9 +111,9 @@ export function EntryCard({
     trend ? <Figure value={<span className="capitalize">{t(trend === "rising" ? "tide.rising" : "tide.falling")}</span>} /> : null;
 
   const cardClass = plain
-    ? // every section's px-6 (and the header's top padding) dropped from the outside
+    ? // every section's px-4 sm:px-6 (and the header's top padding) dropped from the outside
       "overflow-hidden [&>*]:px-0! [&>*:first-child]:pt-0!"
-    : "mt-3.5 overflow-hidden rounded-[var(--r-card)] border border-card-border bg-card";
+    : "mt-2 sm:mt-3 overflow-hidden rounded-[var(--r-card)] bg-card shadow-soft";
 
   if (editing) {
     return (
@@ -130,6 +132,131 @@ export function EntryCard({
     );
   }
 
+  const sideBySide = !!om && (session.photos.length === 1 || session.photos.length === 2);
+  const tileGroupClass = sideBySide
+    ? "grid grid-cols-3 gap-2 sm:min-w-0 sm:flex-[3]"
+    : "grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap sm:items-stretch sm:overflow-x-auto [scrollbar-width:none] px-4 sm:px-6 pt-3 pb-1.5";
+  const mosaic = (fill: boolean) => (
+    <MediaMosaic
+      photos={session.photos}
+      mediaBase={mediaBase}
+      alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
+      label={(i, isVideo) =>
+        t(isVideo ? "entry.viewVideo" : "entry.viewPhoto", { n: i + 1, total: session.photos.length })
+      }
+      moreLabel={(n) => t("entry.moreMedia", { n })}
+      onOpen={(i, el) => {
+        openerRef.current = el;
+        setViewing(i);
+      }}
+      fill={fill}
+    />
+  );
+  const omTiles = om ? (
+        // Tiles keep an 8px gap that the shared neck bridges (2026-10-06,
+        // same stem as the board chip and goals): TileGroup draws one stem
+        // between each pair of tiles that face each other across a gap.
+        // Phones (<sm): a 3-col grid, swell/period/wind then temp+tide
+        // (tide moved back after temp 2026-10-01, on request).
+        // sm and up (tablet and desktop, 2026-10-01): one flex row that
+        // fills the card's full width, not just desktop — a tablet-width
+        // card used to sit at half-width in two grid rows, with no reason
+        // the tiles couldn't share one row once they'd shrunk (see
+        // condition-tile.tsx). Flex weights aren't quite equal: Wind needs
+        // the most room (its two rows of text are the row's longest, and
+        // wrap to 4 lines — stretching the whole row — if squeezed as
+        // narrow as the others), Period the least (just a number), and the
+        // tide tile gets a bigger share (flex-[1.6] + a min-width) so its
+        // mini curve has room — see tide-chart.tsx. Stretched (not
+        // items-start) so every tile in the row shares the row's tallest
+        // height, content staying top-aligned inside — equal tile heights
+        // at every breakpoint, including the phone grid rows (CSS Grid's
+        // own default stretch already handled those). overflow-x-auto is
+        // just a safety net if a very narrow sm width can't fit five tiles;
+        // it shouldn't be needed at 768px and up.
+        <TileGroup className={tileGroupClass}>
+          {om && (
+            <>
+              <ConditionTile
+                label={t("tile.swellOpenMeteo")}
+                className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-1 sm:basis-0 sm:shrink`}
+                value={<Figure value={fmt1(om.swellHeightM)} unit="m" />}
+                sub={<DirSub deg={om.swellDirDeg} compass={compassLabel(toCompass(om.swellDirDeg), lang)} />}
+              />
+        {om.swellPeriodS != null && (
+                <ConditionTile
+                  label={t("tile.period")}
+                  className="sm:flex-[0.7] sm:basis-0 sm:shrink"
+                  value={
+                    <Figure value={fmt1(om.swellPeriodS)} unit="s" />
+                  }
+                />
+              )}
+              {/* Wind gets extra flex weight: its two rows (speed+strength,
+                  then direction+shore word) are the row's longest text and
+                  wrap to 4 lines — stretching the whole row taller — if
+                  squeezed to the same width as Period's bare number. */}
+              <ConditionTile
+                label={t("tile.wind")}
+                className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-[1.3] sm:basis-0 sm:shrink`}
+                value={
+                  <span className="flex flex-col gap-0.5">
+                    <span className="flex min-h-5 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 leading-5">
+                      <Figure value={fmt1(om.windSpeedMs)} unit="m/s" />
+                {om.windSpeedMs != null && (
+                        <span className="font-sans text-[11px] font-medium leading-none tracking-normal text-muted-foreground">
+                          <WindStrength speedMs={om.windSpeedMs} gustMs={om.windGustMs} />
+                        </span>
+                      )}
+                    </span>
+                    {(hasShore || om.windDirDeg != null) && (
+                      <span className="flex min-h-4 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 leading-4">
+                        <DirSub deg={om.windDirDeg} compass={compassLabel(toCompass(om.windDirDeg), lang)} />
+                        {hasShore && (
+                          <span className="font-sans text-[11px] font-medium leading-none tracking-normal text-muted-foreground">
+                            <WindShoreBadge mode={fit.windMode} />
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
+                }
+              />
+              {hasTemp && (
+                <ConditionTile
+                  label={t("tile.temp")}
+                  className="sm:flex-1 sm:basis-0 sm:shrink"
+                  value={<Figure value={fmt1(om.seaTempC)} unit="°C" />}
+                  sub={om.airTempC != null ? t("tile.airTemp", { t: fmt1(om.airTempC) ?? "—" }) : undefined}
+                />
+              )}
+              {/* CWA wins whenever it covers the session (see the comment
+                  above `tideSource`); Open-Meteo's tideEvents is the
+                  fallback for past/overseas sessions CWA can't reach. The
+                  manual Swelleye tide stays stored but never shown here.
+                  The mini curve needs at least two events to draw a shape;
+                  a lone legacy CWA event falls back to the plain
+                  next-low/next-high text. Ordered after the temp tile
+                  (moved back 2026-10-01, on request), last in the row. */}
+              {tideSource && (
+                <ConditionTile
+                  label={t("tile.tideOpenMeteo")}
+                  className={`${hasTemp ? "col-span-2" : "col-span-3"} sm:flex-[1.6] sm:basis-0 sm:shrink sm:min-w-[110px]`}
+                  value={trendHeadline(tideTrendValue)}
+                  sub={
+                    tideEvents.length >= 2 ? (
+                      <TideChart events={tideEvents} sessionWhen={session.when} />
+                    ) : (
+                      <TideEventsSub events={tideEvents} sessionWhen={session.when} />
+                    )
+                  }
+                />
+              )}
+            </>
+          )}
+        </TileGroup>
+  ) : null;
+
   return (
     <article className={cardClass}>
       {/* Spot + date wrap inside their own group; the actions stay a fixed
@@ -145,7 +272,7 @@ export function EntryCard({
           and a wrapped header (date under the title, or a two-line title)
           just grows past 40px with nothing to centre. ⋯ stays items-start
           (pinned top-right) when the group grows taller. */}
-      <div className="flex items-start gap-2 px-6 pt-4 pb-2">
+      <div className="flex items-start gap-2 px-4 sm:px-6 pt-3 sm:pt-4 pb-2">
         <div className="flex min-h-10 min-w-0 flex-1 flex-wrap content-center items-baseline gap-x-3 gap-y-1.5">
           <span className="min-w-0 text-[21px] font-bold tracking-[-0.02em] leading-tight break-words">
             {catalog.label(session.spot, lang)}
@@ -238,116 +365,54 @@ export function EntryCard({
         </DialogContent>
       </Dialog>
 
-      {om ? (
-        // Tiles keep an 8px gap that the shared neck bridges (2026-10-06,
-        // same stem as the board chip and goals): TileGroup draws one stem
-        // between each pair of tiles that face each other across a gap.
-        // Phones (<sm): a 3-col grid, swell/period/wind then temp+tide
-        // (tide moved back after temp 2026-10-01, on request).
-        // sm and up (tablet and desktop, 2026-10-01): one flex row that
-        // fills the card's full width, not just desktop — a tablet-width
-        // card used to sit at half-width in two grid rows, with no reason
-        // the tiles couldn't share one row once they'd shrunk (see
-        // condition-tile.tsx). Flex weights aren't quite equal: Wind needs
-        // the most room (its two rows of text are the row's longest, and
-        // wrap to 4 lines — stretching the whole row — if squeezed as
-        // narrow as the others), Period the least (just a number), and the
-        // tide tile gets a bigger share (flex-[1.6] + a min-width) so its
-        // mini curve has room — see tide-chart.tsx. Stretched (not
-        // items-start) so every tile in the row shares the row's tallest
-        // height, content staying top-aligned inside — equal tile heights
-        // at every breakpoint, including the phone grid rows (CSS Grid's
-        // own default stretch already handled those). overflow-x-auto is
-        // just a safety net if a very narrow sm width can't fit five tiles;
-        // it shouldn't be needed at 768px and up.
-        <TileGroup className="grid grid-cols-3 gap-2 sm:flex sm:flex-nowrap sm:items-stretch sm:overflow-x-auto [scrollbar-width:none] px-6 pb-1.5">
-          {om && (
-            <>
-              <ConditionTile
-                label={t("tile.swellOpenMeteo")}
-                className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-1 sm:basis-0 sm:shrink`}
-                value={<Figure value={fmt1(om.swellHeightM)} unit="m" />}
-                sub={<DirSub deg={om.swellDirDeg} compass={compassLabel(toCompass(om.swellDirDeg), lang)} />}
-              />
-              {om.swellPeriodS != null && (
-                <ConditionTile
-                  label={t("tile.period")}
-                  className="sm:flex-[0.7] sm:basis-0 sm:shrink"
-                  value={
-                    <Figure value={fmt1(om.swellPeriodS)} unit="s" />
-                  }
-                />
-              )}
-              {/* Wind gets extra flex weight: its two rows (speed+strength,
-                  then direction+shore word) are the row's longest text and
-                  wrap to 4 lines — stretching the whole row taller — if
-                  squeezed to the same width as Period's bare number. */}
-              <ConditionTile
-                label={t("tile.wind")}
-                className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-[1.3] sm:basis-0 sm:shrink`}
-                value={
-                  <span className="flex flex-col gap-0.5">
-                    <span className="flex min-h-5 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 leading-5">
-                      <Figure value={fmt1(om.windSpeedMs)} unit="m/s" />
-                      {om.windSpeedMs != null && (
-                        <span className="font-sans text-[11px] font-medium leading-none tracking-normal text-muted-foreground">
-                          <WindStrength speedMs={om.windSpeedMs} gustMs={om.windGustMs} />
-                        </span>
-                      )}
-                    </span>
-                    {(hasShore || om.windDirDeg != null) && (
-                      <span className="flex min-h-4 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 leading-4">
-                        <DirSub deg={om.windDirDeg} compass={compassLabel(toCompass(om.windDirDeg), lang)} />
-                        {hasShore && (
-                          <span className="font-sans text-[11px] font-medium leading-none tracking-normal text-muted-foreground">
-                            <WindShoreBadge mode={fit.windMode} />
-                          </span>
-                        )}
-                      </span>
-                    )}
-                  </span>
-                }
-              />
-              {hasTemp && (
-                <ConditionTile
-                  label={t("tile.temp")}
-                  className="sm:flex-1 sm:basis-0 sm:shrink"
-                  value={<Figure value={fmt1(om.seaTempC)} unit="°C" />}
-                  sub={om.airTempC != null ? t("tile.airTemp", { t: fmt1(om.airTempC) ?? "—" }) : undefined}
-                />
-              )}
-              {/* CWA wins whenever it covers the session (see the comment
-                  above `tideSource`); Open-Meteo's tideEvents is the
-                  fallback for past/overseas sessions CWA can't reach. The
-                  manual Swelleye tide stays stored but never shown here.
-                  The mini curve needs at least two events to draw a shape;
-                  a lone legacy CWA event falls back to the plain
-                  next-low/next-high text. Ordered after the temp tile
-                  (moved back 2026-10-01, on request), last in the row. */}
-              {tideSource && (
-                <ConditionTile
-                  label={t("tile.tideOpenMeteo")}
-                  className={`${hasTemp ? "col-span-2" : "col-span-3"} sm:flex-[1.6] sm:basis-0 sm:shrink sm:min-w-[110px]`}
-                  value={trendHeadline(tideTrendValue)}
-                  sub={
-                    tideEvents.length >= 2 ? (
-                      <TideChart events={tideEvents} sessionWhen={session.when} />
-                    ) : (
-                      <TideEventsSub events={tideEvents} sessionWhen={session.when} />
-                    )
-                  }
-                />
-              )}
-            </>
+      {/* Order (2026-10-16, on request): header / board chip + goal pills (one
+          row if they fit) / notes / condition tiles / media. leading-9 makes the chip's line
+          36px, 8px taller than the 28px pill, which sits 4px down
+          (BoardChip's mt-1), so the chip needs no top padding under the
+          header; GoalSection brings its own mt-1.5/mb-0.5. The notes get pt-2
+          after a chip or goals, pt-1 straight after the header; the tiles
+          bring their own pt-3. */}
+      {(board || achieved.length > 0) && (
+        // Chip and goals share one row when they fit, else the goals (as a
+        // whole group, never split) drop under the chip. Pure CSS: a flex-wrap
+        // row wraps an item as a whole when its max-content width doesn't fit
+        // beside the previous one; a wrapped goals group then shrinks to the
+        // row and wraps its own pills. Gap 8px across, ~8px down (the chip's
+        // 36px line already leaves 4px under its pill). No stem joins the two.
+        <div className="mx-4 sm:mx-6 mb-0.5 flex flex-wrap items-start gap-x-2 gap-y-0.5">
+          {board && (
+            <div className="max-w-full min-w-0 text-[13.5px] leading-9 break-words">
+              <BoardChip board={board} />
+            </div>
           )}
-        </TileGroup>
-      ) : null}
+          <GoalSection achieved={achieved} inline />
+        </div>
+      )}
+
+      {session.notesHtml && (
+        <div
+          className={`notes-html px-4 sm:px-6 ${board || achieved.length > 0 ? "pt-2" : "pt-1"} pb-0 font-sans text-[15px] leading-[1.6] text-foreground`}
+          dangerouslySetInnerHTML={{ __html: session.notesHtml }}
+        />
+      )}
+
+      {sideBySide ? (
+        // One or two media items next to the tiles (sm and up): the tiles keep the
+        // phone's 3-column arrangement in ~60% of the row, the media fills the
+        // rest at the tile block's height, cover-cropped. Stacked on phones.
+        <div className="flex flex-col gap-2 px-4 sm:px-6 pt-3 pb-1.5 sm:flex-row sm:items-stretch">
+          {omTiles}
+          <div className={`relative w-full max-h-[260px] sm:aspect-auto sm:min-w-0 sm:flex-[2] ${session.photos.length === 2 ? "aspect-[2/1]" : "aspect-video"}`}>{mosaic(true)}</div>
+        </div>
+      ) : (
+        omTiles
+      )}
 
       {/* Open-Meteo wins where both exist: the typed Swelleye swell/wind
           duplicates its tiles, so it's stored but not shown (and only
           shown when Open-Meteo has nothing for the session). */}
       {manual && om ? null : manual ? (
-        <div className="grid grid-cols-2 gap-2 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-6 pt-0 pb-1.5">
+        <div className="grid grid-cols-2 gap-2 md:grid-flow-col md:auto-cols-[minmax(0,1fr)] md:grid-cols-none lg:flex lg:overflow-x-auto [scrollbar-width:none] px-4 sm:px-6 pt-3 pb-1.5">
           <ConditionTile
             label={t("tile.swellSwelleye")}
             value={fmt1(manual.swellHeightM)}
@@ -382,7 +447,7 @@ export function EntryCard({
           />
         </div>
       ) : !om ? (
-        <div className="mx-6 mb-2 mt-0.5 flex flex-wrap items-center gap-3 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4.5 py-4">
+        <div className="mx-4 sm:mx-6 mb-2 mt-0.5 flex flex-wrap items-center gap-3 rounded-[var(--r-tile)] bg-[var(--warm-soft)] px-4.5 py-4">
           <p className="min-w-[180px] flex-1 text-[14.5px] font-medium text-foreground">
             {t("entry.noCoords")}
           </p>
@@ -392,87 +457,27 @@ export function EntryCard({
         </div>
       ) : null}
 
-      {/* Board chip, then the achieved goals as a section of their own
-          (2026-10-06, on request: board above goals; goals a full-width
-          section, not a chip), then notes and media below the condition
-          tiles. leading-9 makes the chip's line 36px, 8px taller than the
-          28px pill, which sits 4px down (BoardChip's mt-1). */}
-      {board && (
-        <div className="px-6 pt-1.5 text-[13.5px] leading-9 break-words">
-          <BoardChip board={board} />
-        </div>
-      )}
-
-      <GoalSection achieved={achieved} />
-
-      {session.notesHtml && (
-        <div
-          className="notes-html px-6 pt-3 pb-2.5 font-sans text-[15px] leading-[1.6] text-foreground"
-          dangerouslySetInnerHTML={{ __html: session.notesHtml }}
-        />
-      )}
-
+      {/* Media mosaic under the conditions (2026-10-16, Strava-style: the
+          tiles are the "map", the photos a grid directly beneath at the same
+          width, 4px gaps, no backgrounds). 1: one 16:9; 2: halves; 3: three
+          squares; 4: 2x2; 5+: one big cell and a 2x2 on the right, the fifth
+          cell dimmed with "+N" when there are more. Same on every width. */}
       {session.photos.length > 0 && (
-        <div className="flex flex-wrap gap-2.5 px-6 pt-1.5 pb-1.5">
-          {session.photos.map((p, i) => {
-            const isVideo = p.type.startsWith("video/");
-            return (
-              // The whole thumbnail opens the full-screen viewer; adding and
-              // removing media lives in the edit panel, so a tap here can
-              // never delete anything.
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setViewing(i)}
-                aria-label={t(isVideo ? "entry.viewVideo" : "entry.viewPhoto", {
-                  n: i + 1,
-                  total: session.photos.length,
-                })}
-                className={cn(
-                  "relative h-24 cursor-zoom-in overflow-hidden rounded-[var(--r-tile)] outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  isVideo ? "w-[150px]" : "w-24"
-                )}
-              >
-                {isVideo ? (
-                  <>
-                    {/* #t=0.1 makes WebKit paint a first frame instead of a blank box */}
-                    <video
-                      src={`${mediaBase}/${p.id}#t=0.1`}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="pointer-events-none h-full w-full bg-black object-cover"
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="flex size-9 items-center justify-center rounded-full bg-black/55 text-white">
-                        <Play className="size-4 translate-x-px fill-current" aria-hidden />
-                      </span>
-                    </span>
-                  </>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={`${mediaBase}/${p.id}`}
-                    alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
-                )}
-              </button>
-            );
-          })}
+        <>
+          {!sideBySide && <div className="px-4 sm:px-6 pt-1.5 pb-1.5">{mosaic(false)}</div>}
           <MediaViewer
             photos={session.photos}
             index={viewing}
             onIndexChange={setViewing}
             mediaBase={mediaBase}
+            returnFocusRef={openerRef}
             alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
           />
-        </div>
+        </>
       )}
 
       {session.example || (manual && !om) ? (
-        <div className="flex flex-wrap items-center gap-2 px-6 pt-1.5 pb-4">
+        <div className="flex flex-wrap items-center gap-2 px-4 sm:px-6 pt-1.5 pb-4">
         {session.example && (
           <span className="rounded-full bg-[var(--warm-soft)] px-3.5 py-1 text-[11.5px] font-semibold text-warm">
             {t("entry.example")}
@@ -554,5 +559,87 @@ function BoardChip({ board, className }: { board: Board; className?: string }) {
       </span>
       <span className="ml-[3.5px] flex h-7 min-w-0 items-center rounded-full bg-secondary pr-3.5 pl-3">{label}</span>
     </span>
+  );
+}
+
+/** Strava-style photo/video mosaic; see the call site for the layouts. */
+function MediaMosaic({
+  photos,
+  mediaBase,
+  alt,
+  label,
+  moreLabel,
+  onOpen,
+  fill = false,
+}: {
+  photos: Session["photos"];
+  mediaBase: string;
+  alt: string;
+  label: (i: number, isVideo: boolean) => string;
+  moreLabel: (n: number) => string;
+  onOpen: (i: number, el: HTMLElement) => void;
+  /** One item beside the tiles: fill the parent's height instead of 16:9. */
+  fill?: boolean;
+}) {
+  const n = photos.length;
+  const cell = (i: number, className: string) => {
+    const p = photos[i];
+    const isVideo = p.type.startsWith("video/");
+    const extra = i === 4 && n > 5 ? n - 5 : 0;
+    return (
+      <button
+        key={p.id}
+        type="button"
+        onClick={(e) => onOpen(i, e.currentTarget)}
+        aria-label={label(i, isVideo)}
+        className={cn(
+          "relative min-h-0 min-w-0 cursor-zoom-in overflow-hidden rounded-[var(--r-tile)] outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          className
+        )}
+      >
+        {isVideo ? (
+          <>
+            {/* #t=0.1 makes WebKit paint a first frame instead of a blank box */}
+            <video
+              src={`${mediaBase}/${p.id}#t=0.1`}
+              muted
+              playsInline
+              preload="metadata"
+              className="pointer-events-none absolute inset-0 h-full w-full bg-black object-cover"
+            />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="flex size-9 items-center justify-center rounded-full bg-black/55 text-white">
+                <Play className="size-4 translate-x-px fill-current" aria-hidden />
+              </span>
+            </span>
+          </>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`${mediaBase}/${p.id}`}
+            alt={alt}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        {extra > 0 && (
+          <span className="absolute inset-0 flex items-center justify-center bg-black/55 font-mono text-lg font-medium text-white">
+            {moreLabel(extra)}
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  if (n === 1) return <div className={fill ? "absolute inset-0 grid grid-cols-1" : "grid aspect-video w-full max-h-[260px] grid-cols-1"}>{cell(0, "")}</div>;
+  if (n === 2) return <div className={fill ? "absolute inset-0 grid grid-cols-2 gap-2" : "grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-2"}>{[0, 1].map((i) => cell(i, ""))}</div>;
+  if (n === 3) return <div className="grid aspect-[3/1] w-full max-h-[260px] grid-cols-3 gap-2">{[0, 1, 2].map((i) => cell(i, ""))}</div>;
+  if (n === 4)
+    return <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 grid-rows-2 gap-2">{[0, 1, 2, 3].map((i) => cell(i, ""))}</div>;
+  return (
+    <div className="grid aspect-[2/1] w-full max-h-[260px] grid-cols-2 gap-2">
+      {cell(0, "")}
+      <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">{[1, 2, 3, 4].map((i) => cell(i, ""))}</div>
+    </div>
   );
 }

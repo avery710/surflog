@@ -34,7 +34,7 @@ export function PublicShareView({
     "rounded-full bg-card px-4 py-2 text-[13.5px] font-semibold text-primary outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-white";
 
   return (
-    <div lang={lang} className="flex min-h-screen flex-col bg-background text-foreground">
+    <div lang={lang} className="flex min-h-screen flex-col bg-panel text-foreground">
       <header className="bg-primary">
         <div className={`${PAGE_COLUMN} flex items-center justify-between py-3`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -83,7 +83,7 @@ export function PublicShareView({
         />
 
         <div className="mt-auto pt-10">
-          <section className="rounded-[var(--r-card)] border border-card-border bg-card px-6 py-5 text-center">
+          <section className="rounded-[var(--r-card)] bg-card shadow-soft px-6 py-5 text-center">
             {/* Signed in: a nudge to log their own session (the journal opens with the
                 log form, like the header "+"); signed out: the sign-up pitch. */}
             <p className="text-[15px] font-semibold">{t(signedIn ? "share.page.ctaMember" : "share.page.cta")}</p>
