@@ -394,6 +394,11 @@
     [contenteditable]:not([contenteditable="false"]) {
       font-size: 16px;
     }
+    /* …which makes the notes editor 16px there, so the card's notes follow
+       (15px elsewhere, same as the editor): what you type is what you see. */
+    .notes-html {
+      font-size: 16px;
+    }
   }
 }
 

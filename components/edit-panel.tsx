@@ -181,7 +181,7 @@ export function EditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("form.notes")}</span>
+        <span className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("form.notesOptional")}</span>
         <RichTextEditor
           defaultHtml={notesHtml}
           onChangeHtml={setNotesHtml}

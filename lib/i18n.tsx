@@ -104,6 +104,7 @@ export const DICT = {
   "form.timeInWater": { en: "Time in the water", "zh-TW": "下水時段" },
   "form.time": { en: "Time", "zh-TW": "時段" },
   "form.notes": { en: "Notes", "zh-TW": "筆記" },
+  "form.notesOptional": { en: "Notes (optional)", "zh-TW": "筆記（選填）" },
   "form.notesPlaceholder": {
     en: 'How it felt. What worked, what didn\'t. Type "- " for a bullet.',
     "zh-TW": "感覺如何？哪裡順、哪裡不順。輸入「- 」可建立項目符號。",
