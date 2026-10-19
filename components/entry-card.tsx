@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,22 @@ export function EntryCard({
 }) {
   const { lang, t } = useLang();
   const [editing, setEditing] = useState(false);
+  // The edit panel is much taller than the card, so closing it shrinks the
+  // page under the reader and the browser's scroll anchoring lands on a
+  // neighbour. After the card is back, bring it into view if it isn't.
+  const articleRef = useRef<HTMLElement>(null);
+  const wasEditing = useRef(false);
+  useLayoutEffect(() => {
+    const was = wasEditing.current;
+    wasEditing.current = editing;
+    const el = articleRef.current;
+    if (!was || editing || !el) return;
+    const top = el.getBoundingClientRect().top;
+    // clear of the sticky header (96 px) and not pushed off the bottom
+    if (top < 96 || top > window.innerHeight - 120) {
+      window.scrollTo({ top: window.scrollY + top - 96, behavior: "instant" });
+    }
+  }, [editing]);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -117,7 +133,7 @@ export function EntryCard({
 
   if (editing) {
     return (
-      <article className={cardClass}>
+      <article ref={articleRef} className={cardClass}>
         <EditPanel
           session={session}
           boards={boards}
@@ -258,7 +274,7 @@ export function EntryCard({
   ) : null;
 
   return (
-    <article className={cardClass}>
+    <article ref={articleRef} className={cardClass}>
       {/* Spot + date wrap inside their own group; the actions stay a fixed
           right-hand column, so on a phone the date drops under the spot
           name while ⋯ stays pinned top-right (with one flex-wrap row, ⋯
