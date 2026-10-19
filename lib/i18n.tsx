@@ -143,6 +143,7 @@ export const DICT = {
   "editor.numbered": { en: "Numbered", "zh-TW": "編號清單" },
   "editor.bold": { en: "Bold", "zh-TW": "粗體" },
   "editor.italic": { en: "Italic", "zh-TW": "斜體" },
+  "editor.underline": { en: "Underline", "zh-TW": "底線" },
 
   "patterns.title": { en: "What you've surfed", "zh-TW": "你衝過的浪點" },
   "patterns.sessions": { en: "Sessions", "zh-TW": "次數" },

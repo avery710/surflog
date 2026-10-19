@@ -739,7 +739,8 @@ load only when a session starts.
   A trigger that opens a menu passes `suppress` while open and ~400 ms after
   closing (filter chips): closing returns focus to it, and that focus-visible
   focus would otherwise show the tip.
-- Notes are rich text with a `- ` bullet shortcut (a native `beforeinput`
+- Notes are rich text (bold / italic / underline toolbar; `->` becomes `→`,
+  undo gives `->` back) with a `- ` bullet shortcut (a native `beforeinput`
   listener: React's `onBeforeInput` has no `inputType`, so it never fired)
   and Tab / Shift+Tab to nest list items (own DOM moves, not
   `execCommand("indent")`; Tab outside a list still moves focus). Avery
