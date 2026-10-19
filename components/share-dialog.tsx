@@ -552,7 +552,7 @@ function LinkSection({ sessionId, open, onUrl }: { sessionId: string; open: bool
             value={url}
             aria-label={t("share.link.readonlyLabel")}
             onFocus={(e) => e.currentTarget.select()}
-            className="h-9 min-w-0 flex-1 basis-48 rounded-full border border-card-border bg-card px-3.5 font-mono text-[12.5px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 min-w-0 flex-1 basis-48 rounded-full border border-card-border bg-card px-3.5 font-mono text-[12.5px] outline-none transition-colors focus-visible:border-ring"
           />
           <Button size="sm" className="h-9 rounded-full" onClick={() => void copyLink()}>
             <Copy />

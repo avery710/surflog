@@ -739,6 +739,11 @@ load only when a session starts.
   A trigger that opens a menu passes `suppress` while open and ~400 ms after
   closing (filter chips): closing returns focus to it, and that focus-visible
   focus would otherwise show the tip.
-- Notes are rich text with a `- ` bullet shortcut. Avery writes notes in
-  Chinese; don't break CJK handling.
+- Notes are rich text with a `- ` bullet shortcut (a native `beforeinput`
+  listener: React's `onBeforeInput` has no `inputType`, so it never fired)
+  and Tab / Shift+Tab to nest list items (own DOM moves, not
+  `execCommand("indent")`; Tab outside a list still moves focus). Avery
+  writes notes in Chinese; don't break CJK handling.
+- **Field focus** (2026-10-19): every text field, select/date/spot trigger
+  and the notes editor shows only a blue border on focus, no glow ring.
 - Secrets: open `.env.local` in the editor for Avery to paste into.

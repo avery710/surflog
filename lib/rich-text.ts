@@ -60,9 +60,17 @@ export function htmlToPlainText(html: string): string {
   // meet there: `text<ul><li>` must break before the bullet (it didn't until
   // 2026-10-07, gluing "…。- next" together), and `</div><div>` must not
   // become a blank line. Only <br> adds a break of its own.
+  // Nested items (Tab in the editor) are indented two spaces per level.
   const BOUNDARY = "\u0000";
+  let depth = 0;
   const withBreaks = html
-    .replace(/<li[^>]*>/gi, `${BOUNDARY}- `)
+    .replace(/<(\/?)(?:ul|ol)\b[^>]*>|<li\b[^>]*>/gi, (_, close?: string) => {
+      if (close !== undefined) {
+        depth = Math.max(0, depth + (close ? -1 : 1));
+        return BOUNDARY;
+      }
+      return `${BOUNDARY}${"  ".repeat(Math.max(0, depth - 1))}- `;
+    })
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/?(div|p|ul|ol|li)[^>]*>/gi, BOUNDARY)
     .replace(/<[^>]+>/g, "")
