@@ -30,13 +30,13 @@ import type { TokenAuth } from "@/lib/token-auth";
 import type { Board, Session, TideEvent } from "@/lib/types";
 
 const DATE = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "use YYYY-MM-DD");
-// The app's time picker is a 2-hour grid (lib/time-slots.ts); keep MCP-made
+// The app's time picker is a half-hour grid (lib/time-slots.ts); keep MCP-made
 // sessions on it so they edit cleanly in the UI.
 const WHEN = z
   .string()
   .regex(
-    /^\d{4}-\d{2}-\d{2}T(0[02468]|1[02468]|2[02]):00$/,
-    "use YYYY-MM-DDTHH:00 with an even hour (00, 02 … 22), local time at the spot"
+    /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):(00|30)$/,
+    "use YYYY-MM-DDTHH:mm on the half hour (HH:00 or HH:30), local time at the spot"
   );
 const NOTES = z.string().max(5000);
 const GOAL_POINT = z
@@ -269,7 +269,7 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       description:
         "Log a new session in the user's journal. Swell, wind, tide and temperature for that spot and time are " +
         "filled in automatically — don't ask the user for them. Get `spot` from list_spots. " +
-        "`when` is local time at the spot, on a 2-hour grid; round to the nearest even hour. " +
+        "`when` is local time at the spot, on a half-hour grid; round to the nearest :00 or :30. " +
         "It can't be in the future: only log what has already happened. " +
         "If the user says which goal points they achieved, pass them in `goalsAchieved` (exact wording from get_goal).",
       inputSchema: z.object({

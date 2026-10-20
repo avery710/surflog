@@ -203,15 +203,16 @@ describe("createSessionFor: no future sessions", () => {
   afterEach(() => vi.useRealTimers());
 
   it("refuses a time that hasn't happened yet, without fetching conditions", async () => {
-    for (const when of ["2026-10-20T18:00", "2026-10-21T08:00", "2099-01-01T08:00"]) {
+    for (const when of ["2026-10-20T16:00", "2026-10-20T18:00", "2026-10-21T08:00", "2099-01-01T08:00"]) {
       expect(await createSessionFor(ME, { spot: "waiao", when })).toMatchObject({ status: 400 });
     }
     expect(getConditions).not.toHaveBeenCalled();
     expect(createSession).not.toHaveBeenCalled();
   });
 
-  it("accepts the slot the form rounds to (16:00 at 15:30) and anything earlier", async () => {
-    for (const when of ["2026-10-20T16:00", "2026-10-20T08:00", "2026-10-19T22:00"]) {
+  it("accepts the slot the form rounds to (15:30 at 15:20) and anything earlier", async () => {
+    vi.setSystemTime(new Date("2026-10-20T07:20:00Z")); // 15:20 in Taipei
+    for (const when of ["2026-10-20T15:30", "2026-10-20T08:00", "2026-10-19T22:00"]) {
       expect((await createSessionFor(ME, { spot: "waiao", when })).ok).toBe(true);
     }
   });

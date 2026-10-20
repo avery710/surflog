@@ -372,8 +372,8 @@ export const DICT = {
   "dialog.logSessionTitle": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "empty.title": { en: "Nothing logged yet", "zh-TW": "還沒有任何紀錄" },
   "empty.body": {
-    en: "Log a session — spot, date, the 2-hour slot you were out. Conditions from Open-Meteo fill in automatically; add Swelleye's numbers manually whenever you have them.",
-    "zh-TW": "新增一筆紀錄——地點、日期、下水的兩小時時段。Open-Meteo 的浪況資料會自動帶入；有 Swelleye 的數據時，也可以手動補上。",
+    en: "Log a session — spot, date, when you were out. Conditions from Open-Meteo fill in automatically; add Swelleye's numbers manually whenever you have them.",
+    "zh-TW": "新增一筆紀錄——地點、日期、下水的時間。Open-Meteo 的浪況資料會自動帶入；有 Swelleye 的數據時，也可以手動補上。",
   },
   "menu.language": { en: "Language", "zh-TW": "語言" },
   "region.North": { en: "North", "zh-TW": "北部" },

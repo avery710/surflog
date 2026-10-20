@@ -102,7 +102,9 @@ export async function getConditions(
   timeZone: string = DEFAULT_TIMEZONE
 ): Promise<Conditions> {
   const date = whenLocal.slice(0, 10);
-  const hour = parseInt(whenLocal.slice(11, 13), 10);
+  // Open-Meteo is hourly: a :30 session reads the nearest hour (a tie rounds
+  // up; 23:30 stays on 23, the day's last reading).
+  const hour = Math.min(23, parseInt(whenLocal.slice(11, 13), 10) + (parseInt(whenLocal.slice(14, 16), 10) >= 30 ? 1 : 0));
 
   // the archive endpoint lags ~5 days; forecast covers recent + near future
   const windBase = daysAgoIn(date, timeZone) > 6 ? ARCHIVE : FORECAST;

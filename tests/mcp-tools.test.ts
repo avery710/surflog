@@ -125,11 +125,12 @@ describe("list_sessions", () => {
 describe("create_session input", () => {
   const parse = (v: unknown) => tools("write").get("create_session")!.config.inputSchema.safeParse(v).success;
 
-  it("takes even hours on the hour only", () => {
+  it("takes the half-hour grid only", () => {
     expect(parse({ spot: "waiao", when: "2026-10-05T08:00" })).toBe(true);
-    expect(parse({ spot: "waiao", when: "2026-10-05T22:00" })).toBe(true);
-    expect(parse({ spot: "waiao", when: "2026-10-05T07:00" })).toBe(false);
-    expect(parse({ spot: "waiao", when: "2026-10-05T08:30" })).toBe(false);
+    expect(parse({ spot: "waiao", when: "2026-10-05T07:30" })).toBe(true);
+    expect(parse({ spot: "waiao", when: "2026-10-05T23:30" })).toBe(true);
+    expect(parse({ spot: "waiao", when: "2026-10-05T08:15" })).toBe(false);
+    expect(parse({ spot: "waiao", when: "2026-10-05T08:45" })).toBe(false);
     expect(parse({ spot: "waiao", when: "2026-10-05T24:00" })).toBe(false);
     expect(parse({ spot: "waiao" })).toBe(false);
   });

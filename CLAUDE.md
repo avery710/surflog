@@ -153,7 +153,7 @@ column runs, even locally.**
 Session {
   ownerId                // Google OIDC sub
   spot                   // spots.slug | "req:<id>" (pending request) | legacy "custom:…"
-  when                   // "YYYY-MM-DDTHH:mm", local time AT THE SPOT, 2-hour grid, no tz
+  when                   // "YYYY-MM-DDTHH:mm", local time AT THE SPOT, half-hour grid, no tz
   notesHtml, notes       // sanitized rich text (lib/rich-text.ts) + plain mirror
   photos: [{ id, type }] // video/* renders as <video>
   boardId
@@ -177,11 +177,15 @@ TideEvent = { type: "high" | "low", time, heightM }
   it has a township; both refetch **only when the spot changes**, so a
   failed fetch has no retry. `cond` is manual only.
 - **No future sessions** (2026-10-20): `createSessionFor` answers 400 for a
-  `when` later than now at the spot + 1 h (`latestLoggableWhen()`, the slot the
-  form rounds to is still "now"); the log form caps the date and greys later
+  `when` later than now at the spot + 15 min (`latestLoggableWhen()`, now + 15 min: the
+  half-hour slot the form rounds to is still "now"); the log form caps the date and greys later
   slots; MCP goes through the same check. Before this, a future date saved a
   *forecast* as the session's conditions. Sessions already saved with a future
   date are left alone.
+- **Time grid = every 30 min** (2026-10-20, by request; was 2-hourly, from
+  Swelleye's table). `lib/time-slots.ts`. Open-Meteo is hourly, so a `:30`
+  session reads the **nearest hour** (`:30` rounds up, `getConditions`); the
+  tide bracket already works to the minute. Older sessions stay on even hours.
 - **Date/time are fixed after creation** (2026-10-16): a different `when`
   on update is a 400, an unchanged one is accepted.
 - Tide bracket picking for both sources: `pickBracket()` /
@@ -337,7 +341,7 @@ apps, personal tokens for anything that can't open a browser.
   `list_spots`, `list_boards`, `get_goal`; write (not registered for a read
   token) — `create_session`, `update_session`, `delete_session`,
   `set_goal`, `clear_goal`. Choices to change if they bite: `when` on the
-  2-hour grid on create, **no `when` in `update_session`**; `notes` plain
+  half-hour grid on create, **no `when` in `update_session`**; `notes` plain
   text and `update_session` **replaces the whole note**; catalogue slugs
   only; `goalsAchieved` must match the goal word for word; no media,
   boards or spot admin. Tool descriptions say notes are untrusted text.

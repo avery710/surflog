@@ -1,6 +1,7 @@
 import { TAIWAN_SPOTS_FIXTURE } from "./spot-fixtures";
 import type { Spot } from "./spots";
 import type { Lang } from "./i18n";
+import { SLOT_MINUTES } from "./time-slots";
 
 /** Label for a spot slug in a place with no catalogue context (CSV export,
  *  the landing page): looks in `spots`, which defaults to the demo fixture.
@@ -70,23 +71,24 @@ export function todayInZone(timeZone: string): string {
   }).format(new Date());
 }
 
-/** Nearest 2-hour forecast slot, "HH:00", for the current time in an IANA zone. */
-export function nearestSlotInZone(timeZone: string): string {
-  const hourStr = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour: "2-digit",
-    hour12: false,
-  }).format(new Date());
-  const hour = parseInt(hourStr, 10) % 24;
-  const slot = Math.min(22, Math.round(hour / 2) * 2);
-  return `${String(slot).padStart(2, "0")}:00`;
+/** Nearest half-hour slot, "HH:mm", for the current time in an IANA zone
+ *  (a tie rounds up, and the day's last slot is 23:30). */
+export function nearestSlotInZone(timeZone: string, now: Date = new Date()): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", hour: "2-digit", minute: "2-digit" })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value])
+  );
+  const minutes = parseInt(parts.hour, 10) * 60 + parseInt(parts.minute, 10);
+  const slot = Math.min(24 * 60 - SLOT_MINUTES, Math.round(minutes / SLOT_MINUTES) * SLOT_MINUTES);
+  return `${String(Math.floor(slot / 60)).padStart(2, "0")}:${String(slot % 60).padStart(2, "0")}`;
 }
 
 /** The latest `when` ("YYYY-MM-DDTHH:mm", local at the spot) a session may be
- *  logged for: now plus an hour. Slots are on a 2-hour grid and the form
- *  rounds to the nearest one, so at 15:30 the 16:00 slot is "now"; anything
- *  beyond that hasn't happened yet and has no observed conditions. Compare as
- *  strings: `when <= latestLoggableWhen(tz)`. */
+ *  logged for: now plus 15 minutes. Slots are on a half-hour grid and the
+ *  form rounds to the nearest one, so at 15:20 the 15:30 slot is "now";
+ *  anything beyond that hasn't happened yet and has no observed conditions.
+ *  Compare as strings: `when <= latestLoggableWhen(tz)`. */
 export function latestLoggableWhen(timeZone: string, now: Date = new Date()): string {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-CA", {
@@ -98,7 +100,7 @@ export function latestLoggableWhen(timeZone: string, now: Date = new Date()): st
       hour: "2-digit",
       minute: "2-digit",
     })
-      .formatToParts(new Date(now.getTime() + 60 * 60_000))
+      .formatToParts(new Date(now.getTime() + (SLOT_MINUTES / 2) * 60_000))
       .map((p) => [p.type, p.value])
   );
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
@@ -108,7 +110,7 @@ export function latestLoggableWhen(timeZone: string, now: Date = new Date()): st
  *  journal-wide "today" (activity calendar, dev fixtures). */
 export const taipeiToday = (): string => todayInZone("Asia/Taipei");
 
-/** Nearest 2-hour slot now in Asia/Taipei. */
+/** Nearest half-hour slot now in Asia/Taipei. */
 export const taipeiNearestSlot = (): string => nearestSlotInZone("Asia/Taipei");
 
 /** Format a reading to 1 decimal place for display, e.g. 0.52 -> "0.5". */

@@ -102,7 +102,7 @@ export interface Session {
    *  Every read/write is scoped to this — see CLAUDE.md "Multi-user". */
   ownerId: string;
   spot: string; // Swelleye slug, or "custom:Free text"
-  when: string; // "YYYY-MM-DDTHH:mm", Asia/Taipei local, 2-hour grid
+  when: string; // "YYYY-MM-DDTHH:mm", local at the spot, half-hour grid
   notesHtml: string; // sanitized: ul/ol/li/b/i only
   notes: string; // plain-text mirror
   photos: Photo[];
