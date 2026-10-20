@@ -82,6 +82,28 @@ export function nearestSlotInZone(timeZone: string): string {
   return `${String(slot).padStart(2, "0")}:00`;
 }
 
+/** The latest `when` ("YYYY-MM-DDTHH:mm", local at the spot) a session may be
+ *  logged for: now plus an hour. Slots are on a 2-hour grid and the form
+ *  rounds to the nearest one, so at 15:30 the 16:00 slot is "now"; anything
+ *  beyond that hasn't happened yet and has no observed conditions. Compare as
+ *  strings: `when <= latestLoggableWhen(tz)`. */
+export function latestLoggableWhen(timeZone: string, now: Date = new Date()): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+      .formatToParts(new Date(now.getTime() + 60 * 60_000))
+      .map((p) => [p.type, p.value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
 /** "YYYY-MM-DD" for today in Asia/Taipei — the Taiwan breaks' zone, and the
  *  journal-wide "today" (activity calendar, dev fixtures). */
 export const taipeiToday = (): string => todayInZone("Asia/Taipei");

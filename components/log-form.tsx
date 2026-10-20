@@ -12,7 +12,7 @@ import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
 import { goalOptions } from "@/lib/goal";
 import { DatePicker } from "@/components/date-picker";
-import { nearestSlotInZone, todayInZone } from "@/lib/format";
+import { latestLoggableWhen, nearestSlotInZone, todayInZone } from "@/lib/format";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
 import { useDefaultSpot } from "@/lib/default-spot";
@@ -82,8 +82,15 @@ export function LogForm({
   const spotTimezone = catalog.bySlug(spot)?.timezone ?? "Asia/Taipei";
   const [pickedDate, setDate] = useState<string | null>(null);
   const [pickedTime, setTime] = useState<string | null>(null);
-  const date = pickedDate ?? todayInZone(spotTimezone);
-  const time = pickedTime ?? nearestSlotInZone(spotTimezone);
+  // Nothing later than now at the spot can be logged (the conditions would be
+  // a forecast). The picks are clamped as well, since switching to a spot in
+  // another zone can leave an earlier pick ahead of that spot's clock.
+  const today = todayInZone(spotTimezone);
+  const latest = latestLoggableWhen(spotTimezone);
+  const date = pickedDate && pickedDate < today ? pickedDate : today;
+  const slotAllowed = (slot: string) => `${date}T${slot}` <= latest;
+  const wanted = pickedTime ?? nearestSlotInZone(spotTimezone);
+  const time = slotAllowed(wanted) ? wanted : (TIME_SLOTS.filter(slotAllowed).at(-1) ?? TIME_SLOTS[0]);
   // Only worth saying when the spot's clock isn't the one on the user's wall.
   const browserTimezone = useBrowserTimeZone();
   const showTimeNote = browserTimezone != null && browserTimezone !== spotTimezone;
@@ -189,7 +196,7 @@ export function LogForm({
           />
         </Field>
         <Field label={t("form.date")}>
-          <DatePicker value={date} onChange={setDate} label={t("form.date")} clearable={false} today={todayInZone(spotTimezone)} />
+          <DatePicker value={date} onChange={setDate} label={t("form.date")} clearable={false} today={today} max={today} />
         </Field>
         <Field label={t("form.timeInWater")}>
           <Select value={time} onValueChange={setTime}>
@@ -200,7 +207,7 @@ export function LogForm({
                 the field with no animation): drops below like the date picker */}
             <SelectContent position="popper" sideOffset={4} className="duration-150 ease-out">
               {TIME_SLOTS.map((slot) => (
-                <SelectItem key={slot} value={slot}>
+                <SelectItem key={slot} value={slot} disabled={!slotAllowed(slot)}>
                   {slot}
                 </SelectItem>
               ))}

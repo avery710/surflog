@@ -270,6 +270,7 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
         "Log a new session in the user's journal. Swell, wind, tide and temperature for that spot and time are " +
         "filled in automatically — don't ask the user for them. Get `spot` from list_spots. " +
         "`when` is local time at the spot, on a 2-hour grid; round to the nearest even hour. " +
+        "It can't be in the future: only log what has already happened. " +
         "If the user says which goal points they achieved, pass them in `goalsAchieved` (exact wording from get_goal).",
       inputSchema: z.object({
         spot: z.string().min(1).describe("Spot slug from list_spots"),

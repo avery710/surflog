@@ -18,6 +18,7 @@ import { checkRequestSpot } from "@/lib/spot-access";
 import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
 import { resolveOwnedBoardId } from "@/lib/board-access";
+import { latestLoggableWhen } from "@/lib/format";
 import { achievedGoalFields, parseGoalAchieved } from "@/lib/goal";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { Cond, CondCwaTide, CondOpenMeteo, Session } from "@/lib/types";
@@ -71,8 +72,14 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
   const achieved = body.goalAchieved === undefined ? [] : parseGoalAchieved(body.goalAchieved);
   if (!achieved) return fail(400, "invalid goalAchieved");
 
-  let condOpenMeteo: CondOpenMeteo | null = null;
+  // No future sessions: the conditions would be a forecast, not what the
+  // surf was like. (`req:` spots and unknown ones count as Taiwan time.)
   const spotInfo = await resolveSpot(spot);
+  if (when > latestLoggableWhen(spotInfo?.timezone ?? "Asia/Taipei")) {
+    return fail(400, "that time hasn't happened yet — a session can only be logged for now or earlier");
+  }
+
+  let condOpenMeteo: CondOpenMeteo | null = null;
   if (spotInfo?.lat != null && spotInfo.lng != null) {
     try {
       condOpenMeteo = await getConditions(spotInfo.lat, spotInfo.lng, when, spotInfo.timezone);

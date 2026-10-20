@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Session } from "@/lib/types";
 
 vi.mock("@/lib/db", () => ({
@@ -187,5 +187,39 @@ describe("deleteSessionFor", () => {
     vi.mocked(getSession).mockResolvedValue(stored({ photos: [{ id: "p1", type: "image/jpeg" }] }));
     vi.mocked(deleteBlob).mockRejectedValue(new Error("storage down"));
     expect(await deleteSessionFor(ME, "s1")).toEqual({ ok: true, data: true });
+  });
+});
+
+describe("createSessionFor: no future sessions", () => {
+  beforeEach(() => {
+    vi.mocked(resolveSpot).mockResolvedValue(WAIAO as never);
+    vi.mocked(getConditions).mockResolvedValue(OM as never);
+    vi.mocked(getTide).mockResolvedValue(TIDE as never);
+    vi.mocked(resolveOwnedBoardId).mockResolvedValue({ ok: true, boardId: null } as never);
+    vi.useFakeTimers();
+    // 2026-10-20 07:30 UTC = 15:30 in Taipei
+    vi.setSystemTime(new Date("2026-10-20T07:30:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("refuses a time that hasn't happened yet, without fetching conditions", async () => {
+    for (const when of ["2026-10-20T18:00", "2026-10-21T08:00", "2099-01-01T08:00"]) {
+      expect(await createSessionFor(ME, { spot: "waiao", when })).toMatchObject({ status: 400 });
+    }
+    expect(getConditions).not.toHaveBeenCalled();
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("accepts the slot the form rounds to (16:00 at 15:30) and anything earlier", async () => {
+    for (const when of ["2026-10-20T16:00", "2026-10-20T08:00", "2026-10-19T22:00"]) {
+      expect((await createSessionFor(ME, { spot: "waiao", when })).ok).toBe(true);
+    }
+  });
+
+  it("judges by the spot's own clock", async () => {
+    vi.mocked(resolveSpot).mockResolvedValue({ ...WAIAO, timezone: "America/Los_Angeles" } as never);
+    // 00:30 in Los Angeles: 08:00 today there is still ahead
+    expect(await createSessionFor(ME, { spot: "waiao", when: "2026-10-20T08:00" })).toMatchObject({ status: 400 });
+    expect((await createSessionFor(ME, { spot: "waiao", when: "2026-10-19T22:00" })).ok).toBe(true);
   });
 });

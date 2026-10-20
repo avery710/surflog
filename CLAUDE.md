@@ -176,6 +176,12 @@ TideEvent = { type: "high" | "low", time, heightM }
   `condOpenMeteo` fills when the spot has coordinates, `condCwaTide` when
   it has a township; both refetch **only when the spot changes**, so a
   failed fetch has no retry. `cond` is manual only.
+- **No future sessions** (2026-10-20): `createSessionFor` answers 400 for a
+  `when` later than now at the spot + 1 h (`latestLoggableWhen()`, the slot the
+  form rounds to is still "now"); the log form caps the date and greys later
+  slots; MCP goes through the same check. Before this, a future date saved a
+  *forecast* as the session's conditions. Sessions already saved with a future
+  date are left alone.
 - **Date/time are fixed after creation** (2026-10-16): a different `when`
   on update is a 400, an unchanged one is accepted.
 - Tide bracket picking for both sources: `pickBracket()` /
