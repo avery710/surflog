@@ -19,20 +19,25 @@ and what is unverified.
 
 - Next.js (App Router) + shadcn/ui + Supabase (Postgres + Storage), Google
   sign-in via Auth.js. Public repo `github.com/avery710/surflog`.
-- **Deploy** (being split, SURFLOG-8, 2026-10-21): today push to `staging`
-  → `.github/workflows/deploy-staging.yml` (lint, typecheck, test) →
-  Vercel at `surflog.tw`. Target: `main` → `deploy-production.yml` →
-  Vercel Production at `surflog.tw` on the **current Supabase project
-  (stays the real data)**; `staging` → Preview at `stag-wipeout.surflog.tw`
-  (`STAGING_DOMAIN`) on a **new, empty** Supabase project (copying the
-  data was considered and declined). Both workflows exist; the staging
-  Supabase project (`traxhjhcvtonqrgfpcqk`) has all 20 migrations applied
-  (2026-10-21; **its `photos` bucket not checked**); the Vercel env var
-  split, Google redirect URI and first production deploy are not done yet.
-  The prod project is `tosozexlcqedocfcckwh`. For CLI work on staging pass
+- **Deploy** (SURFLOG-8, 2026-10-21): two environments in one Vercel
+  project. `main` → `.github/workflows/deploy-production.yml` → Vercel
+  **Production** at `surflog.tw` on the current Supabase project
+  (`tosozexlcqedocfcckwh`, real data). `staging` →
+  `.github/workflows/deploy-staging.yml` → Vercel **Preview** aliased to
+  `stag-wipeout.surflog.tw` (`STAGING_DOMAIN`) on a **new, empty** Supabase
+  project (`traxhjhcvtonqrgfpcqk`, all 20 migrations applied 2026-10-21;
+  its `photos` bucket not checked). Copying production's data was declined.
+  The workflows are committed (`83830a7`, on `staging`). Not done yet:
+  Vercel Preview env vars split (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+  `AUTH_SECRET` per environment), `SPOT_ADMIN_EMAILS` for Production,
+  `surflog.tw` assigned to Production, GitHub variable `STAGING_DOMAIN`,
+  Google redirect URI for `stag-wipeout` (user says done, unverified), and
+  the first production deploy. The staging deploy guard refuses
+  `STAGING_DOMAIN` = `surflog.tw`. The staging DNS is a CNAME at GoDaddy
+  (`stag-wipeout` → Vercel). For CLI work on staging, pass
   `STAGING_DB_PASSWORD` from `.env.local` and clear `SUPABASE_DB_PASSWORD`
-  (sourcing the file loads the prod one, which overrides `-p`); relink to prod
-  afterwards. README "Deploys: production and staging".
+  (sourcing the file loads the prod one, which overrides `-p`), then relink
+  to prod. README "Deploys: production and staging".
 - **The original**: a Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source
   `reference/surf-journal.html`), conditions typed in by hand.
@@ -40,8 +45,10 @@ and what is unverified.
   `add-ticket` skill (short lines; details belong here).
 - `VALIDATION.md`: spot-fit experiments. Read it before changing
   `lib/spot-fit.ts`.
-- **Migrations NOT applied yet**: `20261009000000` (review avatars),
-  `20261009100000` (spot pins). Both features fail soft without them.
+- **Migrations on staging but NOT production**: `20261009000000` (review
+  avatars), `20261009100000` (spot pins). Applied to the staging Supabase
+  project 2026-10-21; production gets them at cutover, not yet decided.
+  Both features fail soft without them.
 - Never tried on a real phone. Most "not verified" notes below still stand.
 - In the repo but not described here: spot **edit** requests
   (`lib/spot-edit-*.ts`, `app/api/spot-edit-requests`, migration
