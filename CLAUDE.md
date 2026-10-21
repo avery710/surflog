@@ -68,6 +68,20 @@ and what is unverified.
   page reads only that spot's sessions (`listSessionsAtSpot`). Not done:
   router cache `staleTimes` (would show stale pages after writes) and view
   transitions. Checked signed in on localhost dev only.
+- **Keep both databases awake** (2026-10-21): a Vercel Cron job
+  (`vercel.json`, daily 03:17 UTC; Hobby fires sometime within that hour) on
+  **production** calls `/api/cron/keep-awake`, which calls each
+  environment's `/api/health` (`HEALTH_CHECK_URLS` in `lib/health.ts`:
+  `surflog.tw` and `stag-wipeout.surflog.tw`); each reads one `spots` row
+  from its own database, so neither free Supabase project pauses after 7
+  idle days. Vercel runs crons on Production only, hence production calls
+  staging over HTTP (a GitHub Actions schedule was built first and replaced
+  on request). The cron route 401s unless `CRON_SECRET` (Vercel Production
+  env) matches, answers `{ production, staging }` (502 if either is false),
+  and sends `VERCEL_AUTOMATION_BYPASS_SECRET` if the project has one, for
+  when Preview gets a login wall. `/api/health` is unsigned and answers only
+  `{ ok }`. **Not live until released to `main` and `CRON_SECRET` is set.**
+  A paused project doesn't wake from requests: restore it in Supabase.
 - **The original**: a Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source
   `reference/surf-journal.html`), conditions typed in by hand.
@@ -359,7 +373,7 @@ fields + CWA township, 9 Siargao, 26 Bali).
 - Ownerless imported data goes to an explicit account, never "whoever
   signs in first".
 - `proxy.ts` gates everything; unsigned paths are exact rules: `/`,
-  `/landing/<name>.jpg|.webp` (lower-case), `/api/mcp`, the OAuth
+  `/landing/<name>.jpg|.webp` (lower-case), `/api/mcp`, `/api/health`, `/api/cron/keep-awake`, the OAuth
   discovery/register/token routes, the three share path shapes. `/dev`
   only outside production.
 
