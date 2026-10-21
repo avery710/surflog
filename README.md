@@ -71,8 +71,8 @@ You need your own OAuth client — you can't reuse anyone else's Client ID.
 3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**,
    application type **Web application**. Add an authorized redirect URI:
    - local dev: `http://localhost:3000/api/auth/callback/google`
-   - production: `https://<your-vercel-domain>/api/auth/callback/google`
-     (add this once you have the domain; you can add it later and redeploy)
+   - production: `https://surflog.tw/api/auth/callback/google`
+   - staging: `https://stag-wipeout.surflog.tw/api/auth/callback/google`
 4. Copy the **Client ID** and **Client secret** into `.env.local` as
    `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`.
 5. Generate the session-signing secret: `AUTH_SECRET=$(openssl rand -base64 33)` and add
@@ -138,44 +138,64 @@ A token only ever reaches its owner's own sessions. Photos and video,
 goals and spot requests are not available over MCP. Revoke a token on the
 same page. `npm test` runs the unit tests for this layer.
 
-## Staging deploys
+## Deploys: production and staging
 
-Pushing to the `staging` branch runs `.github/workflows/deploy-staging.yml`:
-lint → typecheck → `vercel build` → deploy to Vercel (Preview environment)
-→ alias it to one fixed staging URL. A failing lint or typecheck stops the
-deploy. `vercel.json` turns off Vercel's own deploy-on-push, so this
-workflow is the only thing that deploys — nothing reaches Vercel without
-passing those checks. There is no production deploy yet; `main` doesn't
-deploy anywhere.
+Two environments in one Vercel project, each deployed only by a GitHub
+Actions workflow (`vercel.json` turns off Vercel's own deploy-on-push, so
+nothing reaches Vercel without passing lint, typecheck and tests):
+
+| | Production | Staging |
+|---|---|---|
+| Branch | `main` | `staging` |
+| Workflow | `deploy-production.yml` | `deploy-staging.yml` |
+| Vercel environment | Production | Preview |
+| Address | `surflog.tw` (+ `www`) | `stag-wipeout.surflog.tw` (`STAGING_DOMAIN`) |
+| Supabase | the original project — real data | `surflog-staging`, its own empty project |
+
+Production deploys get the production domains from Vercel itself. Staging
+deploys get a random URL, then the workflow aliases it to `STAGING_DOMAIN`
+(Google OAuth needs one fixed redirect URI). The staging workflow refuses
+to run if `STAGING_DOMAIN` is set to the production domain.
 
 One-time setup:
 
 1. **Vercel project** — vercel.com → Add New → Project → import this repo
    (Next.js is detected). The first deploy it offers can be skipped.
-2. **App env vars** — Vercel project → Settings → Environment Variables,
-   environment **Preview**: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
-   `AUTH_SECRET` (generate a fresh one: `openssl rand -base64 33`),
-   `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `CWA_API_KEY`. These stay in
-   Vercel; the workflow pulls them at build time.
+2. **App env vars** — Vercel project → Settings → Environment Variables:
+   `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `AUTH_SECRET`, `AUTH_GOOGLE_ID`,
+   `AUTH_GOOGLE_SECRET`, `CWA_API_KEY`, `SPOT_ADMIN_EMAILS`, set **separately
+   for Production and Preview**. The two Supabase values and `AUTH_SECRET`
+   must differ between them (Preview = the staging Supabase project; a fresh
+   secret from `openssl rand -base64 33`); the Google and CWA values can be
+   shared. These stay in Vercel; the workflows pull them at build time.
 3. **GitHub secrets** — repo → Settings → Secrets and variables → Actions:
-   - Secrets: `VERCEL_TOKEN` (vercel.com/account/tokens),
-     `VERCEL_PROJECT_ID` (Vercel project → Settings → General),
-     `VERCEL_ORG_ID` (your Vercel account/team → Settings → General → ID).
-   - Variables: `STAGING_DOMAIN`, currently `surflog.tw` (a custom domain
-     must first be added under Vercel project → Settings → Domains; a free
-     `*.vercel.app` name works too). Every deploy gets a new random URL; this
-     is the one address that always points at the latest staging build. The
-     previous address, `surflog-staging.vercel.app`, is no longer updated.
-4. **Google sign-in** — in Google Cloud Console, add
-   `https://<STAGING_DOMAIN>/api/auth/callback/google` as an authorized
-   redirect URI on the OAuth client (see "Setting up Google sign-in").
-5. **Who can open it** — Vercel puts a Vercel-login wall on Preview
-   deployments by default. To let friends in, Vercel project → Settings →
-   Deployment Protection → turn off Vercel Authentication.
-6. Push: `git push origin staging`. Watch it under the repo's Actions tab.
+   - Secrets (used by both workflows): `VERCEL_TOKEN`
+     (vercel.com/account/tokens), `VERCEL_PROJECT_ID` (Vercel project →
+     Settings → General), `VERCEL_ORG_ID` (your Vercel account/team →
+     Settings → General → ID).
+   - Variable: `STAGING_DOMAIN` = `stag-wipeout.surflog.tw`. (Before the
+     split `surflog.tw` pointed at staging; the staging workflow now
+     refuses that value.)
+4. **Domains** — Vercel project → Settings → Domains: `surflog.tw` and
+   `www.surflog.tw` assigned to **Production**; `stag-wipeout.surflog.tw`
+   added too (Preview, branch `staging`). At the registrar (GoDaddy) add
+   a CNAME, Name `stag-wipeout`, Value = the one Vercel shows.
+5. **Google sign-in** — on the OAuth client in Google Cloud Console, keep
+   `https://surflog.tw/api/auth/callback/google` and add
+   `https://stag-wipeout.surflog.tw/api/auth/callback/google` (see
+   "Setting up Google sign-in").
+6. **Staging database** — a second Supabase project set up as in "Setting up
+   Supabase" → "from scratch": `supabase db push` and a private `photos`
+   bucket. It starts empty apart from the spots the migrations seed.
+7. **Who can open staging** — Vercel puts a Vercel-login wall on Preview
+   deployments by default (Settings → Deployment Protection → Vercel
+   Authentication). It is currently off.
+8. Push: `git push origin staging` deploys staging; pushing `main` deploys
+   production. Watch both under the repo's Actions tab.
 
-Staging uses the same Supabase project as local dev — there's only one
-database, so anything created on staging is real data.
+Migrations are applied by hand to each Supabase project (`supabase link
+--project-ref <ref>` then `supabase db push`): staging first, production
+once it works there.
 
 Run `npm run build` locally before pushing if in doubt — missing env vars
 fail loudly via `lib/supabase.ts`'s explicit check. Open-Meteo needs no key.

@@ -19,10 +19,20 @@ and what is unverified.
 
 - Next.js (App Router) + shadcn/ui + Supabase (Postgres + Storage), Google
   sign-in via Auth.js. Public repo `github.com/avery710/surflog`.
-- **Deploy**: push to `staging` → `.github/workflows/deploy-staging.yml`
-  (lint, typecheck, test) → Vercel at `surflog.tw` (`STAGING_DOMAIN`;
-  `surflog-staging.vercel.app` is frozen on its last build). No production
-  pipeline. README "Staging deploys" / "Before deploying to Vercel".
+- **Deploy** (being split, SURFLOG-8, 2026-10-21): today push to `staging`
+  → `.github/workflows/deploy-staging.yml` (lint, typecheck, test) →
+  Vercel at `surflog.tw`. Target: `main` → `deploy-production.yml` →
+  Vercel Production at `surflog.tw` on the **current Supabase project
+  (stays the real data)**; `staging` → Preview at `stag-wipeout.surflog.tw`
+  (`STAGING_DOMAIN`) on a **new, empty** Supabase project (copying the
+  data was considered and declined). Both workflows exist; the staging
+  Supabase project (`traxhjhcvtonqrgfpcqk`) has all 20 migrations applied
+  (2026-10-21; **its `photos` bucket not checked**); the Vercel env var
+  split, Google redirect URI and first production deploy are not done yet.
+  The prod project is `tosozexlcqedocfcckwh`. For CLI work on staging pass
+  `STAGING_DB_PASSWORD` from `.env.local` and clear `SUPABASE_DB_PASSWORD`
+  (sourcing the file loads the prod one, which overrides `-p`); relink to prod
+  afterwards. README "Deploys: production and staging".
 - **The original**: a Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source
   `reference/surf-journal.html`), conditions typed in by hand.

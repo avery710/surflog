@@ -1,10 +1,12 @@
 # Push to `staging` → lint + typecheck → build → deploy to Vercel (preview
 # environment) → point the stable staging URL at it.
 #
-# Setup (once): see README.md "Staging deploys". Needs repo secrets
+# Setup (once): see README.md "Deploys: production and staging". Needs repo secrets
 # VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID and repo variable
-# STAGING_DOMAIN. App env vars (Supabase, Auth.js, CWA) live in the Vercel
-# project's Preview environment, not in GitHub — `vercel pull` fetches them.
+# STAGING_DOMAIN (stag-wipeout.surflog.tw). App env vars (Supabase, Auth.js, CWA)
+# live in the Vercel project's Preview environment, not in GitHub — `vercel
+# pull` fetches them. Preview points at the staging Supabase project, never
+# the production one.
 name: Deploy staging
 
 on:
@@ -61,6 +63,14 @@ jobs:
       - name: Deploy
         id: deploy
         run: echo "url=$(vercel deploy --prebuilt --target=preview --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
+
+      # surflog.tw belongs to production (deploy-production.yml); aliasing a
+      # staging build onto it would put staging live on the real site.
+      - name: Refuse the production domain
+        if: ${{ vars.STAGING_DOMAIN == 'surflog.tw' || vars.STAGING_DOMAIN == 'www.surflog.tw' }}
+        run: |
+          echo "::error::STAGING_DOMAIN is the production domain. Set it to stag-wipeout.surflog.tw (repo → Settings → Secrets and variables → Actions → Variables)."
+          exit 1
 
       # Each deploy gets a new random URL; Google OAuth needs one fixed
       # redirect URI, so alias every staging deploy to the same domain.
