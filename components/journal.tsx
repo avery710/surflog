@@ -28,7 +28,6 @@ import type { Spot } from "@/lib/spots";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
 import { PAGE_COLUMN } from "@/lib/layout";
-import { WhiteCard } from "@/components/white-card";
 import type { Board, Session } from "@/lib/types";
 
 interface JournalUser {
@@ -427,11 +426,9 @@ function NoMatches() {
 function EmptyState() {
   const { t } = useLang();
   return (
-    <WhiteCard className="mt-2 sm:mt-3">
-      <div className="p-4 sm:p-6">
-        <h3 className="text-[15px] leading-snug font-bold">{t("empty.title")}</h3>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{t("empty.body")}</p>
-      </div>
-    </WhiteCard>
+    <div className="mt-3 pl-1 sm:mt-4">
+      <h3 className="text-[15px] leading-snug font-bold">{t("empty.title")}</h3>
+      <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{t("empty.body")}</p>
+    </div>
   );
 }
