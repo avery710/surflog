@@ -47,8 +47,8 @@ and what is unverified.
   `lib/spot-fit.ts`.
 - **Migrations on staging but NOT production**: `20261009000000` (review
   avatars), `20261009100000` (spot pins), `20261021000000` (session
-  duration). The first two are applied to the staging Supabase project
-  (2026-10-21); `20261021000000` is not yet. Production gets all three at
+  duration). All three are applied to the staging Supabase project
+  (2026-10-21). Production gets all three at
   cutover, not yet decided. All fail soft without them (a duration says
   "not switched on yet").
 - Never tried on a real phone. Most "not verified" notes below still stand.
