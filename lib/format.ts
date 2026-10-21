@@ -35,9 +35,12 @@ export function fmtTime(when: string, durationMin?: number | null): string {
   return end ? `${when.slice(11, 16)}–${end.slice(11, 16)}` : when.slice(11, 16);
 }
 
-/** 30 → "0:30", 90 → "1:30", 480 → "8:00" (hours:minutes, both languages). */
+/** 30 → "30m", 60 → "1h", 90 → "1h30m" (units aren't translated). */
 export function fmtDuration(min: number): string {
-  return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (!h) return `${m}m`;
+  return m ? `${h}h${String(m).padStart(2, "0")}m` : `${h}h`;
 }
 
 /** "YYYY-MM-DD" → "Fri 25 Sep 2026" / "2026年9月25日（週五）"; without the

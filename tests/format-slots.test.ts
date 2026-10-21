@@ -55,9 +55,9 @@ describe("durations", () => {
   });
 
   it("writes a duration in words", () => {
-    expect(fmtDuration(30)).toBe("0:30");
-    expect(fmtDuration(120)).toBe("2:00");
-    expect(fmtDuration(90)).toBe("1:30");
-    expect(fmtDuration(480)).toBe("8:00");
+    expect(fmtDuration(30)).toBe("30m");
+    expect(fmtDuration(60)).toBe("1h");
+    expect(fmtDuration(90)).toBe("1h30m");
+    expect(fmtDuration(240)).toBe("4h");
   });
 });

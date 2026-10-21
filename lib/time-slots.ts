@@ -8,8 +8,8 @@ export const TIME_SLOTS = Array.from({ length: (24 * 60) / SLOT_MINUTES }, (_, i
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 });
 
-/** How long a session can be: every half hour to 4 h, then hourly to 8 h. */
-export const DURATIONS_MIN = [30, 60, 90, 120, 150, 180, 210, 240, 300, 360, 420, 480];
+/** How long a session can be: every half hour, at most 4 h. */
+export const DURATIONS_MIN = Array.from({ length: 8 }, (_, i) => (i + 1) * 30);
 export const isDuration = (v: unknown): v is number => typeof v === "number" && DURATIONS_MIN.includes(v);
 
 /** Minutes since midnight of a "YYYY-MM-DDTHH:mm". */

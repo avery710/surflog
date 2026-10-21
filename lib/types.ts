@@ -107,7 +107,7 @@ export interface Session {
   ownerId: string;
   spot: string; // Swelleye slug, or "custom:Free text"
   when: string; // "YYYY-MM-DDTHH:mm", local at the spot, half-hour grid
-  /** How long the session was, in minutes (30-minute steps, ≤ 480, and it ends
+  /** How long the session was, in minutes (30-minute steps, ≤ 240, and it ends
    *  the same day). Optional, and fixed after creation like `when`. Added by
    *  20261021000000_add_session_duration.sql. */
   durationMin?: number | null;

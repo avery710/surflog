@@ -281,7 +281,7 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
         durationMin: z
           .number()
           .int()
-          .refine(isDuration, "use 30-minute steps up to 4 h, then 300, 360, 420 or 480")
+          .refine(isDuration, "use a multiple of 30 up to 240 (4 h)")
           .optional()
           .describe("How long the session was, in minutes. Optional; it must end the same day, and not in the future."),
         notes: NOTES.optional().describe("Plain text; line breaks are kept"),

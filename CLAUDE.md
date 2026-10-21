@@ -155,7 +155,7 @@ Session {
   ownerId                // Google OIDC sub
   spot                   // spots.slug | "req:<id>" (pending request) | legacy "custom:…"
   when                   // "YYYY-MM-DDTHH:mm", local time AT THE SPOT, half-hour grid, no tz
-  durationMin?           // 30-min steps to 4 h, then 300/360/420/480; optional
+  durationMin?           // 30-min steps, at most 4 h (240); optional
   notesHtml, notes       // sanitized rich text (lib/rich-text.ts) + plain mirror
   photos: [{ id, type }] // video/* renders as <video>
   boardId

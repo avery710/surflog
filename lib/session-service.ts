@@ -77,7 +77,7 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
   let durationMin: number | null = null;
   if (body.durationMin != null) {
     if (!isDuration(body.durationMin) || !endOfSession(when, body.durationMin)) {
-      return fail(400, "invalid durationMin (30-minute steps up to 8 h, ending the same day)");
+      return fail(400, "invalid durationMin (30-minute steps up to 4 h, ending the same day)");
     }
     durationMin = body.durationMin;
   }

@@ -244,10 +244,15 @@ describe("sessions with a duration", () => {
     expect(vi.mocked(createSession).mock.calls[0][0]).not.toHaveProperty("durationMin");
   });
 
-  it.each([45, 0, -30, 500, "60", 3.5])("refuses a duration of %s", async (durationMin) => {
+  it.each([45, 0, -30, 500, 480, "60", 3.5])("refuses a duration of %s", async (durationMin) => {
     const r = await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin });
     expect(r).toMatchObject({ ok: false, status: 400 });
     expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("refuses more than 4 hours", async () => {
+    expect(await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin: 270 })).toMatchObject({ status: 400 });
+    expect((await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin: 240 })).ok).toBe(true);
   });
 
   it("refuses one that would run past midnight", async () => {

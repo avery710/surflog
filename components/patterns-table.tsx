@@ -103,6 +103,14 @@ function ShareButton({ label, tip, onClick }: { label: string; tip: string; onCl
 
 const noop = () => {};
 
+/** Extra header-cell classes by column. The notes header starts where its
+ *  text does: body cell 4px + field border 1.5px + field padding 12px. */
+const HEAD_CELL = [
+  "w-[26%] pl-1.5 sm:w-[20%] sm:pl-4",
+  "w-11 sm:w-[88px]",
+  "pl-[17.5px] sm:pl-[17.5px]",
+];
+
 const MAX_DESCRIPTION = 500;
 
 export function PatternsTable({
@@ -187,9 +195,7 @@ export function PatternsTable({
                   <th
                     key={h}
                     // table-fixed takes its column widths from this row: spot 28%, count 88px, notes the rest.
-                    className={`px-2 pb-0.5 pt-2.5 text-left text-xs font-semibold break-words text-[var(--faint)] sm:px-4 ${
-                      i === 0 ? "w-[26%] pl-1.5 sm:w-[20%] sm:pl-4" : i === 1 ? "w-11 sm:w-[88px]" : ""
-                    }`}
+                    className={`px-2 pb-0.5 pt-2.5 text-left text-xs font-semibold break-words text-[var(--faint)] sm:px-4 ${HEAD_CELL[i]}`}
                   >
                     {i === 1 ? (
                       <>
