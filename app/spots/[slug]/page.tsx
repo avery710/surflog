@@ -51,6 +51,7 @@ export default async function SpotPage({ params }: Props) {
     .map((s) => ({
       id: s.id,
       when: s.when,
+      durationMin: s.durationMin ?? null,
       swellM: s.condOpenMeteo?.swellHeightM ?? s.cond?.swellHeightM ?? null,
       periodS: s.condOpenMeteo?.swellPeriodS ?? s.cond?.swellPeriodS ?? null,
       windMs: s.condOpenMeteo?.windSpeedMs ?? s.cond?.windSpeedMs ?? null,

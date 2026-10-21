@@ -48,4 +48,10 @@ describe("htmlToPlainText", () => {
   it("keeps text after a list on a new line", () => {
     expect(htmlToPlainText("<ul><li>a</li></ul>after<br>next")).toBe("- a\nafter\nnext");
   });
+
+  it("indents nested items two spaces per level", () => {
+    expect(htmlToPlainText("<ul><li>a<ul><li>b<ol><li>c</li></ol></li></ul></li><li>d</li></ul>")).toBe(
+      "- a\n  - b\n    - c\n- d"
+    );
+  });
 });

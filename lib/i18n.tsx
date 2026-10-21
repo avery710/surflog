@@ -101,9 +101,12 @@ export const DICT = {
   },
   "form.clearDefaultSpot": { en: "Clear default spot", "zh-TW": "取消預設浪點" },
   "form.date": { en: "Date", "zh-TW": "日期" },
-  "form.timeInWater": { en: "Time in the water", "zh-TW": "下水時段" },
+  "form.timeInWater": { en: "Start time", "zh-TW": "開始時間" },
+  "form.duration": { en: "Duration (optional)", "zh-TW": "時長（選填）" },
+  "form.durationNone": { en: "Not set", "zh-TW": "不設定" },
   "form.time": { en: "Time", "zh-TW": "時段" },
   "form.notes": { en: "Notes", "zh-TW": "筆記" },
+  "form.notesOptional": { en: "Notes (optional)", "zh-TW": "筆記（選填）" },
   "form.notesPlaceholder": {
     en: 'How it felt. What worked, what didn\'t. Type "- " for a bullet.',
     "zh-TW": "感覺如何？哪裡順、哪裡不順。輸入「- 」可建立項目符號。",
@@ -142,6 +145,7 @@ export const DICT = {
   "editor.numbered": { en: "Numbered", "zh-TW": "編號清單" },
   "editor.bold": { en: "Bold", "zh-TW": "粗體" },
   "editor.italic": { en: "Italic", "zh-TW": "斜體" },
+  "editor.underline": { en: "Underline", "zh-TW": "底線" },
 
   "patterns.title": { en: "What you've surfed", "zh-TW": "你衝過的浪點" },
   "patterns.sessions": { en: "Sessions", "zh-TW": "次數" },
@@ -370,8 +374,8 @@ export const DICT = {
   "dialog.logSessionTitle": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "empty.title": { en: "Nothing logged yet", "zh-TW": "還沒有任何紀錄" },
   "empty.body": {
-    en: "Log a session — spot, date, the 2-hour slot you were out. Conditions from Open-Meteo fill in automatically; add Swelleye's numbers manually whenever you have them.",
-    "zh-TW": "新增一筆紀錄——地點、日期、下水的兩小時時段。Open-Meteo 的浪況資料會自動帶入；有 Swelleye 的數據時，也可以手動補上。",
+    en: "Log a session — spot, date, when you were out. Conditions from Open-Meteo fill in automatically; add Swelleye's numbers manually whenever you have them.",
+    "zh-TW": "新增一筆紀錄——地點、日期、下水的時間。Open-Meteo 的浪況資料會自動帶入；有 Swelleye 的數據時，也可以手動補上。",
   },
   "menu.language": { en: "Language", "zh-TW": "語言" },
   "region.North": { en: "North", "zh-TW": "北部" },

@@ -315,6 +315,28 @@
   .notes-html li {
     margin-bottom: 4px;
   }
+  /* Nested items (Tab in the editor): tighter, and a different marker per
+     level like a word processor. */
+  .editor-content li > :is(ul, ol),
+  .notes-html li > :is(ul, ol) {
+    margin: 4px 0 0;
+  }
+  .editor-content :is(ul, ol) ul,
+  .notes-html :is(ul, ol) ul {
+    list-style: circle;
+  }
+  .editor-content :is(ul, ol) :is(ul, ol) ul,
+  .notes-html :is(ul, ol) :is(ul, ol) ul {
+    list-style: square;
+  }
+  .editor-content :is(ul, ol) ol,
+  .notes-html :is(ul, ol) ol {
+    list-style: lower-alpha;
+  }
+  .editor-content :is(ul, ol) :is(ul, ol) ol,
+  .notes-html :is(ul, ol) :is(ul, ol) ol {
+    list-style: lower-roman;
+  }
   .editor-content div,
   .notes-html div {
     min-height: 1em;
@@ -394,6 +416,11 @@
     [contenteditable]:not([contenteditable="false"]) {
       font-size: 16px;
     }
+    /* …which makes the notes editor 16px there, so the card's notes follow
+       (15px elsewhere, same as the editor): what you type is what you see. */
+    .notes-html {
+      font-size: 16px;
+    }
   }
 }
 
@@ -443,9 +470,10 @@
    "remove the focus status (blue outline)"). One unlayered rule so it beats
    every per-component focus-visible ring or outline utility (those live in
    @layer utilities). Focus itself is untouched (media viewer still returns
-   it to the tapped cell); only the paint goes. Inputs, textareas, the date
-   field, select triggers and the spot-picker trigger (field-like buttons)
-   keep their rings. */
+   it to the tapped cell); only the paint goes. Inputs, textareas, the notes
+   editor, the date field, select triggers and the spot-picker trigger
+   (field-like buttons) keep a focus look: just the blue border, no glow
+   ring (2026-10-19, one style for every field). */
 button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible,
 :is(a, img, [role="button"], [role="switch"], [role="checkbox"]):focus-visible {
   outline: none;

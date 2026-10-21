@@ -34,7 +34,16 @@ const ms = (local: string) => new Date(`${local.slice(0, 16)}:00Z`).getTime();
  * stay the same size at any tile width. Needs at least two events; renders
  * nothing for a single-event legacy row (the caller shows text then).
  */
-export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessionWhen: string }) {
+export function TideChart({
+  events,
+  sessionWhen,
+  sessionEnd,
+}: {
+  events: TideEvent[];
+  sessionWhen: string;
+  /** When the session ended, if it has a duration: that stretch of the curve is drawn thicker. */
+  sessionEnd?: string | null;
+}) {
   const { t } = useLang();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(140);
@@ -100,6 +109,25 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
     const sx = x(ts);
     const sy = y(heightAt(ts));
 
+    // the stretch of the curve the session covered (start dot to end dot)
+    let spanLine: string | null = null;
+    let ex = 0;
+    let ey = 0;
+    if (sessionEnd) {
+      const te = Math.min(tMax, Math.max(ts, ms(sessionEnd)));
+      if (te > ts) {
+        const n = Math.max(4, Math.ceil(((te - ts) / (tMax - tMin)) * 48));
+        const seg: string[] = [];
+        for (let k = 0; k <= n; k++) {
+          const time = ts + ((te - ts) * k) / n;
+          seg.push(`${k ? "L" : "M"}${x(time).toFixed(1)} ${y(heightAt(time)).toFixed(1)}`);
+        }
+        spanLine = seg.join(" ");
+        ex = x(te);
+        ey = y(heightAt(te));
+      }
+    }
+
     // Keep it light: only the low and high either side of the session get a
     // dot and a label; the rest of the wave is just the line.
     // (only if they fall inside the visible day — one off the edge is clipped)
@@ -150,6 +178,13 @@ export function TideChart({ events, sessionWhen }: { events: TideEvent[]; sessio
             </g>
           );
         })}
+        {spanLine && (
+          <>
+            <path d={spanLine} fill="none" className="stroke-data" strokeWidth={8} strokeLinecap="round" opacity={0.22} />
+            <path d={spanLine} fill="none" className="stroke-data" strokeWidth={3} strokeLinecap="round" />
+            <circle cx={ex} cy={ey} r={2.5} className="fill-data stroke-card" strokeWidth={1.5} />
+          </>
+        )}
         <circle cx={sx} cy={sy} r={3} className="fill-data stroke-card" strokeWidth={1.5} />
       </svg>
     );

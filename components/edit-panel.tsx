@@ -18,6 +18,7 @@ import {
 import { attachFiles } from "@/lib/upload-client";
 import { GoalCheck } from "@/components/goal";
 import { goalOptions, sessionAchieved } from "@/lib/goal";
+import { fmtDuration, fmtTime } from "@/lib/format";
 import { useLang, type TKey } from "@/lib/i18n";
 import type { Board, Cond, Session } from "@/lib/types";
 
@@ -62,7 +63,7 @@ export function EditPanel({
   const catalog = useSpotCatalog();
   // Spot, date and time are fixed once a session exists: shown, never sent.
   const date = session.when.slice(0, 10);
-  const time = session.when.slice(11, 16);
+  const time = fmtTime(session.when, session.durationMin);
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
@@ -153,7 +154,12 @@ export function EditPanel({
           <span className="flex h-9 items-center pl-0.5 font-mono text-sm">{date}</span>
         </Field>
         <Field label={t("form.time")}>
-          <span className="flex h-9 items-center pl-0.5 font-mono text-sm">{time}</span>
+          <span className="flex h-9 items-center gap-2 pl-0.5 font-mono text-sm">
+            {time}
+            {session.durationMin ? (
+              <span className="font-sans text-xs text-muted-foreground">{fmtDuration(session.durationMin)}</span>
+            ) : null}
+          </span>
         </Field>
       </div>
 
@@ -181,7 +187,7 @@ export function EditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("form.notes")}</span>
+        <span className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("form.notesOptional")}</span>
         <RichTextEditor
           defaultHtml={notesHtml}
           onChangeHtml={setNotesHtml}

@@ -38,6 +38,7 @@ interface SessionRow {
   goal_text?: string | null; // added by 20260928000000_create_goals.sql
   goal_met?: boolean | null;
   goal_points_met?: boolean[] | null; // added by 20260929000000_add_goal_points_met.sql
+  duration_min?: number | null; // added by 20261021000000_add_session_duration.sql
   created_at: string;
   example: boolean | null;
 }
@@ -48,6 +49,7 @@ function rowToSession(row: SessionRow): Session {
     ownerId: row.owner_id,
     spot: row.spot,
     when: row.session_when,
+    ...(row.duration_min != null ? { durationMin: row.duration_min } : {}),
     notesHtml: row.notes_html,
     notes: row.notes,
     photos: row.photos ?? [],
@@ -71,6 +73,8 @@ function sessionToRow(session: Partial<Session>): Partial<SessionRow> {
   if (session.ownerId !== undefined) row.owner_id = session.ownerId;
   if (session.spot !== undefined) row.spot = session.spot;
   if (session.when !== undefined) row.session_when = session.when;
+  // not set when null, so an insert without a duration never names the column
+  if (session.durationMin != null) row.duration_min = session.durationMin;
   if (session.notesHtml !== undefined) row.notes_html = session.notesHtml;
   if (session.notes !== undefined) row.notes = session.notes;
   if (session.photos !== undefined) row.photos = session.photos;

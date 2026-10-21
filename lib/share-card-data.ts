@@ -283,7 +283,7 @@ export function buildShareCard({ session, spot, spotName, board, lang }: ShareCa
   return {
     lang,
     spotName: spotName || t("share.unknownSpot"),
-    whenLabel: fmtWhen(session.when, lang),
+    whenLabel: fmtWhen(session.when, lang, session.durationMin),
     tiles,
     imageTiles,
     boardName: board ? boardLabel(board) || null : null,

@@ -46,9 +46,11 @@ and what is unverified.
 - `VALIDATION.md`: spot-fit experiments. Read it before changing
   `lib/spot-fit.ts`.
 - **Migrations on staging but NOT production**: `20261009000000` (review
-  avatars), `20261009100000` (spot pins). Applied to the staging Supabase
-  project 2026-10-21; production gets them at cutover, not yet decided.
-  Both features fail soft without them.
+  avatars), `20261009100000` (spot pins), `20261021000000` (session
+  duration). The first two are applied to the staging Supabase project
+  (2026-10-21); `20261021000000` is not yet. Production gets all three at
+  cutover, not yet decided. All fail soft without them (a duration says
+  "not switched on yet").
 - Never tried on a real phone. Most "not verified" notes below still stand.
 - In the repo but not described here: spot **edit** requests
   (`lib/spot-edit-*.ts`, `app/api/spot-edit-requests`, migration
@@ -170,7 +172,8 @@ column runs, even locally.**
 Session {
   ownerId                // Google OIDC sub
   spot                   // spots.slug | "req:<id>" (pending request) | legacy "custom:…"
-  when                   // "YYYY-MM-DDTHH:mm", local time AT THE SPOT, 2-hour grid, no tz
+  when                   // "YYYY-MM-DDTHH:mm", local time AT THE SPOT, half-hour grid, no tz
+  durationMin?           // 30-min steps, at most 4 h (240); optional
   notesHtml, notes       // sanitized rich text (lib/rich-text.ts) + plain mirror
   photos: [{ id, type }] // video/* renders as <video>
   boardId
@@ -193,6 +196,27 @@ TideEvent = { type: "high" | "low", time, heightM }
   `condOpenMeteo` fills when the spot has coordinates, `condCwaTide` when
   it has a township; both refetch **only when the spot changes**, so a
   failed fetch has no retry. `cond` is manual only.
+- **No future sessions** (2026-10-20): `createSessionFor` answers 400 for a
+  `when` later than now at the spot + 15 min (`latestLoggableWhen()`, now + 15 min: the
+  half-hour slot the form rounds to is still "now"); the log form caps the date and greys later
+  slots; MCP goes through the same check. Before this, a future date saved a
+  *forecast* as the session's conditions. Sessions already saved with a future
+  date are left alone.
+- **Time grid = every 30 min** (2026-10-20, by request; was 2-hourly, from
+  Swelleye's table). `lib/time-slots.ts`. Open-Meteo is hourly, so a `:30`
+  session reads the **nearest hour** (`:30` rounds up, `getConditions`); the
+  tide bracket already works to the minute. Older sessions stay on even hours.
+- **Duration** (2026-10-21, by request, instead of an end time): optional
+  `sessions.duration_min`, same day only (never past midnight), and the whole
+  session must be over (no future). **Fixed after creation like the date and
+  time** (a different value on update is a 400; the edit panel shows it
+  read-only). Open-Meteo is read over the hours it spans (`swellHeightRangeM`
+  inside `condOpenMeteo`: the start's nearest hour through the last whole hour
+  at or before the end); `swellHeightM` stays the start's reading. The card
+  shows "10:00–12:30", the swell tile "1.2–1.6 m" and the tide chart draws the
+  stretch of curve you were out. Share images show only the time range, not the
+  swell range. In the log form, while the start is still the untouched "now", a
+  duration moves the start back so the session ends now.
 - **Date/time are fixed after creation** (2026-10-16): a different `when`
   on update is a 400, an unchanged one is accepted.
 - Tide bracket picking for both sources: `pickBracket()` /
@@ -348,7 +372,7 @@ apps, personal tokens for anything that can't open a browser.
   `list_spots`, `list_boards`, `get_goal`; write (not registered for a read
   token) — `create_session`, `update_session`, `delete_session`,
   `set_goal`, `clear_goal`. Choices to change if they bite: `when` on the
-  2-hour grid on create, **no `when` in `update_session`**; `notes` plain
+  half-hour grid on create, **no `when` in `update_session`**; `notes` plain
   text and `update_session` **replaces the whole note**; catalogue slugs
   only; `goalsAchieved` must match the goal word for word; no media,
   boards or spot admin. Tool descriptions say notes are untrusted text.
@@ -756,6 +780,12 @@ load only when a session starts.
   A trigger that opens a menu passes `suppress` while open and ~400 ms after
   closing (filter chips): closing returns focus to it, and that focus-visible
   focus would otherwise show the tip.
-- Notes are rich text with a `- ` bullet shortcut. Avery writes notes in
-  Chinese; don't break CJK handling.
+- Notes are rich text (bold / italic / underline toolbar; `->` becomes `→`,
+  undo gives `->` back) with a `- ` bullet shortcut (a native `beforeinput`
+  listener: React's `onBeforeInput` has no `inputType`, so it never fired)
+  and Tab / Shift+Tab to nest list items (own DOM moves, not
+  `execCommand("indent")`; Tab outside a list still moves focus). Avery
+  writes notes in Chinese; don't break CJK handling.
+- **Field focus** (2026-10-19): every text field, select/date/spot trigger
+  and the notes editor shows only a blue border on focus, no glow ring.
 - Secrets: open `.env.local` in the editor for Avery to paste into.

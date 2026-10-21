@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { useSpotCatalog } from "@/lib/spot-catalog";
 import { toCompass } from "@/lib/openmeteo";
 import { computeSessionFit } from "@/lib/session-fit";
 import { compassLabel, fmt1, fmtWhen } from "@/lib/format";
+import { endOfSession } from "@/lib/time-slots";
 import { useLang } from "@/lib/i18n";
 import { TideChart } from "@/components/tide-chart";
 import { TideEventsSub } from "@/components/tide-events";
@@ -67,6 +68,22 @@ export function EntryCard({
 }) {
   const { lang, t } = useLang();
   const [editing, setEditing] = useState(false);
+  // The edit panel is much taller than the card, so closing it shrinks the
+  // page under the reader and the browser's scroll anchoring lands on a
+  // neighbour. After the card is back, bring it into view if it isn't.
+  const articleRef = useRef<HTMLElement>(null);
+  const wasEditing = useRef(false);
+  useLayoutEffect(() => {
+    const was = wasEditing.current;
+    wasEditing.current = editing;
+    const el = articleRef.current;
+    if (!was || editing || !el) return;
+    const top = el.getBoundingClientRect().top;
+    // clear of the sticky header (96 px) and not pushed off the bottom
+    if (top < 96 || top > window.innerHeight - 120) {
+      window.scrollTo({ top: window.scrollY + top - 96, behavior: "instant" });
+    }
+  }, [editing]);
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -117,7 +134,7 @@ export function EntryCard({
 
   if (editing) {
     return (
-      <article className={cardClass}>
+      <article ref={articleRef} className={cardClass}>
         <EditPanel
           session={session}
           boards={boards}
@@ -140,7 +157,7 @@ export function EntryCard({
     <MediaMosaic
       photos={session.photos}
       mediaBase={mediaBase}
-      alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
+      alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang, session.durationMin) })}
       label={(i, isVideo) =>
         t(isVideo ? "entry.viewVideo" : "entry.viewPhoto", { n: i + 1, total: session.photos.length })
       }
@@ -180,7 +197,7 @@ export function EntryCard({
               <ConditionTile
                 label={t("tile.swellOpenMeteo")}
                 className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-1 sm:basis-0 sm:shrink`}
-                value={<Figure value={fmt1(om.swellHeightM)} unit="m" />}
+                value={<Figure value={swellHeightText(om)} unit="m" />}
                 sub={<DirSub deg={om.swellDirDeg} compass={compassLabel(toCompass(om.swellDirDeg), lang)} />}
               />
         {om.swellPeriodS != null && (
@@ -245,7 +262,7 @@ export function EntryCard({
                   value={trendHeadline(tideTrendValue)}
                   sub={
                     tideEvents.length >= 2 ? (
-                      <TideChart events={tideEvents} sessionWhen={session.when} />
+                      <TideChart events={tideEvents} sessionWhen={session.when} sessionEnd={endOfSession(session.when, session.durationMin)} />
                     ) : (
                       <TideEventsSub events={tideEvents} sessionWhen={session.when} />
                     )
@@ -258,7 +275,7 @@ export function EntryCard({
   ) : null;
 
   return (
-    <article className={cardClass}>
+    <article ref={articleRef} className={cardClass}>
       {/* Spot + date wrap inside their own group; the actions stay a fixed
           right-hand column, so on a phone the date drops under the spot
           name while ⋯ stays pinned top-right (with one flex-wrap row, ⋯
@@ -278,7 +295,7 @@ export function EntryCard({
             {catalog.label(session.spot, lang)}
           </span>
           <span className="shrink-0 text-[13px] font-medium tabular-nums text-foreground">
-            {fmtWhen(session.when, lang)}
+            {fmtWhen(session.when, lang, session.durationMin)}
           </span>
           {byline && <div className="basis-full">{byline}</div>}
         </div>
@@ -340,7 +357,7 @@ export function EntryCard({
             <DialogDescription>
               {t("entry.deleteDescription", {
                 spot: catalog.label(session.spot, lang),
-                when: fmtWhen(session.when, lang),
+                when: fmtWhen(session.when, lang, session.durationMin),
               })}
             </DialogDescription>
           </DialogHeader>
@@ -471,7 +488,7 @@ export function EntryCard({
             onIndexChange={setViewing}
             mediaBase={mediaBase}
             returnFocusRef={openerRef}
-            alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang) })}
+            alt={t("entry.photoAlt", { when: fmtWhen(session.when, lang, session.durationMin) })}
           />
         </>
       )}
@@ -642,4 +659,14 @@ function MediaMosaic({
       <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">{[1, 2, 3, 4].map((i) => cell(i, ""))}</div>
     </div>
   );
+}
+
+/** "3.3", or "3.0–3.4" when the session's hours read differently (a duration was set). */
+function swellHeightText(om: NonNullable<Session["condOpenMeteo"]>): string | null {
+  const range = om.swellHeightRangeM;
+  if (range) {
+    const [lo, hi] = [fmt1(range[0]), fmt1(range[1])];
+    if (lo && hi && lo !== hi) return `${lo}–${hi}`;
+  }
+  return fmt1(om.swellHeightM);
 }

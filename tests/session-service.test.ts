@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Session } from "@/lib/types";
 
 vi.mock("@/lib/db", () => ({
@@ -61,7 +61,7 @@ describe("createSessionFor", () => {
     expect(r.ok).toBe(true);
     const saved = vi.mocked(createSession).mock.calls[0][0];
     expect(saved).toMatchObject({ ownerId: ME, spot: "waiao", notes: "hi", condOpenMeteo: OM, condCwaTide: TIDE });
-    expect(getConditions).toHaveBeenCalledWith(WAIAO.lat, WAIAO.lng, "2026-10-05T08:00", "Asia/Taipei");
+    expect(getConditions).toHaveBeenCalledWith(WAIAO.lat, WAIAO.lng, "2026-10-05T08:00", "Asia/Taipei", null);
   });
 
   it("ignores an ownerId smuggled into the body", async () => {
@@ -189,3 +189,100 @@ describe("deleteSessionFor", () => {
     expect(await deleteSessionFor(ME, "s1")).toEqual({ ok: true, data: true });
   });
 });
+
+describe("createSessionFor: no future sessions", () => {
+  beforeEach(() => {
+    vi.mocked(resolveSpot).mockResolvedValue(WAIAO as never);
+    vi.mocked(getConditions).mockResolvedValue(OM as never);
+    vi.mocked(getTide).mockResolvedValue(TIDE as never);
+    vi.mocked(resolveOwnedBoardId).mockResolvedValue({ ok: true, boardId: null } as never);
+    vi.useFakeTimers();
+    // 2026-10-20 07:30 UTC = 15:30 in Taipei
+    vi.setSystemTime(new Date("2026-10-20T07:30:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("refuses a time that hasn't happened yet, without fetching conditions", async () => {
+    for (const when of ["2026-10-20T16:00", "2026-10-20T18:00", "2026-10-21T08:00", "2099-01-01T08:00"]) {
+      expect(await createSessionFor(ME, { spot: "waiao", when })).toMatchObject({ status: 400 });
+    }
+    expect(getConditions).not.toHaveBeenCalled();
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("accepts the slot the form rounds to (15:30 at 15:20) and anything earlier", async () => {
+    vi.setSystemTime(new Date("2026-10-20T07:20:00Z")); // 15:20 in Taipei
+    for (const when of ["2026-10-20T15:30", "2026-10-20T08:00", "2026-10-19T22:00"]) {
+      expect((await createSessionFor(ME, { spot: "waiao", when })).ok).toBe(true);
+    }
+  });
+
+  it("judges by the spot's own clock", async () => {
+    vi.mocked(resolveSpot).mockResolvedValue({ ...WAIAO, timezone: "America/Los_Angeles" } as never);
+    // 00:30 in Los Angeles: 08:00 today there is still ahead
+    expect(await createSessionFor(ME, { spot: "waiao", when: "2026-10-20T08:00" })).toMatchObject({ status: 400 });
+    expect((await createSessionFor(ME, { spot: "waiao", when: "2026-10-19T22:00" })).ok).toBe(true);
+  });
+});
+
+describe("sessions with a duration", () => {
+  beforeEach(() => {
+    vi.mocked(resolveSpot).mockResolvedValue(WAIAO as never);
+    vi.mocked(getConditions).mockResolvedValue(OM as never);
+    vi.mocked(getTide).mockResolvedValue(TIDE as never);
+    vi.mocked(resolveOwnedBoardId).mockResolvedValue({ ok: true, boardId: null } as never);
+  });
+
+  it("saves it, and reads the conditions over the whole session", async () => {
+    const r = await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin: 120 });
+    expect(r.ok && r.data.durationMin).toBe(120);
+    expect(getConditions).toHaveBeenCalledWith(WAIAO.lat, WAIAO.lng, "2026-10-05T08:00", "Asia/Taipei", 120);
+  });
+
+  it("leaves the field out entirely when there is none (works before the migration)", async () => {
+    await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00" });
+    expect(vi.mocked(createSession).mock.calls[0][0]).not.toHaveProperty("durationMin");
+  });
+
+  it.each([45, 0, -30, 500, 480, "60", 3.5])("refuses a duration of %s", async (durationMin) => {
+    const r = await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin });
+    expect(r).toMatchObject({ ok: false, status: 400 });
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("refuses more than 4 hours", async () => {
+    expect(await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin: 270 })).toMatchObject({ status: 400 });
+    expect((await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin: 240 })).ok).toBe(true);
+  });
+
+  it("refuses one that would run past midnight", async () => {
+    expect(await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T23:00", durationMin: 60 })).toMatchObject({ status: 400 });
+    expect((await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T22:30", durationMin: 60 })).ok).toBe(true);
+  });
+
+  it("refuses one that ends in the future", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-20T07:20:00Z")); // 15:20 in Taipei
+    try {
+      expect(await createSessionFor(ME, { spot: "waiao", when: "2026-10-20T14:00", durationMin: 120 })).toMatchObject({ status: 400 });
+      expect((await createSessionFor(ME, { spot: "waiao", when: "2026-10-20T13:30", durationMin: 90 })).ok).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("says so when the migration hasn't been applied", async () => {
+    vi.mocked(createSession).mockRejectedValueOnce(new Error("Supabase: Could not find the 'duration_min' column of 'sessions'"));
+    const r = await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", durationMin: 60 });
+    expect(r).toMatchObject({ ok: false, status: 400 });
+    expect(!r.ok && r.error).toMatch(/migration/);
+  });
+
+  it("is fixed after creation, like the time", async () => {
+    vi.mocked(getSession).mockResolvedValue(stored({ durationMin: 60 }));
+    expect(await updateSessionFor(ME, "s1", { durationMin: 90 })).toMatchObject({ ok: false, status: 400 });
+    expect(await updateSessionFor(ME, "s1", { durationMin: null })).toMatchObject({ ok: false, status: 400 });
+    expect((await updateSessionFor(ME, "s1", { durationMin: 60, notesHtml: "x" })).ok).toBe(true);
+  });
+});
+
