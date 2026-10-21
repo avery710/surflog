@@ -107,6 +107,22 @@ export async function listSessions(ownerId: string): Promise<Session[]> {
   return rows.map(rowToSession);
 }
 
+/** An owner's sessions at one spot, newest first (the spot page's history).
+ *  `*` rather than a column list: `duration_min` is missing until its
+ *  migration is applied, and naming it would fail the query. */
+export async function listSessionsAtSpot(ownerId: string, spot: string): Promise<Session[]> {
+  const result = await getSupabase()
+    .from(TABLE)
+    .select("*")
+    .eq("owner_id", ownerId)
+    .eq("spot", spot)
+    .order("session_when", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true });
+  const rows = assertNoError(result) as SessionRow[];
+  return rows.map(rowToSession);
+}
+
 /** One page of an owner's sessions (optionally filtered), newest first, in the
  *  same order as `compareSessions` (lib/session-stats.ts). `page` is 1-based;
  *  callers clamp it against `countSessions` for the same filter first (an

@@ -157,6 +157,12 @@ deploys get a random URL, then the workflow aliases it to `STAGING_DOMAIN`
 (Google OAuth needs one fixed redirect URI). The staging workflow refuses
 to run if `STAGING_DOMAIN` is set to the production domain.
 
+Functions run in Tokyo (`"regions": ["hnd1"]` in `vercel.json`, both
+environments), next to the production Supabase project (`ap-northeast-1`).
+Every page waits on Supabase, so a function far from the database pays
+that distance on every query; Vercel's default (`iad1`, Washington) made
+each page switch cost about a second. Keep the two in the same region.
+
 One-time setup:
 
 1. **Vercel project** — vercel.com → Add New → Project → import this repo

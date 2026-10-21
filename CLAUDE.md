@@ -38,6 +38,19 @@ and what is unverified.
   `STAGING_DB_PASSWORD` from `.env.local` and clear `SUPABASE_DB_PASSWORD`
   (sourcing the file loads the prod one, which overrides `-p`), then relink
   to prod. README "Deploys: production and staging".
+- **Function region `hnd1`** (Tokyo, `vercel.json`, 2026-10-21): was the
+  default `iad1` (live header `hkg1::iad1`) while production Supabase is in
+  `ap-northeast-1`, so every query crossed the Pacific. Staging Supabase is
+  in `ap-southeast-2` (Sydney), still far; recreating it in Tokyo (it is
+  empty) was suggested, not decided. Not yet checked on a deploy.
+- **Page switches** (2026-10-21): `loading.tsx` skeletons for `/spots`,
+  `/spots/[slug]`, `/ai-apps`, `/admin` (`components/page-skeleton.tsx`);
+  `/` uses a Suspense fallback inside `app/page.tsx` instead (a root
+  `loading.tsx` would also cover the landing and every route). Home and
+  spot-page queries all start at once (one Supabase round trip); the spot
+  page reads only that spot's sessions (`listSessionsAtSpot`). Not done:
+  router cache `staleTimes` (would show stale pages after writes) and view
+  transitions. Checked signed in on localhost dev only.
 - **The original**: a Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source
   `reference/surf-journal.html`), conditions typed in by hand.
