@@ -21,6 +21,7 @@ import { WhiteCard } from "@/components/white-card";
 export interface SpotSession {
   id: string;
   when: string;
+  durationMin?: number | null;
   swellM: number | null;
   periodS: number | null;
   windMs: number | null;
@@ -254,7 +255,7 @@ export function SpotDetail({
             {history.map((h) => (
               <li key={h.id} className="px-3.5 py-2.5">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                  <span className="text-[13.5px] font-semibold tabular-nums">{fmtWhen(h.when, lang)}</span>
+                  <span className="text-[13.5px] font-semibold tabular-nums">{fmtWhen(h.when, lang, h.durationMin)}</span>
                   <span className="font-mono text-[12.5px] text-muted-foreground">
                     {[
                       h.swellM != null ? `${fmt1(h.swellM)} m` : null,

@@ -32,7 +32,7 @@ export async function approveRequest(requestId: string, spot: Spot): Promise<App
     const patch: Partial<Session> = { spot: spot.slug };
     if (spot.lat != null && spot.lng != null) {
       try {
-        patch.condOpenMeteo = await getConditions(spot.lat, spot.lng, s.when, spot.timezone);
+        patch.condOpenMeteo = await getConditions(spot.lat, spot.lng, s.when, spot.timezone, s.durationMin);
         withConditions++;
       } catch {
         // leave null — it can be refreshed from the edit panel later

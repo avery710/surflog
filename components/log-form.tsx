@@ -12,13 +12,13 @@ import { BoardSelect } from "@/components/board-select";
 import { GoalCheck } from "@/components/goal";
 import { goalOptions } from "@/lib/goal";
 import { DatePicker } from "@/components/date-picker";
-import { latestLoggableWhen, nearestSlotInZone, todayInZone } from "@/lib/format";
+import { fmtDuration, latestLoggableWhen, nearestSlotInZone, todayInZone } from "@/lib/format";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { useLang } from "@/lib/i18n";
 import { useDefaultSpot } from "@/lib/default-spot";
 import { useBrowserTimeZone } from "@/lib/use-browser-timezone";
 import { preselectBoardId } from "@/lib/boards";
-import { TIME_SLOTS } from "@/lib/time-slots";
+import { DURATIONS_MIN, SLOT_MINUTES, TIME_SLOTS, endOfSession } from "@/lib/time-slots";
 import {
   MediaPicker,
   UploadProgress,
@@ -90,7 +90,27 @@ export function LogForm({
   const date = pickedDate && pickedDate < today ? pickedDate : today;
   const slotAllowed = (slot: string) => `${date}T${slot}` <= latest;
   const wanted = pickedTime ?? nearestSlotInZone(spotTimezone);
-  const time = slotAllowed(wanted) ? wanted : (TIME_SLOTS.filter(slotAllowed).at(-1) ?? TIME_SLOTS[0]);
+  const baseTime = slotAllowed(wanted) ? wanted : (TIME_SLOTS.filter(slotAllowed).at(-1) ?? TIME_SLOTS[0]);
+  // How long the session was (optional). It has to end the same day and not
+  // in the future. While the start is still the untouched "now", a duration
+  // means "I've just finished": the start moves back so it ends now, instead
+  // of every option being greyed out. With a start picked by hand, options
+  // that would end in the future are greyed out. A pick that stops fitting
+  // reads as "not set".
+  const [pickedDuration, setDuration] = useState<number | null>(null);
+  const endsNow = pickedTime === null && date === today;
+  const slotMinutes = (slot: string) => parseInt(slot.slice(0, 2), 10) * 60 + parseInt(slot.slice(3), 10);
+  const startFor = (minutes: number): string | null => {
+    if (endsNow) {
+      const m = slotMinutes(baseTime) - minutes;
+      return m >= 0 ? TIME_SLOTS[m / SLOT_MINUTES] : null;
+    }
+    const end = endOfSession(`${date}T${baseTime}`, minutes);
+    return end && end <= latest ? baseTime : null;
+  };
+  const durationAllowed = (minutes: number) => startFor(minutes) !== null;
+  const duration = pickedDuration && durationAllowed(pickedDuration) ? pickedDuration : null;
+  const time = duration ? startFor(duration)! : baseTime;
   // Only worth saying when the spot's clock isn't the one on the user's wall.
   const browserTimezone = useBrowserTimeZone();
   const showTimeNote = browserTimezone != null && browserTimezone !== spotTimezone;
@@ -119,6 +139,7 @@ export function LogForm({
         body: JSON.stringify({
           spot,
           when: `${date}T${time}`,
+          ...(duration ? { durationMin: duration } : {}),
           notesHtml,
           boardId,
           // only the ticked goal points are recorded
@@ -140,6 +161,7 @@ export function LogForm({
       const failed = attached.failed;
       onCreated(session);
       setNotesHtml("");
+      setDuration(null);
       setAchieved([]);
       setEditorKey((k) => k + 1);
       media.forEach((m) => URL.revokeObjectURL(m.url));
@@ -162,8 +184,9 @@ export function LogForm({
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.4fr_1fr_1fr]">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Field
+          wide
           label={t("form.spot")}
           htmlFor={spotId}
           aside={
@@ -214,7 +237,27 @@ export function LogForm({
             </SelectContent>
           </Select>
         </Field>
+        <Field label={t("form.duration")}>
+          <Select value={duration ? String(duration) : "none"} onValueChange={(v) => setDuration(v === "none" ? null : Number(v))}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" sideOffset={4} className="duration-150 ease-out">
+              <SelectItem value="none">{t("form.durationNone")}</SelectItem>
+              {DURATIONS_MIN.map((m) => (
+                <SelectItem key={m} value={String(m)} disabled={!durationAllowed(m)}>
+                  {fmtDuration(m, lang)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
       </div>
+      {duration && (
+        <p className="mt-2 pl-0.5 text-xs font-medium text-muted-foreground">
+          {t("form.durationEnds", { end: endOfSession(`${date}T${time}`, duration)!.slice(11, 16) })}
+        </p>
+      )}
       {showTimeNote && (
         <p className="mt-2 pl-0.5 text-xs font-medium text-muted-foreground">
           {t("form.spotTimeNote", {
@@ -273,9 +316,12 @@ function Field({
   label,
   htmlFor,
   aside,
+  wide,
   children,
 }: {
   label: string;
+  /** Spans the whole row from `sm`. */
+  wide?: boolean;
   htmlFor?: string;
   /** Optional control shown on the label row (outside the <label>, so clicks don't hit the input). */
   aside?: React.ReactNode;
@@ -290,7 +336,7 @@ function Field({
     );
   }
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div className={"flex min-w-0 flex-col gap-1.5" + (wide ? " sm:col-span-3" : "")}>
       <div className="flex items-center justify-between gap-2">
         <label htmlFor={htmlFor} className="pl-0.5 text-xs font-semibold text-muted-foreground">
           {label}

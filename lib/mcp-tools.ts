@@ -25,6 +25,7 @@ import { MCP_WRITES, rateLimit } from "@/lib/rate-limit";
 import { htmlToPlainText, plainTextToHtml } from "@/lib/rich-text";
 import { createSessionFor, deleteSessionFor, updateSessionFor, type ServiceResult } from "@/lib/session-service";
 import { listSpots } from "@/lib/spot-store";
+import { isDuration } from "@/lib/time-slots";
 import type { Spot } from "@/lib/spots";
 import type { TokenAuth } from "@/lib/token-auth";
 import type { Board, Session, TideEvent } from "@/lib/types";
@@ -73,6 +74,7 @@ function conditions(s: Session) {
   if (!c) return null;
   return {
     swellHeightM: c.swellHeightM,
+    ...(c.swellHeightRangeM ? { swellHeightRangeM: c.swellHeightRangeM } : {}),
     swellPeriodS: c.swellPeriodS,
     swellDirDeg: c.swellDirDeg,
     windSpeedMs: c.windSpeedMs,
@@ -94,6 +96,7 @@ function compact(s: Session, spots: Map<string, Spot>, boards: Map<string, Board
     spot: s.spot,
     spotName: spot?.name ?? (s.spot.startsWith("custom:") ? s.spot.slice(7) : s.spot),
     when: s.when,
+    ...(s.durationMin ? { durationMin: s.durationMin } : {}),
     timezone: spot?.timezone ?? null,
     // From the HTML, not the stored `notes` mirror: the mirror was written by
     // whatever htmlToPlainText was at save time (see its 2026-10-07 fix).
@@ -270,11 +273,17 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
         "Log a new session in the user's journal. Swell, wind, tide and temperature for that spot and time are " +
         "filled in automatically — don't ask the user for them. Get `spot` from list_spots. " +
         "`when` is local time at the spot, on a half-hour grid; round to the nearest :00 or :30. " +
-        "It can't be in the future: only log what has already happened. " +
+        "It can't be in the future: only log what has already happened (the whole session, if `durationMin` is given). " +
         "If the user says which goal points they achieved, pass them in `goalsAchieved` (exact wording from get_goal).",
       inputSchema: z.object({
         spot: z.string().min(1).describe("Spot slug from list_spots"),
         when: WHEN,
+        durationMin: z
+          .number()
+          .int()
+          .refine(isDuration, "use 30-minute steps up to 4 h, then 300, 360, 420 or 480")
+          .optional()
+          .describe("How long the session was, in minutes. Optional; it must end the same day, and not in the future."),
         notes: NOTES.optional().describe("Plain text; line breaks are kept"),
         boardId: z.string().optional().describe("Board id from list_boards"),
         goalsAchieved: GOALS_ACHIEVED.optional().describe(
@@ -283,7 +292,7 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
-    async ({ spot, when, notes, boardId, goalsAchieved }) => {
+    async ({ spot, when, durationMin, notes, boardId, goalsAchieved }) => {
       const limited = writeLimited();
       if (limited) return limited;
       // Catalogue spots only: `req:`/`custom:` are app-side concepts.
@@ -294,6 +303,7 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       const result = await createSessionFor(ownerId, {
         spot,
         when,
+        ...(durationMin ? { durationMin } : {}),
         notesHtml: plainTextToHtml(notes ?? ""),
         ...(boardId ? { boardId } : {}),
         ...(ticks ? { goalAchieved: ticks.achieved } : {}),

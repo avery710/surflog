@@ -31,7 +31,8 @@ and what is unverified.
 - `VALIDATION.md`: spot-fit experiments. Read it before changing
   `lib/spot-fit.ts`.
 - **Migrations NOT applied yet**: `20261009000000` (review avatars),
-  `20261009100000` (spot pins). Both features fail soft without them.
+  `20261009100000` (spot pins), `20261021000000` (session duration). All
+  fail soft without them (a duration says "not switched on yet").
 - Never tried on a real phone. Most "not verified" notes below still stand.
 - In the repo but not described here: spot **edit** requests
   (`lib/spot-edit-*.ts`, `app/api/spot-edit-requests`, migration
@@ -154,6 +155,7 @@ Session {
   ownerId                // Google OIDC sub
   spot                   // spots.slug | "req:<id>" (pending request) | legacy "custom:…"
   when                   // "YYYY-MM-DDTHH:mm", local time AT THE SPOT, half-hour grid, no tz
+  durationMin?           // 30-min steps to 4 h, then 300/360/420/480; optional
   notesHtml, notes       // sanitized rich text (lib/rich-text.ts) + plain mirror
   photos: [{ id, type }] // video/* renders as <video>
   boardId
@@ -186,6 +188,17 @@ TideEvent = { type: "high" | "low", time, heightM }
   Swelleye's table). `lib/time-slots.ts`. Open-Meteo is hourly, so a `:30`
   session reads the **nearest hour** (`:30` rounds up, `getConditions`); the
   tide bracket already works to the minute. Older sessions stay on even hours.
+- **Duration** (2026-10-21, by request, instead of an end time): optional
+  `sessions.duration_min`, same day only (never past midnight), and the whole
+  session must be over (no future). **Fixed after creation like the date and
+  time** (a different value on update is a 400; the edit panel shows it
+  read-only). Open-Meteo is read over the hours it spans (`swellHeightRangeM`
+  inside `condOpenMeteo`: the start's nearest hour through the last whole hour
+  at or before the end); `swellHeightM` stays the start's reading. The card
+  shows "10:00–12:30", the swell tile "1.2–1.6 m" and the tide chart draws the
+  stretch of curve you were out. Share images show only the time range, not the
+  swell range. In the log form, while the start is still the untouched "now", a
+  duration moves the start back so the session ends now.
 - **Date/time are fixed after creation** (2026-10-16): a different `when`
   on update is a 400, an unchanged one is accepted.
 - Tide bracket picking for both sources: `pickBracket()` /

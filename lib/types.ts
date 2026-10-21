@@ -62,6 +62,10 @@ export interface CondOpenMeteo {
    *  offshore grid node — not comparable to condCwaTide's TWVD heights, only
    *  useful as a fallback when CWA can't cover the session. See lib/openmeteo.ts. */
   tideEvents?: TideEvent[];
+  /** Optional: lowest and highest `swellHeightM` over the hours the session
+   *  covered (only when it has a duration and the readings differ by hour).
+   *  `swellHeightM` itself stays the reading at the start. */
+  swellHeightRangeM?: [number, number] | null;
   gridLat: number;
   gridLng: number;
   source: "open-meteo";
@@ -103,6 +107,10 @@ export interface Session {
   ownerId: string;
   spot: string; // Swelleye slug, or "custom:Free text"
   when: string; // "YYYY-MM-DDTHH:mm", local at the spot, half-hour grid
+  /** How long the session was, in minutes (30-minute steps, ≤ 480, and it ends
+   *  the same day). Optional, and fixed after creation like `when`. Added by
+   *  20261021000000_add_session_duration.sql. */
+  durationMin?: number | null;
   notesHtml: string; // sanitized: ul/ol/li/b/i only
   notes: string; // plain-text mirror
   photos: Photo[];

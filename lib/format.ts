@@ -1,7 +1,7 @@
 import { TAIWAN_SPOTS_FIXTURE } from "./spot-fixtures";
 import type { Spot } from "./spots";
 import type { Lang } from "./i18n";
-import { SLOT_MINUTES } from "./time-slots";
+import { SLOT_MINUTES, endOfSession } from "./time-slots";
 
 /** Label for a spot slug in a place with no catalogue context (CSV export,
  *  the landing page): looks in `spots`, which defaults to the demo fixture.
@@ -24,9 +24,23 @@ const MONTHS = [
 const DAYS_ZH = ["日", "一", "二", "三", "四", "五", "六"];
 
 /** `when` is "YYYY-MM-DDTHH:mm", local at the spot, no timezone suffix. */
-export function fmtWhen(when: string, lang: Lang = "en"): string {
+export function fmtWhen(when: string, lang: Lang = "en", durationMin?: number | null): string {
   if (!when) return "";
-  return `${fmtDate(when.slice(0, 10), lang)} · ${when.slice(11, 16)}`;
+  return `${fmtDate(when.slice(0, 10), lang)} · ${fmtTime(when, durationMin)}`;
+}
+
+/** "16:00", or "16:00–18:30" when the session has a duration. */
+export function fmtTime(when: string, durationMin?: number | null): string {
+  const end = endOfSession(when, durationMin);
+  return end ? `${when.slice(11, 16)}–${end.slice(11, 16)}` : when.slice(11, 16);
+}
+
+/** 90 → "1 h 30 min" / "1 小時 30 分"; 30 → "30 min" / "30 分鐘". */
+export function fmtDuration(min: number, lang: Lang = "en"): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (lang === "zh-TW") return h ? `${h} 小時${m ? ` ${m} 分` : ""}` : `${m} 分鐘`;
+  return [h ? `${h} h` : "", m ? `${m} min` : ""].filter(Boolean).join(" ");
 }
 
 /** "YYYY-MM-DD" → "Fri 25 Sep 2026" / "2026年9月25日（週五）"; without the

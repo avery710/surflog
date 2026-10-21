@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "cn";
 import { useLang, type Lang, type TKey } from "@/lib/i18n";
-import { fmt1, taipeiToday } from "@/lib/format";
+import { fmt1, fmtTime, taipeiToday } from "@/lib/format";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import type { Session } from "@/lib/types";
 import type { SessionStat } from "@/lib/session-stats";
@@ -566,7 +566,7 @@ function daysBetween(from: string, to: string): number {
  *  calendar's card behind a divider). Spot, how long ago, and the swell height
  *  and period of the most recent session, with the same source rule as the
  *  session card (Open-Meteo, else the typed-in numbers). */
-type LastSessionData = Pick<Session, "when" | "spot"> & Partial<Pick<Session, "cond" | "condOpenMeteo">>;
+type LastSessionData = Pick<Session, "when" | "spot"> & Partial<Pick<Session, "cond" | "condOpenMeteo" | "durationMin">>;
 
 function LastSession({ session, today }: { session: LastSessionData; today: string }) {
   const { lang, t } = useLang();
@@ -585,7 +585,7 @@ function LastSession({ session, today }: { session: LastSessionData; today: stri
       </h3>
       <p className="text-[14px] leading-snug font-bold break-words">{catalog.label(session.spot, lang)}</p>
       <p className="mt-0.5 text-[12px] text-muted-foreground">
-        {when} {session.when.slice(11, 16)}
+        {when} {fmtTime(session.when, session.durationMin)}
       </p>
       {(height || period) && (
         <p className="mt-2.5 flex flex-wrap gap-x-2.5 gap-y-1 font-mono text-[16px] leading-none">

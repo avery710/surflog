@@ -19,6 +19,7 @@ import { getConditions } from "@/lib/openmeteo";
 import { getTide } from "@/lib/cwa-tide";
 import { resolveOwnedBoardId } from "@/lib/board-access";
 import { latestLoggableWhen } from "@/lib/format";
+import { endOfSession, isDuration } from "@/lib/time-slots";
 import { achievedGoalFields, parseGoalAchieved } from "@/lib/goal";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
 import type { Cond, CondCwaTide, CondOpenMeteo, Session } from "@/lib/types";
@@ -72,17 +73,32 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
   const achieved = body.goalAchieved === undefined ? [] : parseGoalAchieved(body.goalAchieved);
   if (!achieved) return fail(400, "invalid goalAchieved");
 
+  // How long it was — optional, in the picker's steps, and over before midnight.
+  let durationMin: number | null = null;
+  if (body.durationMin != null) {
+    if (!isDuration(body.durationMin) || !endOfSession(when, body.durationMin)) {
+      return fail(400, "invalid durationMin (30-minute steps up to 8 h, ending the same day)");
+    }
+    durationMin = body.durationMin;
+  }
+
   // No future sessions: the conditions would be a forecast, not what the
-  // surf was like. (`req:` spots and unknown ones count as Taiwan time.)
+  // surf was like, and the whole session has to be over. (`req:` spots and
+  // unknown ones count as Taiwan time.)
   const spotInfo = await resolveSpot(spot);
-  if (when > latestLoggableWhen(spotInfo?.timezone ?? "Asia/Taipei")) {
+  const latest = latestLoggableWhen(spotInfo?.timezone ?? "Asia/Taipei");
+  if (when > latest) {
     return fail(400, "that time hasn't happened yet — a session can only be logged for now or earlier");
+  }
+  const end = endOfSession(when, durationMin);
+  if (end && end > latest) {
+    return fail(400, "that session would end in the future — pick an earlier start or a shorter duration");
   }
 
   let condOpenMeteo: CondOpenMeteo | null = null;
   if (spotInfo?.lat != null && spotInfo.lng != null) {
     try {
-      condOpenMeteo = await getConditions(spotInfo.lat, spotInfo.lng, when, spotInfo.timezone);
+      condOpenMeteo = await getConditions(spotInfo.lat, spotInfo.lng, when, spotInfo.timezone, durationMin);
     } catch {
       // best-effort — a session should still save if Open-Meteo is down
       condOpenMeteo = null;
@@ -104,6 +120,8 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
     ownerId,
     spot,
     when,
+    // omitted when unset, so the insert never names the column (works before its migration)
+    ...(durationMin !== null ? { durationMin } : {}),
     notesHtml,
     notes,
     photos: [],
@@ -117,7 +135,14 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
     createdAt: new Date().toISOString(),
   };
 
-  return { ok: true, data: await createSession(newSession) };
+  try {
+    return { ok: true, data: await createSession(newSession) };
+  } catch (e) {
+    if (durationMin !== null && e instanceof Error && e.message.includes("duration_min")) {
+      return fail(400, "durations aren't switched on yet — the 20261021000000 migration hasn't been applied");
+    }
+    throw e;
+  }
 }
 
 /** Partial update. `spot` and `when` are fixed at creation (2026-10-16): sending
@@ -141,6 +166,9 @@ export async function updateSessionFor(
   }
   if (body.when !== undefined && body.when !== existing.when) {
     return fail(400, "when can't be changed after a session is created");
+  }
+  if (body.durationMin !== undefined && (body.durationMin ?? null) !== (existing.durationMin ?? null)) {
+    return fail(400, "durationMin can't be changed after a session is created");
   }
   if (typeof body.notesHtml === "string") {
     const notesHtml = sanitizeNotesHtml(body.notesHtml);

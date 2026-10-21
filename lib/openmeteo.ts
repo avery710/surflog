@@ -63,6 +63,9 @@ export interface Conditions {
    *  meaningful across sources. Undefined if the fetch failed or no local
    *  extrema were found in the window. */
   tideEvents?: TideEvent[];
+  /** lowest and highest swell height over the hours a session with a duration
+   *  covered; absent without a duration or when the hours read the same */
+  swellHeightRangeM?: [number, number];
   /** the grid node actually used — may be km from the spot, always show it */
   gridLat: number;
   gridLng: number;
@@ -99,12 +102,19 @@ export async function getConditions(
   lat: number,
   lng: number,
   whenLocal: string,
-  timeZone: string = DEFAULT_TIMEZONE
+  timeZone: string = DEFAULT_TIMEZONE,
+  /** How long the session was; adds `swellHeightRangeM` over the hours it covered. */
+  durationMin?: number | null
 ): Promise<Conditions> {
   const date = whenLocal.slice(0, 10);
   // Open-Meteo is hourly: a :30 session reads the nearest hour (a tie rounds
   // up; 23:30 stays on 23, the day's last reading).
-  const hour = Math.min(23, parseInt(whenLocal.slice(11, 13), 10) + (parseInt(whenLocal.slice(14, 16), 10) >= 30 ? 1 : 0));
+  const nearestHour = (minutes: number) => Math.min(23, Math.round(minutes / 60));
+  const startMin = parseInt(whenLocal.slice(11, 13), 10) * 60 + parseInt(whenLocal.slice(14, 16), 10);
+  const hour = nearestHour(startMin);
+  // the readings the session spans: the start's own hour through the last
+  // whole hour at or before its end
+  const lastHour = durationMin ? Math.min(23, Math.max(hour, Math.floor((startMin + durationMin) / 60))) : hour;
 
   // the archive endpoint lags ~5 days; forecast covers recent + near future
   const windBase = daysAgoIn(date, timeZone) > 6 ? ARCHIVE : FORECAST;
@@ -141,6 +151,15 @@ export async function getConditions(
     }
   }
 
+  // lowest and highest swell height over the hours the session covered
+  let swellHeightRangeM: [number, number] | null = null;
+  if (lastHour > hour) {
+    const hs = Array.from({ length: lastHour - hour + 1 }, (_, k) => pick(mh, "swell_wave_height", hour + k)).filter(
+      (v): v is number => v != null
+    );
+    if (hs.length > 1) swellHeightRangeM = [Math.min(...hs), Math.max(...hs)];
+  }
+
   return {
     swellHeightM: pick(mh, "swell_wave_height", i),
     swellPeriodS: pick(mh, "swell_wave_period", i),
@@ -159,6 +178,7 @@ export async function getConditions(
     seaLevelM,
     seaLevelTrend,
     tideEvents,
+    ...(swellHeightRangeM ? { swellHeightRangeM } : {}),
     gridLat: marine.latitude,
     gridLng: marine.longitude,
     source: "open-meteo",
