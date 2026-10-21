@@ -351,13 +351,13 @@ export function GoalCard({
                     </DndContext>
                   </div>
                 ) : readOnly ? (
-                  <p className="px-2 py-1 text-[14px] font-medium text-[var(--faint)]">{t("goal.add")}</p>
+                  <p className="py-1 text-[14px] font-medium text-[var(--faint)]">{t("goal.add")}</p>
                 ) : (
                   <button
                     type="button"
                     onClick={startEdit}
                     aria-label={t("goal.edit")}
-                    className="w-full rounded-[4px] px-2 py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:opacity-80"
+                    className="w-full rounded-[4px] py-1 text-left text-[14px] font-medium text-[var(--faint)] hover:opacity-80"
                   >
                     {t("goal.add")}
                   </button>
