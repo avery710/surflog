@@ -2,7 +2,9 @@
  * Auth.js (next-auth v5) config — Google sign-in only.
  *
  * Multi-user as of 2026-09-18: anyone with a Google account can sign in
- * (there's no invite list/domain restriction — see CLAUDE.md "Multi-user").
+ * (there's no invite list/domain restriction — see CLAUDE.md "Multi-user";
+ * the one exception is the optional SIGNIN_ALLOWED_EMAILS list used on
+ * staging, lib/signin-allowlist.ts).
  * What Google auth actually buys us is identity, not gatekeeping: every
  * session row gets tagged with the signer's stable Google subject id
  * (`token.sub`) as `ownerId`, and every read/write in the API routes is
@@ -15,12 +17,19 @@
  */
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { isSignInAllowed } from "@/lib/signin-allowlist";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [Google],
   session: { strategy: "jwt" },
   pages: { signIn: "/signin" },
   callbacks: {
+    // Optional allowlist (SIGNIN_ALLOWED_EMAILS, staging only). Returning
+    // false sends the user to /signin?error=AccessDenied.
+    async signIn({ user, profile }) {
+      if (profile?.email_verified === false) return false;
+      return isSignInAllowed(profile?.email ?? user.email);
+    },
     async jwt({ token, account }) {
       // `account` is only present on the initial sign-in. Use Google's
       // stable OIDC `sub` (providerAccountId) as the owner id. NOT `user.id`:

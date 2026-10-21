@@ -187,9 +187,15 @@ One-time setup:
 6. **Staging database** — a second Supabase project set up as in "Setting up
    Supabase" → "from scratch": `supabase db push` and a private `photos`
    bucket. It starts empty apart from the spots the migrations seed.
-7. **Who can open staging** — Vercel puts a Vercel-login wall on Preview
-   deployments by default (Settings → Deployment Protection → Vercel
-   Authentication). It is currently off.
+7. **Who can open staging** — two layers, both optional:
+   - Vercel project → Settings → Deployment Protection → **Vercel
+     Authentication** on for Preview: only people logged into your Vercel
+     account can load the site at all. (Hobby has one user, you. It also
+     blocks AI-app OAuth callbacks from claude.ai etc., so those can't be
+     tried on staging while it is on.)
+   - `SIGNIN_ALLOWED_EMAILS` in Vercel's **Preview** environment
+     (comma-separated Google emails): only those accounts can sign in. Unset
+     = open to every Google account, which is what production does.
 8. Push: `git push origin staging` deploys staging; pushing `main` deploys
    production. Watch both under the repo's Actions tab.
 

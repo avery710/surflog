@@ -312,7 +312,14 @@ fields + CWA township, 9 Siargao, 26 Bali).
 ## Multi-user, auth, storage
 
 - **Google sign-in via Auth.js** (`auth.ts`, `proxy.ts`), JWT sessions, no
-  adapter, **no allowlist** by design. Identity is
+  adapter, **no allowlist** by design. **One opt-in exception for staging**
+  (2026-10-21): `SIGNIN_ALLOWED_EMAILS` (comma-separated, `lib/signin-allowlist.ts`,
+  checked in the `signIn` callback of `auth.ts`) restricts sign-in to those Google
+  emails; **unset = open** (production). Set it in Vercel **Preview** only. Checked
+  at sign-in only, so an older cookie survives until it expires. Unit-tested; **not
+  tried with a real Google sign-in, and not yet set in Vercel**. Staging can also sit
+  behind Vercel Authentication (Deployment Protection), which blocks AI-app OAuth
+  callbacks. Identity is
   `account.providerAccountId` (Google `sub`) — **never `user.id`** (a
   random UUID per sign-in). An empty journal in an old browser: check
   `/api/auth/session` for a UUID id, then sign out and in.
