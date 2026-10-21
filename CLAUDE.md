@@ -19,25 +19,30 @@ and what is unverified.
 
 - Next.js (App Router) + shadcn/ui + Supabase (Postgres + Storage), Google
   sign-in via Auth.js. Public repo `github.com/avery710/surflog`.
-- **Deploy** (SURFLOG-8, 2026-10-21): two environments in one Vercel
+- **Deploy** (SURFLOG-8, done 2026-10-21): two environments in one Vercel
   project. `main` → `.github/workflows/deploy-production.yml` → Vercel
-  **Production** at `surflog.tw` on the current Supabase project
-  (`tosozexlcqedocfcckwh`, real data). `staging` →
-  `.github/workflows/deploy-staging.yml` → Vercel **Preview** aliased to
-  `stag-wipeout.surflog.tw` (`STAGING_DOMAIN`) on a **new, empty** Supabase
-  project (`traxhjhcvtonqrgfpcqk`, all 20 migrations applied 2026-10-21;
-  its `photos` bucket not checked). Copying production's data was declined.
-  The workflows are committed (`83830a7`, on `staging`). Not done yet:
-  Vercel Preview env vars split (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
-  `AUTH_SECRET` per environment), `SPOT_ADMIN_EMAILS` for Production,
-  `surflog.tw` assigned to Production, GitHub variable `STAGING_DOMAIN`,
-  Google redirect URI for `stag-wipeout` (user says done, unverified), and
-  the first production deploy. The staging deploy guard refuses
-  `STAGING_DOMAIN` = `surflog.tw`. The staging DNS is a CNAME at GoDaddy
-  (`stag-wipeout` → Vercel). For CLI work on staging, pass
-  `STAGING_DB_PASSWORD` from `.env.local` and clear `SUPABASE_DB_PASSWORD`
-  (sourcing the file loads the prod one, which overrides `-p`), then relink
-  to prod. README "Deploys: production and staging".
+  **Production** at `surflog.tw` (`www` redirects) on the original Supabase
+  project (`tosozexlcqedocfcckwh`, real data). First production deploy
+  2026-10-21 (`443068c`; `main` was fast-forwarded to `staging`);
+  `surflog.tw` was matched to that deployment by asset fingerprint, **not
+  yet checked signed in**. `staging` → `.github/workflows/deploy-staging.yml`
+  → Vercel **Preview** aliased to `stag-wipeout.surflog.tw`
+  (`STAGING_DOMAIN`; CNAME at GoDaddy) on a separate **empty** Supabase
+  project (`traxhjhcvtonqrgfpcqk`; its `photos` bucket not checked). Copying
+  production's data was declined. In Vercel, Preview has its own
+  `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `AUTH_SECRET` and
+  `SIGNIN_ALLOWED_EMAILS`; Production keeps the originals plus
+  `SPOT_ADMIN_EMAILS` (set by Avery, not read back). The staging workflow
+  refuses `STAGING_DOMAIN` = `surflog.tw`. **Release flow**: push
+  `staging`, check it, then fast-forward `main`
+  (`git push origin staging:main`), which deploys production. **Vercel
+  Authentication (login wall) for Preview is not on yet**; turn it on only
+  with `surflog.tw` on Production, and note it blocks AI-app OAuth callbacks
+  on staging. CLI: for staging pass `STAGING_DB_PASSWORD` from `.env.local`
+  and clear `SUPABASE_DB_PASSWORD` (sourcing the file loads the prod one,
+  which overrides `-p`), then relink to prod. `gh` is logged in; the Vercel
+  MCP connector has no access to the team (403), so Vercel logs/env come
+  from Avery. README "Deploys: production and staging".
 - **The original**: a Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source
   `reference/surf-journal.html`), conditions typed in by hand.
@@ -45,12 +50,11 @@ and what is unverified.
   `add-ticket` skill (short lines; details belong here).
 - `VALIDATION.md`: spot-fit experiments. Read it before changing
   `lib/spot-fit.ts`.
-- **Migrations on staging but NOT production**: `20261009000000` (review
-  avatars), `20261009100000` (spot pins), `20261021000000` (session
-  duration). All three are applied to the staging Supabase project
-  (2026-10-21). Production gets all three at
-  cutover, not yet decided. All fail soft without them (a duration says
-  "not switched on yet").
+- **Migrations**: every file in `supabase/migrations/` is applied to both
+  Supabase projects (production's last one, `20261021000000` session
+  duration, on 2026-10-21; the avatar and pin ones were already there).
+  Apply to staging first, then production, with the CLI linked to the
+  right project.
 - Never tried on a real phone. Most "not verified" notes below still stand.
 - In the repo but not described here: spot **edit** requests
   (`lib/spot-edit-*.ts`, `app/api/spot-edit-requests`, migration
@@ -471,7 +475,7 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
 - **"What you've surfed"** (`components/patterns-table.tsx`): `table-fixed`
   at every width, header always visible, **vertical scroll only, never
   horizontal** (names and notes wrap); "Jialeshui" just fits at 320 px.
-  Height animates (`components/animated-height.tsx`, `NoteField`; the card's fill, radius and **shadow sit on the `AnimatedHeight` wrapper**, because its `overflow:hidden` mid-ease clips a child's shadow and makes it flash; that arrangement is the shared `WhiteCard` (`components/white-card.tsx`), also used by the board rack, empty state and spot-detail sections; use it for new white cards,
+  Height animates (`components/animated-height.tsx`, `NoteField`; the card's fill, radius and **shadow sit on the `AnimatedHeight` wrapper**, because its `overflow:hidden` mid-ease clips a child's shadow and makes it flash; that arrangement is the shared `WhiteCard` (`components/white-card.tsx`), also used by the board rack and spot-detail sections; use it for new white cards,
   coordinated via `data-height-anim`; off under reduced motion; never
   watched in a visible tab). Share icon tooltip is portalled to `body`. A
   stacked phone layout was **reverted on request 2026-10-16 — don't bring
@@ -582,6 +586,11 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   nothing saved); **keyboard arrow navigation between days is not built**
   (Tab works), and it's unchecked on a phone.
 - Goal card counts show only the number (`✓ 3`), full text `sr-only`.
+- **Goal placeholder** ("Add a technique goal…") sits flush with the card
+  title (no horizontal padding; 2026-10-21, by request). **Empty session
+  list** ("Nothing logged yet"): plain text, **no card**, flush with the
+  "Sessions" label, 15px bold title + 13px description like the AI app
+  card (2026-10-21, by request; the 20 px / card version was replaced).
 
 **Header**: solid `bg-primary`, sticky, hides on scroll down
 (`lib/use-auto-hide-header.ts`, not under reduced motion).
@@ -676,9 +685,15 @@ synthetic hover doesn't apply `:hover`. Drive a file `<input>` with a
   `npx eslint app components lib tests`.
 - `npm run dev` is `next dev --webpack` (Turbopack + `next/font/google`
   fails in dev; builds are fine).
-- Shell is zsh: `set -- $var` doesn't split; quote `--include=*.ts`.
+- Shell is zsh: `set -- $var` doesn't split; quote `--include=*.ts`. `path` is tied to `PATH`: never use it as a loop variable (it broke `curl` mid-command).
 
 ## Bugs already hit — don't repeat these
+
+- **A HEAD count query hides Supabase's error message.** `countSessions`
+  uses `head: true`, and HEAD responses have no body, so a failure reads
+  just `Supabase: ` (2026-10-21: a wrong Preview secret key looked exactly
+  like this and took a while to find). If it bites again, put the HTTP
+  status and code in `assertNoError`.
 
 - **Open-Meteo wind in km/h stored as m/s** — pass `wind_speed_unit=ms`.
 - **Rewriting a contentEditable while typing breaks Chinese IME.**
@@ -752,7 +767,10 @@ load only when a session starts.
   declined. `app/dev/layout.tsx` 404s the tree in production (route
   handlers there must repeat the check). No photos; actions hit the real
   API and fail; width frames don't trigger `sm:`/`lg:`.
-- **`push-stag`**: commits and pushes to `staging` only, never main, never
+- **`push-stag`** (its file predates the staging/production split and still
+  says staging is `surflog.tw` and shares the local database, so **read its
+  migration step with care**: local `.env.local` and the CLI link point at
+  production): commits and pushes to `staging` only, never main, never
   force; lint + typecheck first; keeps `.env*`, `reports/` and Swelleye
   readings out; asks before applying migrations; doesn't check the
   deployment (Avery watches it).
