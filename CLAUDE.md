@@ -36,9 +36,21 @@ and what is unverified.
   refuses `STAGING_DOMAIN` = `surflog.tw`. **Release flow**: push
   `staging`, check it, then fast-forward `main`
   (`git push origin staging:main`), which deploys production. **Vercel
-  Authentication (login wall) for Preview is not on yet**; turn it on only
-  with `surflog.tw` on Production, and note it blocks AI-app OAuth callbacks
-  on staging. CLI: for staging pass `STAGING_DB_PASSWORD` from `.env.local`
+  Authentication is on, Standard Protection** (2026-10-21): every URL except
+  the production custom domains needs a Vercel login, so staging,
+  `surflog-staging.vercel.app` and all `surflog-<hash>….vercel.app` URLs
+  (production's included) 302 to `vercel.com/sso-api`, while `surflog.tw`,
+  `www` and `surflog.tw/api/mcp` stay public (checked anonymously). **Never
+  pick "All Deployments"**: it locks `surflog.tw`. Only Avery passes the
+  wall (Hobby: plus one approved external user, Shareable Links, or a
+  bypass secret; none set up), and a browser logged into Vercel passes it
+  silently. Behind it, staging still needs Google sign-in with an email in
+  `SIGNIN_ALLOWED_EMAILS`. It blocks AI-app OAuth callbacks and any other
+  server-to-server call to staging. **Stale alias**:
+  `surflog-staging.vercel.app` points at deployment `surflog-a43wdfil6`
+  (2026-10-12), built before the split with **production's database** and
+  no allowlist; it is behind the wall, but deleting that deployment (and its
+  Google redirect URI) is still recommended. CLI: for staging pass `STAGING_DB_PASSWORD` from `.env.local`
   and clear `SUPABASE_DB_PASSWORD` (sourcing the file loads the prod one,
   which overrides `-p`), then relink to prod. `gh` is logged in; the Vercel
   MCP connector has no access to the team (403), so Vercel logs/env come
