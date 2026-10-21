@@ -78,8 +78,11 @@ and what is unverified.
   staging over HTTP (a GitHub Actions schedule was built first and replaced
   on request). The cron route 401s unless `CRON_SECRET` (Vercel Production
   env) matches, answers `{ production, staging }` (502 if either is false),
-  and sends `VERCEL_AUTOMATION_BYPASS_SECRET` if the project has one, for
-  when Preview gets a login wall. `/api/health` is unsigned and answers only
+  and sends `VERCEL_AUTOMATION_BYPASS_SECRET` if the project has one. It
+  never follows redirects and counts only a 200 `{ ok: true }`, so the
+  staging login wall's 302 reads as `staging: false`. **Staging needs
+  Protection Bypass for Automation turned on** (then redeploy production),
+  or its ping always fails. `/api/health` is unsigned and answers only
   `{ ok }`. **Not live until released to `main` and `CRON_SECRET` is set.**
   A paused project doesn't wake from requests: restore it in Supabase.
 - **The original**: a Claude artifact

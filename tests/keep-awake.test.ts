@@ -76,6 +76,20 @@ describe("GET /api/cron/keep-awake", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("doesn't follow redirects: a login-wall 302 counts as down", async () => {
+    answer({ [STAG]: 302 });
+    const res = await call("Bearer s3cret");
+    expect(await res.json()).toEqual({ production: true, staging: false });
+    for (const [, init] of fetchMock.mock.calls) expect(init.redirect).toBe("manual");
+  });
+
+  it("needs the health check's own { ok: true }, not just any 200", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      new Response(url === STAG ? "<html>login</html>" : '{"ok":true}', { status: 200 }),
+    );
+    expect(await (await call("Bearer s3cret")).json()).toEqual({ production: true, staging: false });
+  });
+
   it("is 502 when one can't be reached", async () => {
     answer({ [PROD]: new Error("timeout") });
     const res = await call("Bearer s3cret");
