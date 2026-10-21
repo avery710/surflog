@@ -63,7 +63,14 @@ and what is unverified.
 - **Page switches** (2026-10-21): `loading.tsx` skeletons for `/spots`,
   `/spots/[slug]`, `/ai-apps`, `/admin` (`components/page-skeleton.tsx`);
   `/` uses a Suspense fallback inside `app/page.tsx` instead (a root
-  `loading.tsx` would also cover the landing and every route). Home and
+  `loading.tsx` would also cover the landing and every route). The `/spots`
+  page lives in the `app/spots/(list)/` route group so its skeleton doesn't
+  also wrap `/spots/[slug]` (it did: the list skeleton showed before a spot
+  page). Each skeleton mirrors its page's blocks, measured to within ~1 px at
+  375 and 1100 px; data-sized cards use Avery's journal. Bars are black at
+  7%; the skeleton body fades in after 120 ms, bars pulse, and the real page
+  column fades in over 150 ms (`.page-enter`); all off under reduced motion
+  (classes in `globals.css`). Suggested by the ui-designer agent, items 1–5. Home and
   spot-page queries all start at once (one Supabase round trip); the spot
   page reads only that spot's sessions (`listSessionsAtSpot`). Not done:
   router cache `staleTimes` (would show stale pages after writes) and view
@@ -634,7 +641,10 @@ full-width `bg-primary` banner, **one layout at every width** (approved;
 the centred phone stack was dropped): white wordmark + "© year Surflog"
 left, icon-only mail circle right to `mailto:support@surflog.tw`
 (`SUPPORT_EMAIL`, address only in `aria-label`). `mt-auto` pins it on
-short pages. No Privacy/Terms links until those pages exist. The public
+short pages. Every page (header + content) sits in a `min-h-dvh` box in the
+root layout (2026-10-21, by request), so the footer always starts below the
+first screen, also while a page or skeleton loads; `/signin` and the OAuth
+consent now centre in the full screen. No Privacy/Terms links until those pages exist. The public
 share page's own muted line above it may read as doubled. The Google
 consent screen's support email is set in Google Cloud, not here.
 

@@ -113,7 +113,7 @@ export function SpotDetail({
   const last = days[days.length - 1];
 
   return (
-    <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18 pt-6`}>
+    <div className={`${PAGE_COLUMN} page-enter min-w-0 flex-1 pb-18 pt-6`}>
       <Link
         href="/spots"
         className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground"

@@ -285,11 +285,9 @@ export function Journal({
           viewport instead of staying capped at it, a real horizontal-
           scroll regression caught via `document.documentElement.scrollWidth`
           at 375px while verifying the header restyle, not by eye. */}
-      {/* At least one screen tall (2026-10-17, on request): while the log
-          loads the page is short, and without this the footer (mt-auto)
-          sits on screen and then drops below the fold once the cards
-          arrive. Now the footer always starts below the first screen. */}
-      <div className={`${PAGE_COLUMN} min-h-dvh min-w-0 flex-1 pb-18`}>
+      {/* The footer starting below the first screen is now the root
+          layout's job (every page, 2026-10-21); this column just fills it. */}
+      <div className={`${PAGE_COLUMN} page-enter min-w-0 flex-1 pb-18`}>
         {/* The dashboard: goal + activity calendar, spot table, board rack.
             2026-10-08, on request: no grey `--panel` wrapper any more (it
             had been a tinted, padded group since 2026-09-29), so each

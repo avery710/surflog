@@ -483,3 +483,17 @@ button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible
   outline: none;
   box-shadow: none;
 }
+
+/* Page loading (components/page-skeleton.tsx, 2026-10-21). The skeleton's body
+   waits 120 ms and fades in, so a fast load never flashes grey boxes (the blue
+   header shows at once); its bars pulse gently. The real page column then
+   fades in (`.page-enter`) instead of cutting in. `backwards` / no fill mode
+   on purpose: an animation still in effect after it ends would keep the page
+   column a stacking context. All off under reduced motion. */
+@keyframes skeleton-pulse { 50% { opacity: .55; } }
+@keyframes page-fade-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-body { animation: page-fade-in 150ms ease-out 120ms backwards; }
+  .skeleton-bar { animation: skeleton-pulse 1.6s ease-in-out infinite; }
+  .page-enter { animation: page-fade-in 150ms ease-out; }
+}

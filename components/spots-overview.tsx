@@ -147,7 +147,7 @@ export function SpotsOverview({
       onRemove={noop}
       onRequestChanged={upsertRequest}
     >
-      <div className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18 pt-6`}>
+      <div className={`${PAGE_COLUMN} page-enter min-w-0 flex-1 pb-18 pt-6`}>
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-foreground"
