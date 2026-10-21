@@ -246,18 +246,13 @@ export function LogForm({
               <SelectItem value="none">{t("form.durationNone")}</SelectItem>
               {DURATIONS_MIN.map((m) => (
                 <SelectItem key={m} value={String(m)} disabled={!durationAllowed(m)}>
-                  {fmtDuration(m, lang)}
+                  {fmtDuration(m)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </Field>
       </div>
-      {duration && (
-        <p className="mt-2 pl-0.5 text-xs font-medium text-muted-foreground">
-          {t("form.durationEnds", { end: endOfSession(`${date}T${time}`, duration)!.slice(11, 16) })}
-        </p>
-      )}
       {showTimeNote && (
         <p className="mt-2 pl-0.5 text-xs font-medium text-muted-foreground">
           {t("form.spotTimeNote", {

@@ -55,10 +55,9 @@ describe("durations", () => {
   });
 
   it("writes a duration in words", () => {
-    expect(fmtDuration(30)).toBe("30 min");
-    expect(fmtDuration(120)).toBe("2 h");
-    expect(fmtDuration(90)).toBe("1 h 30 min");
-    expect(fmtDuration(90, "zh-TW")).toBe("1 小時 30 分");
-    expect(fmtDuration(30, "zh-TW")).toBe("30 分鐘");
+    expect(fmtDuration(30)).toBe("0:30");
+    expect(fmtDuration(120)).toBe("2:00");
+    expect(fmtDuration(90)).toBe("1:30");
+    expect(fmtDuration(480)).toBe("8:00");
   });
 });

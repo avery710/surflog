@@ -157,7 +157,7 @@ export function EditPanel({
           <span className="flex h-9 items-center gap-2 pl-0.5 font-mono text-sm">
             {time}
             {session.durationMin ? (
-              <span className="font-sans text-xs text-muted-foreground">{fmtDuration(session.durationMin, lang)}</span>
+              <span className="font-sans text-xs text-muted-foreground">{fmtDuration(session.durationMin)}</span>
             ) : null}
           </span>
         </Field>

@@ -104,7 +104,6 @@ export const DICT = {
   "form.timeInWater": { en: "Start time", "zh-TW": "開始時間" },
   "form.duration": { en: "Duration (optional)", "zh-TW": "時長（選填）" },
   "form.durationNone": { en: "Not set", "zh-TW": "不設定" },
-  "form.durationEnds": { en: "Ends at {end}", "zh-TW": "結束於 {end}" },
   "form.time": { en: "Time", "zh-TW": "時段" },
   "form.notes": { en: "Notes", "zh-TW": "筆記" },
   "form.notesOptional": { en: "Notes (optional)", "zh-TW": "筆記（選填）" },
