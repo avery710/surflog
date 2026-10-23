@@ -406,8 +406,8 @@
  * under 16px is focused, and stays zoomed after blur — the page then looks
  * wider than the screen and pans sideways. Fixed here, centrally, rather than
  * per field (the spot-note input 14px, the notes editor 15px, shadcn's
- * Input/Textarea 14px from `md` up). Goal-point inputs are the exception, see
- * `.goal-point-input` below. Scoped to
+ * Input/Textarea 14px from `md` up). Goal-point and tag inputs are the
+ * exception, see `.goal-point-input` and `.tag-input` below. Scoped to
  * iOS/iPadOS WebKit (-webkit-touch-callout exists nowhere else) AND a coarse
  * pointer, so desktop and Android are untouched. Deliberately NOT
  * maximum-scale=1 / user-scalable=no: that would kill pinch-zoom everywhere.
@@ -417,12 +417,14 @@
  * `.goal-point-input` is skipped too: an editing goal point must read at the
  * same 13.5px as its pill in the read view (components/goal.tsx), which is
  * the trade-off that file records — focusing it zooms iOS Safari.
+ * `.tag-input` (the "Type a tag…" field, components/tag-picker.tsx) is skipped
+ * for the same reason: it must read at its chips' 13px. Same trade-off.
  */
 @supports (-webkit-touch-callout: none) {
   @media (pointer: coarse) {
     textarea,
     select,
-    input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], .goal-point-input),
+    input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], .goal-point-input, .tag-input),
     [contenteditable]:not([contenteditable="false"]) {
       font-size: 16px;
     }

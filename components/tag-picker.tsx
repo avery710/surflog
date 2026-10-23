@@ -132,7 +132,7 @@ function AddTag({ onAdd, disabled }: { onAdd: (text: string) => void; disabled: 
       }}
       placeholder={t("form.tagsType")}
       aria-label={t("form.tagsAdd")}
-      className="h-7 w-32 rounded-full border border-primary bg-background px-3 text-[13px] outline-none"
+      className="tag-input h-7 w-32 rounded-full border border-primary bg-background px-3 text-[13px] outline-none"
     />
   );
 }
