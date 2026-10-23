@@ -23,7 +23,9 @@ and what is unverified.
   project. `main` → `.github/workflows/deploy-production.yml` → Vercel
   **Production** at `surflog.tw` (`www` redirects) on the original Supabase
   project (`tosozexlcqedocfcckwh`, real data). First production deploy
-  2026-10-21 (`443068c`; `main` was fast-forwarded to `staging`);
+  2026-10-21 (`443068c`; `main` was fast-forwarded to `staging`), then again
+  2026-10-23 (`0095897`, 17 commits: Tokyo region, loading skeletons, tide
+  chart, swell median, the keep-awake cron);
   `surflog.tw` was matched to that deployment by asset fingerprint, **not
   yet checked signed in**. `staging` → `.github/workflows/deploy-staging.yml`
   → Vercel **Preview** aliased to `stag-wipeout.surflog.tw`
@@ -59,7 +61,8 @@ and what is unverified.
   default `iad1` (live header `hkg1::iad1`) while production Supabase is in
   `ap-northeast-1`, so every query crossed the Pacific. Staging Supabase is
   in `ap-southeast-2` (Sydney), still far; recreating it in Tokyo (it is
-  empty) was suggested, not decided. Not yet checked on a deploy.
+  empty) was suggested, not decided. Checked live 2026-10-23: production's
+  `/api/health` answers `x-vercel-id: hkg1::hnd1::…`.
 - **Page switches** (2026-10-21): `loading.tsx` skeletons for `/spots`,
   `/spots/[slug]`, `/ai-apps`, `/admin` (`components/page-skeleton.tsx`);
   `/` uses a Suspense fallback inside `app/page.tsx` instead (a root
@@ -80,7 +83,7 @@ and what is unverified.
   page reads only that spot's sessions (`listSessionsAtSpot`). Not done:
   router cache `staleTimes` (would show stale pages after writes) and view
   transitions. Checked signed in on localhost dev only.
-- **Keep both databases awake** (2026-10-21): a Vercel Cron job
+- **Keep both databases awake** (2026-10-21, live 2026-10-23): a Vercel Cron job
   (`vercel.json`, daily 03:17 UTC; Hobby fires sometime within that hour) on
   **production** calls `/api/cron/keep-awake`, which calls each
   environment's `/api/health` (`HEALTH_CHECK_URLS` in `lib/health.ts`:
@@ -93,10 +96,16 @@ and what is unverified.
   and sends `VERCEL_AUTOMATION_BYPASS_SECRET` if the project has one. It
   never follows redirects and counts only a 200 `{ ok: true }`, so the
   staging login wall's 302 reads as `staging: false`. **Staging needs
-  Protection Bypass for Automation turned on** (then redeploy production),
-  or its ping always fails. `/api/health` is unsigned and answers only
-  `{ ok }`. **Not live until released to `main` and `CRON_SECRET` is set.**
-  A paused project doesn't wake from requests: restore it in Supabase.
+  Protection Bypass for Automation** (Deployment Protection; turned on
+  2026-10-23), or its ping always fails. `/api/health` is unsigned and
+  answers only `{ ok }`. **Checked 2026-10-23**: released in `0095897`,
+  `CRON_SECRET` set in Vercel Production, the bypass secret works against
+  staging (`curl -H "x-vercel-protection-bypass: …"` → `{"ok":true}`), and
+  **Run** on Settings → Cron Jobs logged a 200, i.e. both `true`.
+  `VERCEL_AUTOMATION_BYPASS_SECRET` is not listed under Environment
+  Variables but reaches the route at runtime: no manual copy needed. The
+  scheduled 03:17 run itself has not been watched yet. A paused project
+  doesn't wake from requests: restore it in Supabase.
 - **The original**: a Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source
   `reference/surf-journal.html`), conditions typed in by hand.
@@ -850,11 +859,11 @@ load only when a session starts.
   declined. `app/dev/layout.tsx` 404s the tree in production (route
   handlers there must repeat the check). No photos; actions hit the real
   API and fail; width frames don't trigger `sm:`/`lg:`.
-- **`push-stag`** (its file predates the staging/production split and still
-  says staging is `surflog.tw` and shares the local database, so **read its
-  migration step with care**: local `.env.local` and the CLI link point at
-  production): commits and pushes to `staging` only, never main, never
-  force; lint + typecheck first; keeps `.env*`, `reports/` and Swelleye
+- **`push-stag`** (file brought in line with the staging/production split
+  2026-10-23: staging is its own Supabase project, local `.env.local` and the
+  CLI link point at production, so its migration step targets staging
+  explicitly and never production): commits and pushes to `staging` only,
+  never main, never force; lint + typecheck first; keeps `.env*`, `reports/` and Swelleye
   readings out; asks before applying migrations; after the push watches the
   GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
   signed in) and reports pass/fail with the failing step. It never re-runs or

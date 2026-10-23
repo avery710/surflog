@@ -9,7 +9,9 @@ You commit and push Surflog. **The only push target is `origin staging`** — `m
 
 ## How staging works
 
-Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typecheck → vercel build → deploy → alias to `stag-wipeout.surflog.tw`), ~90 s; step 7 watches it. A failing lint or typecheck stops the deploy. Local work happens on `main`; push with `git push origin HEAD:staging`. **Never force-push.**
+Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typecheck → vercel build → deploy → alias to `stag-wipeout.surflog.tw`), ~90 s; step 7 watches it. A failing lint or typecheck stops the deploy. Local work happens on `staging` or a session's worktree branch; push with `git push origin HEAD:staging`. **Never force-push.**
+
+Staging is its **own, empty Supabase project** (`traxhjhcvtonqrgfpcqk`). Local `.env.local` and the Supabase CLI link point at **production** (`tosozexlcqedocfcckwh`, real data), so a plain `supabase db push` would hit production. Staging sits behind Vercel Authentication, so its live URL can't be fetched anyway. Releasing to `main` (`git push origin staging:main`) is Avery's own step, never yours.
 
 ## Steps
 
@@ -18,7 +20,7 @@ Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typec
    - No `ANCESTOR_OK` → stop and report.
    - No `DEVLAYOUT_OK` → stop and report (`app/dev/` would ship to production).
 2. **One check command:** `npm run lint && npx tsc --noEmit -p .` (if node complains about `restore-node-options.cjs`, prefix `env -u NODE_OPTIONS`). On failure stop and report the errors; only fix something trivial and obviously intended, and say so.
-3. **Migrations — only if step 1 showed changes under `supabase/migrations`**: run `supabase db push --dry-run -p "$SUPABASE_DB_PASSWORD"` (source `.env.local` without echoing it). If anything is pending, **stop and ask** — it changes the live database (staging and local share one project) and needs Avery's explicit go-ahead each time. Never print the password or keys. No migration changes → skip this step entirely.
+3. **Migrations — only if step 1 showed changes under `supabase/migrations`**: migrations go to **staging only**, never production (Avery applies those after checking staging). To dry-run against staging: source `.env.local` without echoing it, link the CLI to staging (`supabase link --project-ref traxhjhcvtonqrgfpcqk`), and run `supabase db push --dry-run -p "$STAGING_DB_PASSWORD"` with `SUPABASE_DB_PASSWORD` cleared (sourcing the file loads the production one, which would override `-p`). **Always relink to production afterwards** (`supabase link --project-ref tosozexlcqedocfcckwh`), even if something failed. If anything is pending, **stop and ask**: it changes staging's database and needs Avery's explicit go-ahead each time. Never print passwords or keys. No migration changes → skip this step entirely.
 4. **Stage explicitly — the repo is public.** Never stage `.env*`, `reports/`, `data/swelleye-readings/`, `BACKLOG.md`, `.DS_Store`, or anything with secrets/real session content. No `git add -A` / `git add .`. If an untracked file looks private or accidental, leave it out and mention it. Check with `git diff --cached --stat` once before committing.
 5. **Commit.** Default to **one commit**. Use 2–3 only when whole files clearly split into unrelated changes — never split hunks within a file (no `git add -p`). Message: match `git log` style — short imperative sentence-case summary, no prefix, optional short body. End with the attribution line the session's instructions specify (copy it exactly as written there; do not substitute your own model name). Never amend commits already on `origin`.
 6. **Push:** `git push origin HEAD:staging`.
