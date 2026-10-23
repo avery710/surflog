@@ -304,7 +304,7 @@ TideEvent = { type: "high" | "low", time, heightM }
   MCP both go through it.
 
 **Tags** (SURFLOG-11, 2026-10-23; `lib/tags.ts`, `sessions.tags text[]` with a
-GIN index). **Starter** tags (4 groups: Waves, Size, Crowd, Others; the list
+GIN index). **Starter** tags (4 groups: Waves, Size, Lineup, Others; the list
 and zh-TW wording are Avery's picks, chosen at `/dev/tags`) are stored by their
 **English key** and shown in the viewer's language (`tagLabel`); **custom**
 tags are stored and shown as typed. `normalizeTags()` is the one validator

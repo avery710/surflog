@@ -122,7 +122,7 @@ export const DICT = {
   "form.tagsRemoveFailed": { en: "Couldn't remove that tag", "zh-TW": "無法移除這個標籤" },
   "tags.group.water": { en: "Waves", "zh-TW": "浪況" },
   "tags.group.size": { en: "Size", "zh-TW": "浪高" },
-  "tags.group.crowd": { en: "Crowd", "zh-TW": "擁擠度" },
+  "tags.group.crowd": { en: "Lineup", "zh-TW": "浪人" },
   "tags.group.session": { en: "Others", "zh-TW": "其他" },
   "form.notesPlaceholder": {
     en: 'How it felt. What worked, what didn\'t. Type "- " for a bullet.',

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { CalendarDays, Check, ChevronDown, Hash, MapPin, Tag, WandSparkles, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { CalendarDays, Check, ChevronDown, Hash, MapPin, WandSparkles, X } from "lucide-react";
 import { LangSwitch } from "@/app/dev/lang-switch";
 import { KnownTagsProvider, TagPicker } from "@/components/tag-picker";
 import { useLang, type Lang } from "@/lib/i18n";
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
  *
  * Chosen so far (Avery, 2026-10-23):
  *   1  picker: grouped chips (B), small group labels
- *   2  card: one quiet line under the notes (C), tag icon in a soft circle (7)
+ *   2  card: one quiet line under the notes (C), a # in a soft circle (was a tag icon: changed on staging)
  *   3  filter chip: "#" icon, pick several (B)
  * Longboard/shortboard/foam-board tags were dropped: the board chip says it.
  */
@@ -35,7 +35,8 @@ const STARTERS: Record<string, Bi[]> = {
     { en: "Peeling", zh: "很順", alts: ["順暢", "流暢"], enAlts: ["Down the line", "Flowy", "Smooth"] },
     { en: "Barrel", zh: "管浪", alts: ["桶浪", "進管"] },
     { en: "Choppy", zh: "浪面亂", alts: ["雜亂", "雜浪多"] },
-    { en: "Closeouts", zh: "整排蓋", alts: ["全蓋", "全蓋浪"] },
+    { en: "Windy", zh: "風大", alts: ["有風", "強風", "吹風"] },
+    { en: "Closeouts", zh: "全蓋", alts: ["整排蓋", "全蓋浪"] },
   ],
   Size: [
     { en: "Ankle to waist", zh: "腳踝到腰", alts: ["腳踝到膝", "腿到腰", "腰高"] },
@@ -44,14 +45,15 @@ const STARTERS: Record<string, Bi[]> = {
     { en: "Overhead", zh: "過頭", alts: ["高過頭"] },
     { en: "Double overhead+", zh: "兩人高及以上", alts: ["兩倍頭", "雙過頭", "兩個頭"] },
   ],
-  Crowd: [
+  Lineup: [
     { en: "Crowded", zh: "擁擠", alts: ["人多", "人擠", "擠爆"] },
     { en: "Empty break", zh: "人少", alts: ["Quiet", "Uncrowded"] },
+    { en: "Aggro locals", zh: "排外", alts: ["地盤意識強", "在地浪人兇", "在地很兇", "地頭蛇", "在地排外", "不太友善"] },
   ],
   Others: [
     { en: "Dawn patrol", zh: "開燈", alts: ["晨衝", "日出衝", "早起衝"] },
     { en: "Sunset", zh: "關燈", alts: ["日落衝", "夕陽場", "傍晚衝"] },
-    { en: "Lesson", zh: "上課", alts: ["衝浪課", "教學"] },
+    { en: "Lesson", zh: "衝浪課", alts: ["上課", "教學"] },
     { en: "Surf trip", zh: "衝浪旅行", alts: ["浪旅", "遠征"] },
   ],
 };
@@ -59,7 +61,7 @@ const YOURS: Bi[] = [
   { en: "With Ming", zh: "跟阿明" },
   { en: "Nanwan crew", zh: "南灣夥伴" },
 ];
-const GROUP_ZH: Record<string, string> = { Waves: "浪況", Size: "浪高", Crowd: "擁擠度", Others: "其他" };
+const GROUP_ZH: Record<string, string> = { Waves: "浪況", Size: "浪高", Lineup: "浪人", Others: "其他" };
 const ALL: Bi[] = [...Object.values(STARTERS).flat(), ...YOURS];
 const COUNTS: Record<string, number> = { Glassy: 6, Clean: 4, Crowded: 3, Solo: 5, "Dawn patrol": 2, "With Ming": 3 };
 
@@ -89,76 +91,32 @@ function PickerDemo({ history, initial }: { history: typeof HISTORY; initial: st
 
 /* ------------------------------------------------------------------ 2 */
 
-const goalPill = "flex h-7 items-center rounded-full bg-secondary px-3 text-[13.5px] font-medium tracking-[-0.01em]";
-const SAMPLE_TAGS = ["Glassy", "Empty break", "Dawn patrol"];
-
-type Style = {
-  icon: ReactNode;
-  /** how each tag is written */
-  wrap?: (text: string) => ReactNode;
-  sep?: string;
-  tone?: string;
-};
-
-/** The tag line itself, in the style being compared. */
-function TagLine({ style, tags, lang }: { style: Style; tags: string[]; lang: Lang }) {
+/**
+ * The real session card (components/entry-card.tsx, so it always follows the
+ * latest UI) in an iframe of the given width: the card's sm:/lg: breakpoints
+ * follow the window, so only a real frame shows the phone layout. The frame
+ * page (../session-card/frame) reports its height.
+ */
+function CardFrame({ px }: { px: number }) {
+  const [h, setH] = useState(420);
+  const key = `tags-${px}`;
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === "session-card-frame-height" && e.data.k === key) setH(e.data.h);
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, [key]);
   return (
-    <p className={cn("flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12.5px] font-medium text-muted-foreground", style.tone)}>
-      {style.icon}
-      {tags.map((k, i) => (
-        <span key={k}>
-          {style.wrap ? style.wrap(tagText(k, lang)) : tagText(k, lang)}
-          {i < tags.length - 1 && <span className="ml-1.5 opacity-40">{style.sep ?? "·"}</span>}
-        </span>
-      ))}
-    </p>
+    <iframe
+      title={`Session card with tags at ${px}px`}
+      src={`/dev/session-card/frame?case=tags&k=${key}`}
+      style={{ width: px, height: h }}
+      className="block max-w-none rounded-md border-0 bg-panel"
+    />
   );
 }
-
-/** A hand-drawn session card up to the notes, then the chosen tag line. */
-function FakeCard({ style, lang }: { style: Style; lang: Lang }) {
-  const goals = lang === "zh-TW" ? ["鴨潛", "底轉"] : ["Duck dive", "Bottom turn"];
-  const board = lang === "zh-TW" ? "迷你長板 6'2\"" : "Mini-Mal 6'2\"";
-  return (
-    <article className="rounded-[var(--r-card)] bg-card p-4 shadow-soft">
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-[15px] font-bold">{lang === "zh-TW" ? "佳樂水" : "Jialeshui"}</h3>
-        <span className="font-mono text-[12px] text-muted-foreground">Thu 22 Oct · 07:00–09:30</span>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span className={goalPill}>{board}</span>
-        {goals.map((g) => (
-          <span key={g} className={cn(goalPill, "gap-1")}>
-            <Check className="size-3.5 text-primary" aria-hidden />
-            {g}
-          </span>
-        ))}
-      </div>
-      <p className="mt-2.5 text-[15px] leading-relaxed">
-        {lang === "zh-TW" ? "早上退潮的時候浪型很乾淨，胸肩高，離岸風。" : "Clean shape on the dropping tide, chest to shoulder high, light offshore."}
-      </p>
-      <div className="mt-1.5">
-        <TagLine style={style} tags={SAMPLE_TAGS} lang={lang} />
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-1.5">
-        {["Swell 1.2–1.6 m", "Wind 3 m/s", "Tide ↓ 11:20"].map((x) => (
-          <div key={x} className="rounded-[var(--r-tile)] bg-secondary px-2 py-2 font-mono text-[11px] text-muted-foreground">
-            {x}
-          </div>
-        ))}
-      </div>
-    </article>
-  );
-}
-
-/** Chosen (2026-10-23, option 7 of 10): the tag icon in a soft circle, like the board chip's photo. */
-const CHOSEN: Style = {
-  icon: (
-    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary">
-      <Tag className="size-3 opacity-70" aria-hidden />
-    </span>
-  ),
-};
 
 /* ------------------------------------------------------------------ 3 */
 
@@ -314,11 +272,14 @@ export default function TagsPreview() {
       </section>
 
       <section className="flex flex-col gap-6">
-        <h2 className="text-[17px] font-bold">2 · Session card: one quiet line, tag icon in a soft circle</h2>
-        <Block title="Chosen" note="Option 7 of ten icon treatments. Dots between tags, grey text, nothing tappable. Shown at 360 px and 560 px.">
+        <h2 className="text-[17px] font-bold">2 · Session card: one quiet line under the notes</h2>
+        <Block
+          title="The real card"
+          note="The tag line is the real component (a # in a soft circle, the words separated by dots, in the viewer’s language; your own tags as typed), on the real EntryCard at 375 and 700 px. It follows whatever the card looks like on staging."
+        >
           <div className="flex flex-wrap items-start gap-4">
-            <div className="w-[360px] max-w-full"><FakeCard style={CHOSEN} lang={lang} /></div>
-            <div className="w-[560px] max-w-full"><FakeCard style={CHOSEN} lang={lang} /></div>
+            <CardFrame px={375} />
+            <CardFrame px={700} />
           </div>
         </Block>
       </section>

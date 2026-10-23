@@ -40,6 +40,17 @@ const noConditions = { condOpenMeteo: null, condCwaTide: null, cond: null };
 export const MEDIA_CASES: { id: string; title: string; session: Session }[] = [
   { id: "m0", title: "0 media, conditions only", session: fakeSession({ photos: [], ...DEMO_FIELDS }) },
   { id: "m0x", title: "0 media, no board, no goals", session: fakeSession({ photos: [] }) },
+  {
+    id: "tags",
+    title: "Tags: three starters and one of your own, under the notes",
+    session: fakeSession({
+      photos: [],
+      notesHtml: "<p>Clean shape on the dropping tide, chest to shoulder high, light offshore.</p>",
+      notes: "Clean shape on the dropping tide, chest to shoulder high, light offshore.",
+      tags: ["Glassy", "Chest to shoulder", "Empty break", "With Ming"],
+      ...DEMO_FIELDS,
+    }),
+  },
   { id: "m1", title: "1 media + conditions (side-by-side row from sm)", session: fakeSession({ photos: media(1), ...DEMO_FIELDS }) },
   { id: "m1v", title: "1 video + conditions (play badge)", session: fakeSession({ photos: [{ id: "wavestorm-8ft-classic.jpg", type: "video/mp4" }], ...DEMO_FIELDS }) },
   { id: "m1b", title: "1 media, board only (no goals)", session: fakeSession({ photos: media(1), boardId: DEMO_BOARD.id }) },

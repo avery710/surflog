@@ -158,7 +158,11 @@ function YoursChip({
         aria-pressed={on}
         disabled={disabled}
         onClick={onToggle}
-        className="inline-flex h-full items-center rounded-full pr-1 pl-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+        // equal padding when there is no × (picked); the × takes the right side otherwise
+        className={cn(
+          "inline-flex h-full items-center rounded-full pl-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+          on ? "pr-3" : "pr-1"
+        )}
       >
         {tag}
       </button>

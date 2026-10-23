@@ -20,7 +20,7 @@ import type { Lang } from "./i18n";
 export const MAX_TAGS = 8;
 export const MAX_TAG_LENGTH = 24;
 
-/** "water" is shown as "Waves" / 浪況, "crowd" as "Crowd" / 擁擠度 and "session" as "Others" / 其他 (renamed 2026-10-23; the ids stay). */
+/** "water" is shown as "Waves" / 浪況, "crowd" as "Lineup" / 浪人 and "session" as "Others" / 其他 (renamed 2026-10-23; the ids stay). */
 export type TagGroupId = "water" | "size" | "crowd" | "session";
 
 export interface StarterTag {
@@ -39,7 +39,8 @@ export const STARTER_TAG_GROUPS: { id: TagGroupId; tags: StarterTag[] }[] = [
       { key: "Peeling", zh: "很順" },
       { key: "Barrel", zh: "管浪" },
       { key: "Choppy", zh: "浪面亂" },
-      { key: "Closeouts", zh: "整排蓋" },
+      { key: "Windy", zh: "風大" },
+      { key: "Closeouts", zh: "全蓋" },
     ],
   },
   {
@@ -57,6 +58,7 @@ export const STARTER_TAG_GROUPS: { id: TagGroupId; tags: StarterTag[] }[] = [
     tags: [
       { key: "Crowded", zh: "擁擠" },
       { key: "Empty break", zh: "人少" },
+      { key: "Aggro locals", zh: "排外" },
     ],
   },
   {
@@ -64,7 +66,7 @@ export const STARTER_TAG_GROUPS: { id: TagGroupId; tags: StarterTag[] }[] = [
     tags: [
       { key: "Dawn patrol", zh: "開燈" },
       { key: "Sunset", zh: "關燈" },
-      { key: "Lesson", zh: "上課" },
+      { key: "Lesson", zh: "衝浪課" },
       { key: "Surf trip", zh: "衝浪旅行" },
     ],
   },
