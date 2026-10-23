@@ -32,6 +32,24 @@ const PAGES = [
       "components/entry-card.tsx — the session card: condition tiles, board/goal chips, notes, photos. Every media count (0-7, with and without conditions), every branch on missing data, both tide sources, wind extremes, en/zh-TW.",
   },
   {
+    href: "/dev/tide-display",
+    title: "Tide tile display ideas",
+    description:
+      "Six alternative displays for the session card's Tide tile (water staff, day band, countdown, hourly bars, tide table, tide stage) in six synthetic cases at 140 / 220 / 360 px. Suggestions only; the real card is unchanged.",
+  },
+  {
+    href: "/dev/tide-span",
+    title: "Tide curve: marking a time span",
+    description:
+      "Ten ways to mark the tide leg a session sat in (previous to next turning point) on the real Tide-tile curve, next to the session's own stretch: band, area, hatching, spotlight, fade, drop lines, carets, track, dimension line, dashed. The real chart is shown first, unchanged, next to the dev copy. Five synthetic cases at 140 / 220 / 360 px. Suggestions only.",
+  },
+  {
+    href: "/dev/tide-blue",
+    title: "Tide curve: the session's span in blue",
+    description:
+      "Ten ways to draw the session's own length in blue on the Tide-tile curve, after the \"Growth, plotted.\" poster: blue spotlight (now, on the real chart), route, bold time + caption, time pill, milestones, route track below, and four wave iterations (ripple, rolling waves, scallops, wave route). Six synthetic cases at 140 / 220 / 360 px, with and without a duration. Suggestions only.",
+  },
+  {
     href: "/dev/footer-options",
     title: "Footer options",
     description:

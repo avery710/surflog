@@ -268,12 +268,14 @@ TideEvent = { type: "high" | "low", time, heightM }
   `sessions.duration_min`, same day only (never past midnight), and the whole
   session must be over (no future). **Fixed after creation like the date and
   time** (a different value on update is a 400; the edit panel shows it
-  read-only). Open-Meteo is read over the hours it spans (`swellHeightRangeM`
-  inside `condOpenMeteo`: the start's nearest hour through the last whole hour
-  at or before the end); `swellHeightM` stays the start's reading. The card
-  shows "10:00–12:30", the swell tile "1.2–1.6 m" and the tide chart draws the
-  stretch of curve you were out. Share images show only the time range, not the
-  swell range. In the log form, while the start is still the untouched "now", a
+  read-only). Open-Meteo is read over the hours it spans (the start's nearest
+  hour through the last whole hour at or before the end); `swellHeightM` stays
+  the start's reading, and `swellHeightMedianM` (inside `condOpenMeteo`, 2026-10-21)
+  is the median over those hours. The swell tile shows that median as one figure
+  (no range; falls back to the start reading), the card shows "10:00–12:30", and
+  the tide chart draws the stretch you were out as one solid blue line (see
+  "Tide tile" under UI). Share images show the
+  time range and the start's swell reading, not the median. In the log form, while the start is still the untouched "now", a
   duration moves the start back so the session ends now.
 - **Date/time are fixed after creation** (2026-10-16): a different `when`
   on update is a 400, an unchanged one is accepted.
@@ -507,6 +509,25 @@ Card) and a public link.
 - **Tide tile = direction + next turning point, not a height**
   (`tideTrend()`), plus a day chart (`components/tide-chart.tsx`). CWA when
   `condCwaTide.events` is non-empty, else Open-Meteo; label plain "Tide".
+  **Chart look** (2026-10-21/23, by request, after three poster references; history
+  in `.claude/agents/ui-designer.md` "Style references"): the session is the one
+  blue thing on the curve (`--primary`): with a duration a solid line **as thick as
+  the curve** with **flat ends** that meet the grey flush (the grey is cut where the
+  span is; no halo, no end dots; drawn at least 8 px long so 30 min still reads as
+  a line); without one, a single blue dot (r 3.4). The curve is **2.25 px,
+  light grey `--tide-curve` #b8c2c4** (its own token, picked lighter on request; the
+  2026-10-21 "spotlight" dimming was dropped 2026-10-23), drawn as separate runs
+  with **round ends** (outer ends and both sides of every label gap; no mask). The
+  low and high either side of the session are timed **inside gaps cut in the
+  curve, bending with it** (`<textPath>` on a copy of the curve with 60% of its
+  bend removed and 0.6 px letter-spacing, so digits don't crowd on a tight bend;
+  `--muted-foreground` text, Funnel Sans 9 px like the tiles' small print (2026-10-23; was 8.5 px mono), 5.2:1 on the tile; no dot, no label above/below).
+  Layout, gaps and runs live in `components/tide-labels.ts`, shared with the dev
+  copy; every drawn number is rounded to 0.01 (`r2`) because `Math.cos` differs in
+  the last digit between Node and the browser (that was a hydration error). Candidates kept at `/dev/tide-span`,
+  `/dev/tide-blue` (incl. waves iterations) and `/dev/tide-display`; their chart
+  copy is `app/dev/tide-span/base.tsx`. Checked only on dev pages, **not on a
+  real card with a duration, not on a phone**.
 - **Water temp** `condOpenMeteo.seaTempC`, air temp as small print.
 - Header: spot + date, ⋯ menu **Edit / Share / Delete** (delete confirms in
   a dialog); `readOnly` drops the menu (landing).
@@ -829,8 +850,10 @@ load only when a session starts.
   migration step with care**: local `.env.local` and the CLI link point at
   production): commits and pushes to `staging` only, never main, never
   force; lint + typecheck first; keeps `.env*`, `reports/` and Swelleye
-  readings out; asks before applying migrations; doesn't check the
-  deployment (Avery watches it).
+  readings out; asks before applying migrations; after the push watches the
+  GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
+  signed in) and reports pass/fail with the failing step. It never re-runs or
+  fixes a failed run.
 
 ## Conventions
 
@@ -856,7 +879,9 @@ load only when a session starts.
   `--secondary` / `--muted` `#f2f5f5` fill tiles, pills and board cards;
   `--background` stays white (inputs read it); `--badge` `#374151` for the
   avatar fallback and, via `--data`, direction arrows and tide curve —
-  readings are deliberately not blue.
+  readings are deliberately not blue. **One exception** (2026-10-22, by
+  request): the session's own mark on the tide curve is `--primary`. The tide
+  curve itself has its own light grey, `--tide-curve` (2026-10-23).
 - **Tooltips**: one shared `Tooltip` (`components/tooltip.tsx`); no native
   `title` on icon buttons (calendar day dots still use `title`).
   A trigger that opens a menu passes `suppress` while open and ~400 ms after

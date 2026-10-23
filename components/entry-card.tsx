@@ -197,7 +197,7 @@ export function EntryCard({
               <ConditionTile
                 label={t("tile.swellOpenMeteo")}
                 className={`${om.swellPeriodS == null ? "col-span-2" : ""} sm:flex-1 sm:basis-0 sm:shrink`}
-                value={<Figure value={swellHeightText(om)} unit="m" />}
+                value={<Figure value={fmt1(om.swellHeightMedianM ?? om.swellHeightM)} unit="m" />}
                 sub={<DirSub deg={om.swellDirDeg} compass={compassLabel(toCompass(om.swellDirDeg), lang)} />}
               />
         {om.swellPeriodS != null && (
@@ -659,14 +659,4 @@ function MediaMosaic({
       <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">{[1, 2, 3, 4].map((i) => cell(i, ""))}</div>
     </div>
   );
-}
-
-/** "3.3", or "3.0–3.4" when the session's hours read differently (a duration was set). */
-function swellHeightText(om: NonNullable<Session["condOpenMeteo"]>): string | null {
-  const range = om.swellHeightRangeM;
-  if (range) {
-    const [lo, hi] = [fmt1(range[0]), fmt1(range[1])];
-    if (lo && hi && lo !== hi) return `${lo}–${hi}`;
-  }
-  return fmt1(om.swellHeightM);
 }

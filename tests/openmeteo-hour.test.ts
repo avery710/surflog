@@ -30,20 +30,25 @@ describe("getConditions hour", () => {
 });
 
 describe("getConditions over a session's duration", () => {
-  it("reports the lowest and highest swell height of the hours it covered", async () => {
-    // the series is 0…23, so 16:00 + 2 h covers hours 16, 17, 18
+  it("reports the median swell height of the hours it covered", async () => {
+    // the series is 0…23, so 16:00 + 2 h covers hours 16, 17, 18 → median 17
     const c = await conditionsFor("2026-10-05T16:00", 120);
     expect(c.swellHeightM).toBe(16); // still the start's reading
-    expect(c.swellHeightRangeM).toEqual([16, 18]);
+    expect(c.swellHeightMedianM).toBe(17);
+  });
+
+  it("averages the two middle hours when the count is even", async () => {
+    // 16:00 + 1 h covers hours 16, 17 → median 16.5
+    expect((await conditionsFor("2026-10-05T16:00", 60)).swellHeightMedianM).toBe(16.5);
   });
 
   it("runs from the start's nearest hour to the last whole hour inside the session", async () => {
-    // 16:30–18:30: the start reads 17, and 17:00 and 18:00 lie inside it
-    expect((await conditionsFor("2026-10-05T16:30", 120)).swellHeightRangeM).toEqual([17, 18]);
+    // 16:30–18:30: the start reads 17, and 17:00 and 18:00 lie inside it → median 17.5
+    expect((await conditionsFor("2026-10-05T16:30", 120)).swellHeightMedianM).toBe(17.5);
   });
 
-  it("has no range for a session inside one hour, or without a duration", async () => {
-    expect((await conditionsFor("2026-10-05T16:00", 30)).swellHeightRangeM).toBeUndefined();
-    expect((await conditionsFor("2026-10-05T16:00")).swellHeightRangeM).toBeUndefined();
+  it("has no median for a session inside one hour, or without a duration", async () => {
+    expect((await conditionsFor("2026-10-05T16:00", 30)).swellHeightMedianM).toBeUndefined();
+    expect((await conditionsFor("2026-10-05T16:00")).swellHeightMedianM).toBeUndefined();
   });
 });

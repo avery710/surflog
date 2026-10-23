@@ -63,9 +63,9 @@ export interface Conditions {
    *  meaningful across sources. Undefined if the fetch failed or no local
    *  extrema were found in the window. */
   tideEvents?: TideEvent[];
-  /** lowest and highest swell height over the hours a session with a duration
-   *  covered; absent without a duration or when the hours read the same */
-  swellHeightRangeM?: [number, number];
+  /** median swell height over the hours a session with a duration covered;
+   *  absent without a duration or when only one hour is in range */
+  swellHeightMedianM?: number;
   /** the grid node actually used — may be km from the spot, always show it */
   gridLat: number;
   gridLng: number;
@@ -75,6 +75,15 @@ export interface Conditions {
 
 const pick = (block: Record<string, unknown[]> | undefined, key: string, i: number) =>
   (block?.[key]?.[i] as number | undefined) ?? null;
+
+/** Middle value of a non-empty list; with an even count, the mean of the two
+ *  middle values. Rounded to 2 dp, the precision Open-Meteo reports. */
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const m = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return Math.round(m * 100) / 100;
+};
 
 /** The spot's home timezone for the Taiwan breaks, which is what every
  *  session before the shared catalogue (2026-10-05) used. */
@@ -103,7 +112,7 @@ export async function getConditions(
   lng: number,
   whenLocal: string,
   timeZone: string = DEFAULT_TIMEZONE,
-  /** How long the session was; adds `swellHeightRangeM` over the hours it covered. */
+  /** How long the session was; adds `swellHeightMedianM` over the hours it covered. */
   durationMin?: number | null
 ): Promise<Conditions> {
   const date = whenLocal.slice(0, 10);
@@ -151,13 +160,13 @@ export async function getConditions(
     }
   }
 
-  // lowest and highest swell height over the hours the session covered
-  let swellHeightRangeM: [number, number] | null = null;
+  // median swell height over the hours the session covered
+  let swellHeightMedianM: number | null = null;
   if (lastHour > hour) {
     const hs = Array.from({ length: lastHour - hour + 1 }, (_, k) => pick(mh, "swell_wave_height", hour + k)).filter(
       (v): v is number => v != null
     );
-    if (hs.length > 1) swellHeightRangeM = [Math.min(...hs), Math.max(...hs)];
+    if (hs.length > 1) swellHeightMedianM = median(hs);
   }
 
   return {
@@ -178,7 +187,7 @@ export async function getConditions(
     seaLevelM,
     seaLevelTrend,
     tideEvents,
-    ...(swellHeightRangeM ? { swellHeightRangeM } : {}),
+    ...(swellHeightMedianM != null ? { swellHeightMedianM } : {}),
     gridLat: marine.latitude,
     gridLng: marine.longitude,
     source: "open-meteo",

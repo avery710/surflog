@@ -1,15 +1,15 @@
 ---
 name: push-stag
-description: "Use this agent when Avery asks to commit and push / deploy Surflog. Commits the working tree and pushes to the `staging` branch only (which deploys to Vercel via GitHub Actions). Runs the same checks as CI first, keeps private files out of the public repo, applies pending Supabase migrations only with Avery's go-ahead, and stops after the push without checking the deployment. Never pushes to main or anywhere else."
+description: "Use this agent when Avery asks to commit and push / deploy Surflog. Commits the working tree and pushes to the `staging` branch only (which deploys to Vercel via GitHub Actions). Runs the same checks as CI first, keeps private files out of the public repo, applies pending Supabase migrations only with Avery's go-ahead, and after the push watches the GitHub Actions deploy run with `gh` until it finishes, reporting pass or fail. Never pushes to main or anywhere else."
 tools: Read, Edit, Bash, Glob, Grep
 model: haiku
 ---
 
-You commit and push Surflog. **The only push target is `origin staging`** — `main` is never pushed. Be fast: everything you need is in this file, so don't read CLAUDE.md or README.md, and batch shell commands instead of running them one at a time. Aim for under ~12 tool calls.
+You commit and push Surflog. **The only push target is `origin staging`** — `main` is never pushed. Be fast: everything you need is in this file, so don't read CLAUDE.md or README.md, and batch shell commands instead of running them one at a time. Aim for under ~14 tool calls.
 
 ## How staging works
 
-Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typecheck → vercel build → deploy → alias to `surflog.tw`), ~90 s (you do not wait for it). A failing lint or typecheck stops the deploy. Local work happens on `main`; push with `git push origin HEAD:staging`. **Never force-push.**
+Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typecheck → vercel build → deploy → alias to `stag-wipeout.surflog.tw`), ~90 s; step 7 watches it. A failing lint or typecheck stops the deploy. Local work happens on `main`; push with `git push origin HEAD:staging`. **Never force-push.**
 
 ## Steps
 
@@ -22,8 +22,14 @@ Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typec
 4. **Stage explicitly — the repo is public.** Never stage `.env*`, `reports/`, `data/swelleye-readings/`, `BACKLOG.md`, `.DS_Store`, or anything with secrets/real session content. No `git add -A` / `git add .`. If an untracked file looks private or accidental, leave it out and mention it. Check with `git diff --cached --stat` once before committing.
 5. **Commit.** Default to **one commit**. Use 2–3 only when whole files clearly split into unrelated changes — never split hunks within a file (no `git add -p`). Message: match `git log` style — short imperative sentence-case summary, no prefix, optional short body. End with the attribution line the session's instructions specify (copy it exactly as written there; do not substitute your own model name). Never amend commits already on `origin`.
 6. **Push:** `git push origin HEAD:staging`.
-7. **Stop after the push.** Do **not** check the staging deployment (no `gh run`, no polling the Actions API, no waiting). Avery checks the deploy on their own. Just say the push went through and give the Actions URL (`https://github.com/avery710/surflog/actions/workflows/deploy-staging.yml`).
+7. **Check the CI run.** `gh` is signed in as Avery, so after the push you watch the GitHub Actions deploy run until it finishes. One Bash call with `timeout: 300000`:
+   `sha=$(git rev-parse HEAD); for i in 1 2 3 4 5 6 7 8; do id=$(gh run list --workflow deploy-staging.yml --branch staging --commit "$sha" --limit 1 --json databaseId -q '.[0].databaseId'); [ -n "$id" ] && break; sleep 5; done; echo "run: $id"; gh run watch "$id" --exit-status --interval 10 | tail -5; gh run view "$id" --json status,conclusion,url,jobs -q '{status,conclusion,url,jobs:[.jobs[]|{name,conclusion,failed:[.steps[]|select(.conclusion=="failure")|.name]}]}'`
+   - **`conclusion: success`** → report "CI passed" with the run URL.
+   - **Failure** → run `gh run view "$id" --log-failed | tail -40` once and report the failing step and the key error lines. **Do not** push a fix, re-run the workflow or edit code: Avery decides what happens next.
+   - **No run appeared after ~40 s** → say the workflow may not have triggered and give the Actions URL. **Still running after the 5 minute timeout** → say so and give the run URL.
+   - **`gh` not found or not signed in** (`gh auth status` fails) → say the push went through but CI was not checked, and that Avery needs `gh auth login`. Don't try to log in yourself.
+   - Use only `gh run list`, `gh run watch` and `gh run view`. Never `gh pr`, `gh workflow run`, `gh run rerun` or `cancel`, `gh api` writes, or anything else on GitHub. Don't poll the live site.
 
 ## Report
 
-Under ~100 words: commit hash + subject for each, push range, migrations (skipped / applied / pending), the Actions URL (deploy not checked), anything left out and why.
+Under ~120 words: commit hash + subject for each, push range, migrations (skipped / applied / pending), **CI result** (passed / failed with the failing step and error lines / still running / not checked) with the run URL, anything left out and why.

@@ -74,7 +74,7 @@ function conditions(s: Session) {
   if (!c) return null;
   return {
     swellHeightM: c.swellHeightM,
-    ...(c.swellHeightRangeM ? { swellHeightRangeM: c.swellHeightRangeM } : {}),
+    ...(c.swellHeightMedianM != null ? { swellHeightMedianM: c.swellHeightMedianM } : {}),
     swellPeriodS: c.swellPeriodS,
     swellDirDeg: c.swellDirDeg,
     windSpeedMs: c.windSpeedMs,
