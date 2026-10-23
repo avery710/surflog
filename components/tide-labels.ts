@@ -14,7 +14,7 @@ import type { TideEvent } from "@/lib/types";
  */
 
 export interface LabelOpts {
-  /** Font size in px (IBM Plex Mono, so a character is 0.6 em wide). */
+  /** Font size in px (Funnel Sans like the tiles' small print, a touch smaller: 9). */
   size: number;
   /** Clear space between the text and the curve on each side of it, px. */
   pad: number;
@@ -35,7 +35,7 @@ export interface LabelOpts {
 }
 
 export const DEFAULT_LABELS: LabelOpts = {
-  size: 8.5,
+  size: 9,
   pad: 3,
   weight: 500,
   all: false,
@@ -67,12 +67,16 @@ export interface PlacedLabel {
   inSpan: boolean;
 }
 
-/** Width of a label in px: mono Latin is 0.6 em a character, CJK a full em. */
+/**
+ * Width of a label in px. The labels are Funnel Sans like the tiles' small
+ * print ("Air 23.3°C"; 2026-10-23, by request): a digit is 0.55 em
+ * (tabular), a colon 0.28 em, a space 0.25 em, other Latin ~0.55 em, CJK a full em.
+ */
 export function textWidth(text: string, size: number, spacing = 0) {
   let w = 0;
   let n = 0;
   for (const ch of text) {
-    w += ch.charCodeAt(0) > 0x2e80 ? size : size * 0.6;
+    w += ch.charCodeAt(0) > 0x2e80 ? size : size * (ch === ":" ? 0.28 : ch === " " ? 0.25 : 0.55);
     n++;
   }
   return w + Math.max(0, n - 1) * spacing;

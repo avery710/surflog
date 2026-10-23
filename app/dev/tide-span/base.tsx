@@ -369,7 +369,7 @@ export function SpanChart({
             fontSize={labelOpts.size}
             fontWeight={labelOpts.weight}
             letterSpacing={labelOpts.spacing}
-            className={(p.inSpan ? "fill-primary" : "fill-muted-foreground") + " font-mono"}
+            className={(p.inSpan ? "fill-primary" : "fill-muted-foreground") + " font-sans tabular-nums"}
           >
             <textPath href={`#${p.id}`} startOffset={p.lead}>
               {p.text}

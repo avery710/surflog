@@ -209,7 +209,7 @@ export function TideChart({
             the blue stretch is as thick as the curve with flat (butt) outer ends,
             flush with the grey that stops where it starts, and the curve is a
             light grey (--tide-curve, #b8c2c4, about 1.7:1 on the tile) with round ends. The labels
-            use --muted-foreground (#59696c, 5.2:1) so 8.5 px text stays legible. */}
+            use --muted-foreground (#59696c, 5.2:1) in Funnel Sans (9 px: the 10.5 px of "Air 23.3°C" read too big on a tide tile). */}
         {curveD.map((d, i) => (
           <path key={i} d={d} fill="none" className="[stroke:var(--tide-curve)]" strokeWidth={CURVE_W} strokeLinecap="round" strokeLinejoin="round" />
         ))}
@@ -220,7 +220,7 @@ export function TideChart({
             fontSize={fs}
             fontWeight={DEFAULT_LABELS.weight}
             letterSpacing={DEFAULT_LABELS.spacing}
-            className={(p.inSpan ? "fill-primary" : "fill-muted-foreground") + " font-mono"}
+            className={(p.inSpan ? "fill-primary" : "fill-muted-foreground") + " font-sans tabular-nums"}
           >
             <textPath href={`#${p.id}`} startOffset={p.lead}>
               {p.text}

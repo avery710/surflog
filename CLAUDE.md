@@ -509,14 +509,14 @@ Card) and a public link.
   blue thing on the curve (`--primary`): with a duration a solid line **as thick as
   the curve** with **flat ends** that meet the grey flush (the grey is cut where the
   span is; no halo, no end dots; drawn at least 8 px long so 30 min still reads as
-  a line); without one, a single blue dot (r 3.4). The curve is **2.25 px, light
-  grey `--tide-curve` #b8c2c4** (its own token, picked lighter on request; the
+  a line); without one, a single blue dot (r 3.4). The curve is **2.25 px,
+  light grey `--tide-curve` #b8c2c4** (its own token, picked lighter on request; the
   2026-10-21 "spotlight" dimming was dropped 2026-10-23), drawn as separate runs
   with **round ends** (outer ends and both sides of every label gap; no mask). The
   low and high either side of the session are timed **inside gaps cut in the
   curve, bending with it** (`<textPath>` on a copy of the curve with 60% of its
   bend removed and 0.6 px letter-spacing, so digits don't crowd on a tight bend;
-  `--muted-foreground` text, 5.2:1 on the tile; no dot, no label above/below).
+  `--muted-foreground` text, Funnel Sans 9 px like the tiles' small print (2026-10-23; was 8.5 px mono), 5.2:1 on the tile; no dot, no label above/below).
   Layout, gaps and runs live in `components/tide-labels.ts`, shared with the dev
   copy; every drawn number is rounded to 0.01 (`r2`) because `Math.cos` differs in
   the last digit between Node and the browser (that was a hydration error). Candidates kept at `/dev/tide-span`,
