@@ -352,6 +352,7 @@ export const DICT = {
   "datepicker.today": { en: "Today", "zh-TW": "今天" },
   "filter.noMatchTitle": { en: "No sessions match these filters", "zh-TW": "沒有符合條件的紀錄" },
   "list.loading": { en: "Loading more sessions", "zh-TW": "載入更多紀錄中" },
+  "page.loading": { en: "Loading…", "zh-TW": "載入中…" },
   "list.loadFailed": { en: "Couldn't load more sessions.", "zh-TW": "無法載入更多紀錄。" },
   "list.retry": { en: "Try again", "zh-TW": "再試一次" },
   "goal.title": { en: "Goal for next session", "zh-TW": "下次衝浪的目標" },

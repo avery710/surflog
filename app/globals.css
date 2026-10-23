@@ -404,20 +404,24 @@
  * iOS Safari zooms the page when a text control with a computed font-size
  * under 16px is focused, and stays zoomed after blur — the page then looks
  * wider than the screen and pans sideways. Fixed here, centrally, rather than
- * per field (the goal-card inputs are 14.5px, the spot-note input 14px, the
- * notes editor 15px, shadcn's Input/Textarea 14px from `md` up). Scoped to
+ * per field (the spot-note input 14px, the notes editor 15px, shadcn's
+ * Input/Textarea 14px from `md` up). Goal-point inputs are the exception, see
+ * `.goal-point-input` below. Scoped to
  * iOS/iPadOS WebKit (-webkit-touch-callout exists nowhere else) AND a coarse
  * pointer, so desktop and Android are untouched. Deliberately NOT
  * maximum-scale=1 / user-scalable=no: that would kill pinch-zoom everywhere.
  * Unlayered on purpose: unlayered rules beat every @layer, including
  * Tailwind's `utilities` (text-[14.5px], md:text-sm), without !important.
  * Checkbox/radio/file/etc. aren't text entry and never zoom, so are skipped.
+ * `.goal-point-input` is skipped too: an editing goal point must read at the
+ * same 13.5px as its pill in the read view (components/goal.tsx), which is
+ * the trade-off that file records — focusing it zooms iOS Safari.
  */
 @supports (-webkit-touch-callout: none) {
   @media (pointer: coarse) {
     textarea,
     select,
-    input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"]),
+    input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], .goal-point-input),
     [contenteditable]:not([contenteditable="false"]) {
       font-size: 16px;
     }
@@ -483,4 +487,18 @@ button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible
 :is(a, img, [role="button"], [role="switch"], [role="checkbox"]):focus-visible {
   outline: none;
   box-shadow: none;
+}
+
+/* Page loading (components/page-skeleton.tsx, 2026-10-21). The skeleton's body
+   waits 120 ms and fades in, so a fast load never flashes grey boxes (the blue
+   header shows at once); its bars pulse gently. The real page column then
+   fades in (`.page-enter`) instead of cutting in. `backwards` / no fill mode
+   on purpose: an animation still in effect after it ends would keep the page
+   column a stacking context. All off under reduced motion. */
+@keyframes skeleton-pulse { 50% { opacity: .55; } }
+@keyframes page-fade-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-body { animation: page-fade-in 150ms ease-out 120ms backwards; }
+  .skeleton-bar { animation: skeleton-pulse 1.6s ease-in-out infinite; }
+  .page-enter { animation: page-fade-in 150ms ease-out; }
 }

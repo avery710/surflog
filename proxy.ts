@@ -29,6 +29,14 @@ export default auth((req) => {
   // and 401s without a valid token. Exactly this path, nothing under it.
   if (pathname === "/api/mcp") return;
 
+  // Health check (app/api/health/route.ts): one tiny database read that
+  // answers only { ok }, pinged on a schedule to keep Supabase awake.
+  if (pathname === "/api/health") return;
+
+  // Vercel Cron (vercel.json): the route checks CRON_SECRET itself and 401s
+  // without it. Exactly this path.
+  if (pathname === "/api/cron/keep-awake") return;
+
   // OAuth for MCP connectors (lib/oauth.ts): the metadata documents and the
   // two endpoints a connector calls before any user is involved. Each is its
   // own credential check (registration is rate limited, the token endpoint

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { SiteHeader } from "@/components/site-header";
 import { SpotDetail, type SpotSession } from "@/components/spot-detail";
-import { listSessions, listSpotNotes } from "@/lib/db";
+import { listSessionsAtSpot, listSpotNotes } from "@/lib/db";
 import { isSpotAdmin } from "@/lib/spot-admin";
 import { listOwnPending, pendingAdminWork, softly, toOwn } from "@/lib/spot-edit-requests";
 import { pinsSoftly } from "@/lib/spot-pins";
@@ -30,33 +30,33 @@ export default async function SpotPage({ params }: Props) {
   const session = await auth();
   if (!session?.user?.id) redirect(`/signin?callbackUrl=${encodeURIComponent(`/spots/${raw}`)}`);
 
-  const spot = await resolveSpot(slug);
-  if (!spot) notFound();
-
   const userId = session.user.id;
   const canManageSpots = isSpotAdmin(session.user);
-  const [sessions, notes, pins, ownEdits, pendingSpotRequests] = await Promise.all([
-    listSessions(userId),
+  // All at once, the spot lookup included: one round trip to Supabase, not
+  // two (2026-10-21). resolveSpot matches the slug exactly, so the other
+  // queries can use it before it answers; an unknown slug just finds nothing.
+  const [spot, sessions, notes, pins, ownEdits, pendingSpotRequests] = await Promise.all([
+    resolveSpot(slug),
+    listSessionsAtSpot(userId, slug),
     listSpotNotes(userId),
     pinsSoftly(userId),
-    softly(() => listOwnPending(userId, spot.slug).then((rows) => rows.map(toOwn)), []),
+    softly(() => listOwnPending(userId, slug).then((rows) => rows.map(toOwn)), []),
     canManageSpots
       ? listAllRequests().then((rows) => pendingAdminWork(rows.filter((r) => r.status === "pending").length))
       : 0,
   ]);
+  if (!spot) notFound();
 
   // Only what the history list shows, never the stored condition blobs.
-  const history: SpotSession[] = sessions
-    .filter((s) => s.spot === spot.slug)
-    .map((s) => ({
-      id: s.id,
-      when: s.when,
-      durationMin: s.durationMin ?? null,
-      swellM: s.condOpenMeteo?.swellHeightM ?? s.cond?.swellHeightM ?? null,
-      periodS: s.condOpenMeteo?.swellPeriodS ?? s.cond?.swellPeriodS ?? null,
-      windMs: s.condOpenMeteo?.windSpeedMs ?? s.cond?.windSpeedMs ?? null,
-      notes: (s.notes ?? "").trim().slice(0, 160),
-    }));
+  const history: SpotSession[] = sessions.map((s) => ({
+    id: s.id,
+    when: s.when,
+    durationMin: s.durationMin ?? null,
+    swellM: s.condOpenMeteo?.swellHeightM ?? s.cond?.swellHeightM ?? null,
+    periodS: s.condOpenMeteo?.swellPeriodS ?? s.cond?.swellPeriodS ?? null,
+    windMs: s.condOpenMeteo?.windSpeedMs ?? s.cond?.windSpeedMs ?? null,
+    notes: (s.notes ?? "").trim().slice(0, 160),
+  }));
 
   return (
     <>

@@ -35,7 +35,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-panel text-foreground">
         <QueryProvider>
           <LanguageProvider>
-            {children}
+            {/* Every page (header + content, not the footer) is at least one
+                screen tall, so the footer always starts below the fold and
+                never flashes on screen while a page or skeleton is loading
+                (2026-10-21, on request). Pages grow into it with flex-1. */}
+            <div className="flex min-h-dvh flex-col">{children}</div>
             <SiteFooter />
           </LanguageProvider>
         </QueryProvider>

@@ -2,5 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": false
-  }
+  },
+  "regions": ["hnd1"],
+  "crons": [
+    { "path": "/api/cron/keep-awake", "schedule": "17 3 * * *" }
+  ]
 }

@@ -554,7 +554,7 @@ function SortablePointRow({
           if (e.key === "Escape") onCancel();
         }}
         className={cn(
-          "min-w-0 flex-1",
+          "goal-point-input min-w-0 flex-1",
           INLINE_FIELD,
           POINT_TEXT_CLASS
         )}
