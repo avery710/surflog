@@ -34,7 +34,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   // so a click on "/" changes the screen as soon as this shell arrives. Not a
   // loading.tsx: that would also cover the landing and every route under "/".
   return (
-    <Suspense fallback={<PageSkeleton variant="journal" />}>
+    <Suspense fallback={<PageSkeleton variant="journal" user={session.user} />}>
       <SignedInJournal userId={session.user.id} user={session.user} searchParams={searchParams} />
     </Suspense>
   );

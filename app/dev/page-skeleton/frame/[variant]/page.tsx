@@ -11,5 +11,5 @@ const VARIANTS: PageSkeletonVariant[] = ["journal", "spots", "spot", "aiApps", "
 export default async function SkeletonFrame({ params }: { params: Promise<{ variant: string }> }) {
   const { variant } = await params;
   if (!VARIANTS.includes(variant as PageSkeletonVariant)) notFound();
-  return <PageSkeleton variant={variant as PageSkeletonVariant} />;
+  return <PageSkeleton variant={variant as PageSkeletonVariant} user={{ name: "Avery Lin" }} />;
 }

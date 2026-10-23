@@ -136,10 +136,6 @@ export const DICT = {
     en: "Your session is saved. Keep this window open until the uploads finish.",
     "zh-TW": "紀錄已儲存，上傳完成前請不要關閉視窗。",
   },
-  "form.autoFillHint": {
-    en: "Swell, wind and tide fill in automatically from Open-Meteo and CWA once saved",
-    "zh-TW": "儲存後會自動帶入 Open-Meteo 與氣象署的浪況、風和潮汐",
-  },
 
   "edit.conditionsHeader": { en: "Conditions", "zh-TW": "浪況" },
   "edit.saveChanges": { en: "Save changes", "zh-TW": "儲存變更" },
