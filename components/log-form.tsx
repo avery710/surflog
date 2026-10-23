@@ -299,9 +299,9 @@ export function LogForm({
         <Button onClick={handleSave} disabled={saving} className="rounded-full px-6">
           {saving ? t("form.saving") : t("form.saveSession")}
         </Button>
-        <span className="text-[13px] font-medium text-muted-foreground">
-          {progress ? t("form.uploadingHint") : t("form.autoFillHint")}
-        </span>
+        {progress && (
+          <span className="text-[13px] font-medium text-muted-foreground">{t("form.uploadingHint")}</span>
+        )}
       </div>
     </div>
   );
