@@ -237,6 +237,11 @@
   --warm-foreground: #b35a28;
   --warm-soft: #fbeadf;
   --faint: #8a9699;
+  /* The tide curve in the Tide tile (components/tide-chart.tsx). A light grey
+     so the line recedes behind the blue session mark; Avery picked it lighter
+     than --faint on 2026-10-23. Only the line: the time labels sitting in it
+     use --muted-foreground so 8.5 px text stays legible. */
+  --tide-curve: #b8c2c4;
   --line-soft: #eff3f3;
   /* Cards: 24px -> 16px and shadow -> flat light-grey outline, 2026-10-01 on
      request (see CLAUDE.md "Style references"). Tiles scaled down with them
