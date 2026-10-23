@@ -32,7 +32,7 @@ import { PAGE_COLUMN } from "@/lib/layout";
  */
 export type PageSkeletonVariant = "journal" | "spots" | "spot" | "aiApps" | "admin";
 
-/** The blue header as it will look (also used by components/page-loading.tsx). */
+/** The blue header as it will look. */
 export function LoadingHeader() {
   return (
     <header className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2">
@@ -146,7 +146,8 @@ function TitleRow({ sub = true, ctls = [] }: { sub?: boolean; ctls?: string[] })
   );
 }
 
-/** A session card (components/entry-card.tsx): header, the board chip (photo
+/** A session card (components/entry-card.tsx), also shown by SessionList while
+ *  a filter's first page loads: header, the board chip (photo
  *  circle + stem + name pill) and a goal pill, notes, then five condition
  *  tiles joined by stems. The chip and the tile group reuse the real PillNeck
  *  and TileGroup, so their shapes and stems are the real card's. They are
@@ -154,7 +155,7 @@ function TitleRow({ sub = true, ctls = [] }: { sub?: boolean; ctls?: string[] })
  *  `--secondary` set to the bars' grey (#ededed, black at 7% on white) so
  *  chips, tiles and stems match the lines in the card (Avery, 2026-10-23);
  *  each group pulses as one piece. */
-function SessionCard() {
+export function SessionCardSkeleton() {
   return (
     <Panel className="mt-2 px-4 sm:mt-3 sm:px-6">
       <div className="flex items-start justify-between gap-3">
@@ -241,8 +242,8 @@ const BODIES: Record<PageSkeletonVariant, React.ReactNode> = {
             ))}
           </div>
         </div>
-        <SessionCard />
-        <SessionCard />
+        <SessionCardSkeleton />
+        <SessionCardSkeleton />
       </div>
     </>
   ),

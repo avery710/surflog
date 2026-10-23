@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { EntryCard } from "@/components/entry-card";
+import { SessionCardSkeleton } from "@/components/page-skeleton";
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/lib/i18n";
 import type { FeedStatus } from "@/lib/use-session-feed";
@@ -15,12 +16,18 @@ import type { Board, Session } from "@/lib/types";
  * every load, and a fresh `observe()` always reports the sentinel's current
  * state, so if the cards still don't fill the screen the next page follows
  * until they do. A failed load stops the auto-loading and shows Try again.
+ * While nothing is loaded yet (a filter was just applied) the first page
+ * shows as skeleton cards (at most 3, and no more than the match count; the
+ * same ones the page loading uses, fading in
+ * after 120 ms so a cached list never flashes them); the spinner is only for
+ * loading the pages after the first (2026-10-23, by request).
  */
 export function SessionList({
   sessions,
   boards,
   goal,
   hasMore,
+  total,
   status,
   onLoadMore,
   onUpdated,
@@ -31,6 +38,8 @@ export function SessionList({
   /** The owner's current goal — passed down to each card's edit panel. */
   goal: string | null;
   hasMore: boolean;
+  /** How many sessions match in all (from the slim list): caps the skeleton cards. */
+  total: number;
   status: FeedStatus;
   onLoadMore: () => void;
   onUpdated: (s: Session) => void;
@@ -38,6 +47,7 @@ export function SessionList({
 }) {
   const { t } = useLang();
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingFirstPage = status === "loading" && sessions.length === 0;
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -60,9 +70,19 @@ export function SessionList({
       {sessions.map((s) => (
         <EntryCard key={s.id} session={s} boards={boards} goal={goal} onUpdated={onUpdated} onDeleted={onDeleted} />
       ))}
+      {loadingFirstPage && (
+        <div role="status" aria-busy="true" className="skeleton-body">
+          <span className="sr-only">{t("list.loading")}</span>
+          <div aria-hidden>
+            {Array.from({ length: Math.min(3, Math.max(total, 1)) }, (_, i) => (
+              <SessionCardSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      )}
       {hasMore && (
         <div ref={sentinelRef} className="flex min-h-10 items-center justify-center py-4" aria-live="polite">
-          {status === "loading" && <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label={t("list.loading")} />}
+          {status === "loading" && !loadingFirstPage && <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label={t("list.loading")} />}
           {status === "failed" && (
             <div className="flex flex-wrap items-center justify-center gap-3">
               <p className="text-[14px] font-medium text-muted-foreground">{t("list.loadFailed")}</p>

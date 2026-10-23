@@ -398,6 +398,7 @@ export function Journal({
                 boards={boards}
                 goal={goal}
                 hasMore={feed.hasMore}
+                total={feed.total}
                 status={feed.status}
                 onLoadMore={feed.loadMore}
                 onUpdated={feed.updated}

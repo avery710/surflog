@@ -624,6 +624,11 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   instant and scrolling resumes; any create/edit/delete/board/goal change
   here clears all kept lists, so only changes made elsewhere (another tab,
   MCP) can be up to a minute old. The list on screen is never auto-refreshed.
+  While a filter's first page loads (nothing loaded yet) the list shows
+  skeleton session cards (`SessionCardSkeleton`, at most 3 and never more than
+  the match count, fading in after 120 ms) instead of the spinner; the spinner
+  stays for the pages after the first (2026-10-23, by request; checked on the
+  real journal with the request slowed, Last 3 days: 1 match, 1 skeleton card).
   The no-library choice was reversed the same day on request: see
   **Client data fetching** below. Checked in the built-in browser
   on a temporary `/dev` page with a fake `fetch` (Last 30 days, scroll to the

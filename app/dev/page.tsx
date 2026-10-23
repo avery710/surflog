@@ -8,12 +8,6 @@ import Link from "next/link";
  */
 const PAGES = [
   {
-    href: "/dev/page-loading",
-    title: "Loading animations",
-    description:
-      "components/page-loading.tsx — five candidate loading animations (swell, wordmark, cup, board, dots) to replace the grey skeleton; open any one as a full page under the real header.",
-  },
-  {
     href: "/dev/page-skeleton",
     title: "Loading skeleton",
     description:
