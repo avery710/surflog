@@ -246,7 +246,7 @@ export function BoardRack({
           <p className="pb-2 text-[12.5px] font-medium text-muted-foreground">{t("board.sortHint")}</p>
         )}
         {boards.length === 0 ? (
-          <p className="pt-1 text-[14px] font-medium text-muted-foreground">{t("board.empty")}</p>
+          <p className="pt-1 text-[13px] font-medium text-[var(--faint)]">{t("board.empty")}</p>
         ) : (
           <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -386,7 +386,7 @@ function SortableBoardCard({
   // toggle mid-drag.
   const favoriteBadge = b.isFavorite && (
     sorting ? (
-      <span className="inline-flex h-7 shrink-0 items-center rounded-full bg-primary px-2.5 text-[13px] font-medium text-primary-foreground">
+      <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground">
         {t("board.favorite")}
       </span>
     ) : (
@@ -397,7 +397,7 @@ function SortableBoardCard({
           onToggleFavorite(b);
         }}
         aria-label={t("board.removeFavoriteLabel", { name })}
-        className="inline-flex h-7 shrink-0 items-center rounded-full bg-primary px-2.5 text-[13px] font-medium text-primary-foreground outline-none transition-colors hover:bg-primary/80 focus-visible:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="inline-flex h-6 shrink-0 items-center rounded-full bg-primary px-2 text-xs font-medium text-primary-foreground outline-none transition-colors hover:bg-primary/80 focus-visible:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         {t("board.favorite")}
       </button>
@@ -467,11 +467,11 @@ function SortableBoardCard({
               <li>), with no handle icon. ⋯ has no fill at rest; the
               round background only shows on hover / while open. */}
           <div className="flex min-w-0 items-center gap-2">
-            {/* leading-7 (28px) matches the 常用 badge's h-7 exactly, so the
-                row's height — and the specs/note lines below it — don't
-                shift by the ~2px gap between the text's own line box and
-                the badge when the badge appears/disappears (Avery's
-                report, 2026-10-01). Truncate still keeps it one line. */}
+            {/* leading-7 (28px) sets the row's height. The 常用 badge is h-6
+                (24px, smaller since 2026-10-23) and sits inside that, so the
+                row — and the specs/note lines below it — don't shift when the
+                badge appears/disappears (Avery's report, 2026-10-01). Truncate
+                still keeps it one line. */}
             <span className="min-w-0 truncate text-[15px] leading-7 font-bold tracking-[-0.015em]">
               {b.brand || name}
             </span>
