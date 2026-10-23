@@ -270,6 +270,10 @@ export function LogForm({
         </p>
       )}
 
+      <div className="mt-4">
+        <TagPicker value={tags} onChange={setTags} disabled={saving} />
+      </div>
+
       <div className="mt-4 flex flex-col gap-1.5">
         <span className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("form.notesOptional")}</span>
         <RichTextEditor
@@ -282,10 +286,6 @@ export function LogForm({
 
       <div className="mt-4 flex flex-wrap items-center gap-4">
         <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full min-w-[180px]" />
-      </div>
-
-      <div className="mt-4">
-        <TagPicker value={tags} onChange={setTags} disabled={saving} />
       </div>
 
       <div className="mt-4">

@@ -36,7 +36,12 @@ export function AnimatedHeight({ children, className = "" }: { children: ReactNo
         release();
         return;
       }
-      const from = o.getBoundingClientRect().height;
+      // Where to start: the old content height, which is what the wrapper was
+      // before this change. (Reading the wrapper itself is no good here: it is
+      // `auto`, so it already has the new height and nothing would animate.)
+      // Mid-ease the wrapper is pinned, so its own height is the real start.
+      const easing = o.style.height !== "";
+      const from = easing ? o.getBoundingClientRect().height : last;
       last = next;
       if (reduce.matches || !from) {
         release();

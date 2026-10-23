@@ -118,11 +118,14 @@ and what is unverified.
   duration, on 2026-10-21; the avatar and pin ones were already there).
   Apply to staging first, then production, with the CLI linked to the
   right project.
-- **Tags (SURFLOG-11, built 2026-10-23, not committed or deployed yet)**:
-  migration `20261023000000_add_session_tags.sql` is **applied nowhere**
-  (apply to staging first, then production). Without it the dashboard still
-  loads (`listSessionStats` falls back) and saving with tags says "not
-  switched on yet". See "Tags" under Data model.
+- **Tags (SURFLOG-11, built 2026-10-23, pushed to `staging` as `b1735f5`)**:
+  migration `20261023000000_add_session_tags.sql` is **applied to the staging
+  Supabase project (2026-10-23, from a worktree with its own CLI link, so the
+  main checkout's production link was never touched), NOT to production yet**
+  (apply it there before fast-forwarding `main`). Without it the dashboard
+  still loads (`listSessionStats` falls back) and saving with tags says "not
+  switched on yet". Not tried on staging in a browser yet. See "Tags" under
+  Data model.
 - Never tried on a real phone. Most "not verified" notes below still stand.
 - In the repo but not described here: spot **edit** requests
   (`lib/spot-edit-*.ts`, `app/api/spot-edit-requests`, migration
@@ -311,10 +314,11 @@ each ≤24 characters, else 400. Descriptive only: **no judgement tags (Epic,
 Good, Bad), the rating was removed on request**; no wind/tide tags (they come
 from the sources); no board-type tags (the board chip says it). Size group is
 unreviewed wording. UI: grouped-chip picker in the log form and edit panel
-(`components/tag-picker.tsx`, group labels 10 px, picked chips are filled blue
+(`components/tag-picker.tsx`; in the log form it sits **above the notes**, in the
+edit panel after the board; group labels 10 px, picked chips are filled blue
 with no check mark). **Collapsed by default** (2026-10-23, on request): the
 picked tags, then the 6 most used (`quickTags()`, topped up with common
-starters for a new user), then "+ Add tag"; "All tags" opens the grouped list,
+starters for a new user), then "+ Add tag"; "All tags" opens the grouped list (the height eases),
 "Yours" = your own tags. The history comes from `KnownTagsProvider` (the slim
 session list), so no extra request; **one quiet
 line under the notes** on the card (`components/tag-line.tsx`, tag icon in a
@@ -595,8 +599,11 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   at every width, header always visible, **vertical scroll only, never
   horizontal** (names and notes wrap); "Jialeshui" just fits at 320 px.
   Height animates (`components/animated-height.tsx`, `NoteField`; the card's fill, radius and **shadow sit on the `AnimatedHeight` wrapper**, because its `overflow:hidden` mid-ease clips a child's shadow and makes it flash; that arrangement is the shared `WhiteCard` (`components/white-card.tsx`), also used by the board rack and spot-detail sections; use it for new white cards,
-  coordinated via `data-height-anim`; off under reduced motion; never
-  watched in a visible tab). Share icon tooltip is portalled to `body`. A
+  coordinated via `data-height-anim`; off under reduced motion; **fixed
+  2026-10-23**: it used to read the wrapper's already-new height as the start
+  and so never eased; it now starts from the old content height (checked on
+  `/dev/tags`: ~240 ms both ways), which also changes the patterns table,
+  board rack and tag picker, not re-checked on those). Share icon tooltip is portalled to `body`. A
   stacked phone layout was **reverted on request 2026-10-16 — don't bring
   back**.
 - **Activity calendar**: its header comment is the source of truth.
