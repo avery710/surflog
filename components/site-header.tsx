@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AddButton } from "@/components/add-button";
 import { UserMenu } from "@/components/user-menu";
 import { useLang } from "@/lib/i18n";
-import { PAGE_COLUMN } from "@/lib/layout";
+import { HEADER_BAR, HEADER_PILL, PAGE_COLUMN } from "@/lib/layout";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 
 /**
@@ -29,9 +29,10 @@ export function SiteHeader({
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
+      className={`${HEADER_BAR} auto-hide-header`}
     >
-      <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+      <div className={PAGE_COLUMN}>
+<div className={HEADER_PILL}>
         <Link href="/" className="rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-white">
           {/* White on the blue bar, as in journal.tsx. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -50,6 +51,7 @@ export function SiteHeader({
           <AddButton href="/?log=1" label={t("action.logSession")} />
           <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
         </div>
+      </div>
       </div>
     </header>
   );

@@ -1,5 +1,5 @@
 import { SharedEntryCard } from "@/components/share/shared-entry-card";
-import { PAGE_COLUMN } from "@/lib/layout";
+import { HEADER_PILL, PAGE_COLUMN } from "@/lib/layout";
 import type { PublicShare } from "@/lib/share-public";
 import { shareT } from "@/lib/share-strings";
 
@@ -35,8 +35,9 @@ export function PublicShareView({
 
   return (
     <div lang={lang} className="flex min-h-screen flex-col bg-panel text-foreground">
-      <header className="bg-primary">
-        <div className={`${PAGE_COLUMN} flex items-center justify-between py-3`}>
+      <header className="bg-panel py-2">
+        <div className={PAGE_COLUMN}>
+        <div className={HEADER_PILL}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/surflog-logo.png" alt="Surflog" className="h-5 w-auto brightness-0 invert" />
           {signedIn ? (
@@ -49,6 +50,7 @@ export function PublicShareView({
               {t("share.page.startFree")}
             </a>
           )}
+        </div>
         </div>
       </header>
 

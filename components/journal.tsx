@@ -29,7 +29,7 @@ import { customTagsOf, tagCounts } from "@/lib/tags";
 import type { Spot } from "@/lib/spots";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
-import { PAGE_COLUMN } from "@/lib/layout";
+import { HEADER_BAR, HEADER_PILL, PAGE_COLUMN } from "@/lib/layout";
 import type { Board, Session } from "@/lib/types";
 
 interface JournalUser {
@@ -253,9 +253,10 @@ export function Journal({
           it. */}
       <header
         ref={headerRef}
-        className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
+        className={`${HEADER_BAR} auto-hide-header`}
       >
-        <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+        <div className={PAGE_COLUMN}>
+<div className={HEADER_PILL}>
           <h1 className="py-1">
             {/* White wordmark on the blue bar (2026-10-08, new logo file and
                 `brightness-0 invert` requested again — supersedes the
@@ -277,6 +278,7 @@ export function Journal({
             <AddButton label={t("action.logSession")} onClick={() => setFormOpen(true)} />
             <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
           </div>
+        </div>
         </div>
       </header>
 

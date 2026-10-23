@@ -5,7 +5,7 @@ import { LogIcon } from "@/components/add-button";
 import { PillNeck } from "@/components/pill-neck";
 import { TileGroup } from "@/components/tile-group";
 import { useLang } from "@/lib/i18n";
-import { PAGE_COLUMN } from "@/lib/layout";
+import { HEADER_BAR, HEADER_PILL, PAGE_COLUMN } from "@/lib/layout";
 
 /**
  * What a signed-in page shows while its server render is still on the way
@@ -57,8 +57,9 @@ function LoadingAvatar({ user }: { user?: SkeletonUser }) {
 /** The blue header as it will look. */
 export function LoadingHeader({ user }: { user?: SkeletonUser }) {
   return (
-    <header className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2">
-      <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+    <header className={HEADER_BAR}>
+      <div className={PAGE_COLUMN}>
+<div className={HEADER_PILL}>
         <div className="py-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -75,6 +76,7 @@ export function LoadingHeader({ user }: { user?: SkeletonUser }) {
           </span>
           <LoadingAvatar user={user} />
         </div>
+      </div>
       </div>
     </header>
   );
