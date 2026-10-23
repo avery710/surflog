@@ -275,7 +275,7 @@ export default function TagsPreview() {
         <h2 className="text-[17px] font-bold">2 · Session card: one quiet line under the notes</h2>
         <Block
           title="The real card"
-          note="The tag line is the real component (a bare Tags icon in the tags’ grey, the words separated by dots, in the viewer’s language; your own tags as typed), on the real EntryCard at 375 and 700 px. It follows whatever the card looks like on staging."
+          note="The tag line is the real component (a bare # in the tags’ grey, the words separated by dots, in the viewer’s language; your own tags as typed), on the real EntryCard at 375 and 700 px. It follows whatever the card looks like on staging."
         >
           <div className="flex flex-wrap items-start gap-4">
             <CardFrame px={375} />
