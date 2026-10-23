@@ -62,10 +62,10 @@ export interface CondOpenMeteo {
    *  offshore grid node — not comparable to condCwaTide's TWVD heights, only
    *  useful as a fallback when CWA can't cover the session. See lib/openmeteo.ts. */
   tideEvents?: TideEvent[];
-  /** Optional: lowest and highest `swellHeightM` over the hours the session
-   *  covered (only when it has a duration and the readings differ by hour).
-   *  `swellHeightM` itself stays the reading at the start. */
-  swellHeightRangeM?: [number, number] | null;
+  /** Optional: median `swellHeightM` over the hours the session covered (only
+   *  when it has a duration and more than one hour is in range). The card shows
+   *  this figure; `swellHeightM` itself stays the reading at the start. */
+  swellHeightMedianM?: number | null;
   gridLat: number;
   gridLng: number;
   source: "open-meteo";
