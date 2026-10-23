@@ -57,9 +57,13 @@ jobs:
       - name: Build
         run: vercel build --prod --token="$VERCEL_TOKEN"
 
+      # One tarball (Hobby upload limit) and a real failure on a failed deploy:
+      # see deploy-staging.yml.
       - name: Deploy
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
+        run: |
+          url=$(vercel deploy --prebuilt --archive=tgz --prod --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         run: |
