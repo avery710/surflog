@@ -44,6 +44,12 @@ const PAGES = [
       "Ten ways to draw the session's own length in blue on the Tide-tile curve, after the \"Growth, plotted.\" poster: blue spotlight (now, on the real chart), route, bold time + caption, time pill, milestones, route track below, and four wave iterations (ripple, rolling waves, scallops, wave route). Six synthetic cases at 140 / 220 / 360 px, with and without a duration. Suggestions only.",
   },
   {
+    href: "/dev/tag-line",
+    title: "Tag line without the grey circle",
+    description:
+      "Nine ways to draw a session card's tags under its notes with no grey background (bare #, hashtags, blue #, bare tag icon, words with dots or slashes, a left rule, dotted underlines, a blue dot), each in the same card context at 360 px, en/zh-TW. Suggestions only; the real tag line is unchanged.",
+  },
+  {
     href: "/dev/tags",
     title: "Session tags (SURFLOG-11)",
     description:
