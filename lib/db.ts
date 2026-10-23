@@ -287,6 +287,27 @@ export async function setSpotNote(ownerId: string, spot: string, description: st
 const GOALS = "goals";
 
 /** The owner's current "goal for next session", or null. */
+/** Strips a tag (matched ignoring case) from every one of the owner's sessions.
+ *  Returns how many sessions carried it. Sessions are updated one by one, each
+ *  scoped to the owner, so a failure part-way leaves the rest for a retry. */
+export async function removeTagEverywhere(ownerId: string, tag: string): Promise<number> {
+  const result = await getSupabase().from(TABLE).select("id, tags").eq("owner_id", ownerId).not("tags", "is", null);
+  const rows = assertNoError(result) as { id: string; tags: string[] }[];
+  const lower = tag.toLowerCase();
+  const hits = rows.filter((r) => r.tags.some((t) => t.toLowerCase() === lower));
+  await Promise.all(
+    hits.map(async (r) => {
+      const update = await getSupabase()
+        .from(TABLE)
+        .update({ tags: r.tags.filter((t) => t.toLowerCase() !== lower) })
+        .eq("id", r.id)
+        .eq("owner_id", ownerId);
+      assertNoError(update);
+    })
+  );
+  return hits.length;
+}
+
 export async function getGoal(ownerId: string): Promise<string | null> {
   const result = await getSupabase().from(GOALS).select("text").eq("owner_id", ownerId).maybeSingle();
   const row = assertNoError(result) as { text: string } | null;

@@ -56,10 +56,10 @@ describe("normalizeTags", () => {
     expect(normalizeTags([])).toEqual([]);
   });
   it("puts starters first in catalogue order, then own tags as given, without repeats", () => {
-    expect(normalizeTags(["Zed", "Solo", "Glassy", "zed", "Alpha"])).toEqual(["Glassy", "Solo", "Zed", "Alpha"]);
+    expect(normalizeTags(["Zed", "Solo", "Glassy", "zed", "Alpha"])).toEqual(["Glassy", "Zed", "Solo", "Alpha"]);
   });
   it("drops blanks", () => {
-    expect(normalizeTags(["", "  ", "Quiet"])).toEqual(["Quiet"]);
+    expect(normalizeTags(["", "  ", "Empty break"])).toEqual(["Empty break"]);
   });
   it("refuses what isn't a list of short strings", () => {
     expect(normalizeTags("Glassy")).toBeNull();
@@ -89,6 +89,7 @@ describe("the user's own tags", () => {
     expect(customTagsOf(sessions)).toEqual([
       { tag: "With Ming", count: 3 },
       { tag: "Nanwan crew", count: 1 },
+      { tag: "Solo", count: 1 },
     ]);
   });
   it("count every tag by its stored spelling", () => {

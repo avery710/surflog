@@ -306,7 +306,7 @@ const CASES: CaseDef[] = [
     session: fakeSession({
       notesHtml: "<p>Clean peaky waves, offshore in the morning.</p>",
       notes: "Clean peaky waves, offshore in the morning.",
-      tags: ["Glassy", "Chest to shoulder", "Solo", "With Ming"],
+      tags: ["Glassy", "Chest to shoulder", "Empty break", "With Ming"],
     }),
   },
   {
@@ -314,7 +314,7 @@ const CASES: CaseDef[] = [
     title: "Tags — eight (the limit), long own tag",
     caption: "Eight tags wrap onto a second line and a long own tag breaks inside its own words; nothing pushes the card wider.",
     session: fakeSession({
-      tags: ["Glassy", "Peeling", "Chest to shoulder", "Quiet", "Dawn patrol", "With surf buddies", "Nanwan crew after the dawn patrol", "與朋友一起衝浪的早晨"],
+      tags: ["Glassy", "Peeling", "Chest to shoulder", "Empty break", "Dawn patrol", "Clean", "Nanwan crew after the dawn patrol", "與朋友一起衝浪的早晨"],
     }),
   },
   {

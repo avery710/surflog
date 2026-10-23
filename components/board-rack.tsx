@@ -438,27 +438,28 @@ function SortableBoardCard({
         2-up rack and lg alike. The photo is a square capped at 96px
         and matches the text column's height, so a board with a long
         note makes the column taller and the photo grows with it up
-        to the cap. Boards without a photo keep an empty square, so
-        the text lines up across cards.
+        to the cap. Boards without a photo have no square at all
+        (2026-10-23): the text just uses the full width.
         The image is absolutely positioned inside that box, so its
         own pixel size can't drive the layout: a plain <img> with
         aspect-square + stretch made the photo grow to its natural
         size and squeeze the text to one character wide in WebKit.
       */}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
-        <div
-          className="relative aspect-square h-full max-h-24 min-h-16 min-w-16 w-auto max-w-24 overflow-hidden rounded-[4px] bg-background"
-        >
-          {photoSrc && (
-            // eslint-disable-next-line @next/next/no-img-element
+      {/* No photo, no square: the text takes the full card width (2026-10-23, on request). */}
+      <div className={photoSrc ? "grid grid-cols-[auto_minmax(0,1fr)] gap-3" : "grid grid-cols-[minmax(0,1fr)]"}>
+        {photoSrc && (
+          <div
+            className="relative aspect-square h-full max-h-24 min-h-16 min-w-16 w-auto max-w-24 overflow-hidden rounded-[4px] bg-background"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photoSrc}
               alt={t("board.photoAlt", { name })}
               loading="lazy"
               className="absolute inset-0 size-full object-cover"
             />
-          )}
-        </div>
+          </div>
+        )}
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {/* Name row: name, the 常用 badge (go-to boards only), and ⋯ at
               the far right; the name truncates first. In 排序 mode ⋯ is

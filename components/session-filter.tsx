@@ -84,7 +84,6 @@ export function SessionFilterBar({
       .sort((a, b) => a.label.localeCompare(b.label, lang));
   }, [stats, catalog, lang]);
   const sortedBoards = useMemo(() => sortBoards(boards), [boards]);
-  const hasBoardless = stats.some((s) => !s.boardId);
   // Tags you have used, with how many sessions carry each: starters in the
   // catalogue's order, then your own by use. Ticked tags stay listed even if
   // no session has them any more, so they can be unticked.
@@ -203,9 +202,6 @@ export function SessionFilterBar({
                 onValueChange={(v) => set({ board: v === ANY ? undefined : v })}
               >
                 <DropdownMenuRadioItem value={ANY}>{t("filter.allBoards")}</DropdownMenuRadioItem>
-                {(hasBoardless || filter.board === NO_BOARD) && (
-                  <DropdownMenuRadioItem value={NO_BOARD}>{t("form.noBoard")}</DropdownMenuRadioItem>
-                )}
                 {sortedBoards.map((b) => (
                   <DropdownMenuRadioItem key={b.id} value={b.id}>
                     {boardLabel(b) || t("filter.unnamedBoard")}

@@ -31,9 +31,8 @@ function BoardThumb({ board, small = false }: { board: Board; small?: boolean })
   const size = small ? "size-5" : "size-9";
   const radius = small ? "rounded-[4px]" : "rounded-[7px]";
   const src = boardPhotoSrc(board);
-  if (!src) {
-    return <span className={`${size} shrink-0 ${radius} bg-secondary`} aria-hidden />;
-  }
+  // no photo, no placeholder square (2026-10-23, on request)
+  if (!src) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img

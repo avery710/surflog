@@ -46,15 +46,13 @@ const STARTERS: Record<string, Bi[]> = {
   ],
   Crowd: [
     { en: "Crowded", zh: "擁擠", alts: ["人多", "人擠", "擠爆"] },
-    { en: "Quiet", zh: "人少", alts: ["沒什麼人", "清淨"] },
-    { en: "Solo", zh: "包場", alts: ["獨衝", "一個人衝"] },
+    { en: "Empty break", zh: "人少", alts: ["Quiet", "Uncrowded"] },
   ],
   Others: [
     { en: "Dawn patrol", zh: "開燈", alts: ["晨衝", "日出衝", "早起衝"] },
     { en: "Sunset", zh: "關燈", alts: ["日落衝", "夕陽場", "傍晚衝"] },
     { en: "Lesson", zh: "上課", alts: ["衝浪課", "教學"] },
     { en: "Surf trip", zh: "衝浪旅行", alts: ["浪旅", "遠征"] },
-    { en: "With surf buddies", zh: "跟浪友", alts: ["浪友同行", "浪友同衝", "和浪友一起", "跟衝浪夥伴", "揪浪友", "揪團衝", "跟朋友一起"] },
   ],
 };
 const YOURS: Bi[] = [
@@ -92,7 +90,7 @@ function PickerDemo({ history, initial }: { history: typeof HISTORY; initial: st
 /* ------------------------------------------------------------------ 2 */
 
 const goalPill = "flex h-7 items-center rounded-full bg-secondary px-3 text-[13.5px] font-medium tracking-[-0.01em]";
-const SAMPLE_TAGS = ["Glassy", "Solo", "Dawn patrol"];
+const SAMPLE_TAGS = ["Glassy", "Empty break", "Dawn patrol"];
 
 type Style = {
   icon: ReactNode;
@@ -213,7 +211,7 @@ function Bar({ tag, lang, count, clear }: { tag: ReactNode; lang: Lang; count: n
 }
 
 function MenuMock({ lang, checked }: { lang: Lang; checked: string[] }) {
-  const rows = ["Glassy", "Clean", "Crowded", "Solo", "Dawn patrol", "With Ming"];
+  const rows = ["Glassy", "Clean", "Crowded", "Empty break", "Dawn patrol", "With Ming"];
   return (
     <div className="w-[190px] rounded-[var(--r-card)] bg-popover p-1 shadow-menu">
       <div className="flex h-8 items-center rounded-[var(--r-tile)] px-2 text-[13px] text-muted-foreground">{lang === "zh-TW" ? "所有標籤" : "All tags"}</div>
@@ -306,7 +304,7 @@ export default function TagsPreview() {
         <h2 className="text-[17px] font-bold">1 · Picker in the log form and edit panel: collapsible grouped chips</h2>
         <Block
           title="Collapsed first, “All tags” opens the groups"
-          note="The real picker. Collapsed it shows what is picked (Solo here), then the six most used (Glassy, With Ming, Crowded, Dawn patrol, Nanwan crew, Barrel), then + Add tag; “All tags” opens the grouped list. A new user with no history sees a few common starters instead."
+          note="The real picker. Collapsed it shows what is picked (Solo here, as one of your own), then the six most used (Glassy, With Ming, Crowded, Dawn patrol, Nanwan crew, Barrel), then + Add tag; “All tags” opens the grouped list. A new user with no history sees a few common starters instead."
         >
           <div className="flex flex-wrap items-start gap-4">
             <div className="w-[360px] max-w-full rounded-[var(--r-card)] bg-card p-4 shadow-soft"><PickerDemo history={HISTORY} initial={["Solo"]} /></div>

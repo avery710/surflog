@@ -101,7 +101,7 @@ describe("date presets", () => {
 
 describe("tags in the filter", () => {
   it("reads each repeated `tag` param, tidied", () => {
-    expect(q("tag=solo&tag=With%20Ming&tag=Glassy")).toEqual({ tags: ["Glassy", "Solo", "With Ming"] });
+    expect(q("tag=solo&tag=With%20Ming&tag=Glassy")).toEqual({ tags: ["Glassy", "solo", "With Ming"] });
   });
   it("ignores an invalid list", () => {
     expect(q(`tag=${"x".repeat(30)}`)).toEqual({});
@@ -117,8 +117,8 @@ describe("tags in the filter", () => {
   });
   it("passes a session with any of the tags, and none without", () => {
     const f = { tags: ["Glassy", "Solo"] };
-    expect(matchesFilter({ ...row(), tags: ["Quiet", "Solo"] }, f)).toBe(true);
-    expect(matchesFilter({ ...row(), tags: ["Quiet"] }, f)).toBe(false);
+    expect(matchesFilter({ ...row(), tags: ["Empty break", "Solo"] }, f)).toBe(true);
+    expect(matchesFilter({ ...row(), tags: ["Empty break"] }, f)).toBe(false);
     expect(matchesFilter(row(), f)).toBe(false);
     expect(matchesFilter(row(), {})).toBe(true);
   });

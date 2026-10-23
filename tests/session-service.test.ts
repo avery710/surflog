@@ -298,7 +298,7 @@ describe("sessions with tags", () => {
       when: "2026-10-05T08:00",
       tags: ["With Ming", " solo ", "鏡面海", "glassy", "With Ming"],
     });
-    expect(r.ok && r.data.tags).toEqual(["Glassy", "Solo", "With Ming"]);
+    expect(r.ok && r.data.tags).toEqual(["Glassy", "With Ming", "solo"]);
   });
 
   it("leaves the field out entirely when there are none (works before the migration)", async () => {

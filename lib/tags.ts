@@ -56,8 +56,7 @@ export const STARTER_TAG_GROUPS: { id: TagGroupId; tags: StarterTag[] }[] = [
     id: "crowd",
     tags: [
       { key: "Crowded", zh: "擁擠" },
-      { key: "Quiet", zh: "人少" },
-      { key: "Solo", zh: "包場" },
+      { key: "Empty break", zh: "人少" },
     ],
   },
   {
@@ -67,7 +66,6 @@ export const STARTER_TAG_GROUPS: { id: TagGroupId; tags: StarterTag[] }[] = [
       { key: "Sunset", zh: "關燈" },
       { key: "Lesson", zh: "上課" },
       { key: "Surf trip", zh: "衝浪旅行" },
-      { key: "With surf buddies", zh: "跟浪友" },
     ],
   },
 ];

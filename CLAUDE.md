@@ -319,7 +319,7 @@ edit panel after the board; group labels 10 px, picked chips are filled blue
 with no check mark). **Collapsed by default** (2026-10-23, on request): the
 picked tags, then the 6 most used (`quickTags()`, topped up with common
 starters for a new user), then "+ Add tag"; "All tags" opens the grouped list (the height eases),
-"Yours" = your own tags. The history comes from `KnownTagsProvider` (the slim
+"Yours" = your own tags (a × on a custom tag asks to strip it from **every** session, with the count; `DELETE /api/tags?tag=`, `removeTagFor` in lib/session-service.ts; the cards and filter catch up on the next page load). The history comes from `KnownTagsProvider` (the slim
 session list), so no extra request; **one quiet
 line under the notes** on the card (`components/tag-line.tsx`, tag icon in a
 soft circle, dots between; not tappable; option 7 of 10); a fourth filter chip

@@ -11,7 +11,7 @@
  *
  * Server-only: pulls in Supabase and the condition fetchers.
  */
-import { getSession, updateSession, deleteSession, createSession, newSessionId } from "@/lib/db";
+import { getSession, updateSession, deleteSession, createSession, newSessionId, removeTagEverywhere } from "@/lib/db";
 import { deleteBlob } from "@/lib/blob";
 import { resolveSpot } from "@/lib/spot-store";
 import { checkRequestSpot } from "@/lib/spot-access";
@@ -256,4 +256,12 @@ export async function deleteSessionFor(ownerId: string, id: string): Promise<Ser
 
   await Promise.allSettled(existing.photos.map((p) => deleteBlob(p.id)));
   return { ok: true, data: await deleteSession(id) };
+}
+
+/** Strips a tag from all of the owner's sessions (the picker's "Remove from
+ *  all sessions"). Returns how many sessions changed. */
+export async function removeTagFor(ownerId: string, tag: string): Promise<ServiceResult<number>> {
+  const clean = tag.trim();
+  if (!clean) return fail(400, "tag is required");
+  return { ok: true, data: await removeTagEverywhere(ownerId, clean) };
 }
