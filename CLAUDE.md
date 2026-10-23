@@ -910,6 +910,14 @@ load only when a session starts.
   GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
   signed in) and reports pass/fail with the failing step. It never re-runs or
   fixes a failed run.
+- **`release-main`** (2026-10-23, not yet run): staging → production.
+  Preflight by default (read-only): `main` fast-forwards to `staging`,
+  staging's GitHub Actions run is green on the tip commit, `app/dev/layout.tsx`
+  is there, and any migration in the range is **confirmed by Avery as applied
+  to production** (it never applies one); lists the commits that would ship
+  and gives GO / NO-GO. Pushes `origin/staging:main` only when the request
+  itself says release now, then watches `deploy-production.yml` and curls
+  `surflog.tw/api/health`. Never force, never fixes, re-runs or rolls back.
 
 ## Conventions
 

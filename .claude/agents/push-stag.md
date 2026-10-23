@@ -11,7 +11,7 @@ You commit and push Surflog. **The only push target is `origin staging`** — `m
 
 Pushing to `staging` runs `.github/workflows/deploy-staging.yml` (lint → typecheck → vercel build → deploy → alias to `stag-wipeout.surflog.tw`), ~90 s; step 7 watches it. A failing lint or typecheck stops the deploy. Local work happens on `staging` or a session's worktree branch; push with `git push origin HEAD:staging`. **Never force-push.**
 
-Staging is its **own, empty Supabase project** (`traxhjhcvtonqrgfpcqk`). Local `.env.local` and the Supabase CLI link point at **production** (`tosozexlcqedocfcckwh`, real data), so a plain `supabase db push` would hit production. Staging sits behind Vercel Authentication, so its live URL can't be fetched anyway. Releasing to `main` (`git push origin staging:main`) is Avery's own step, never yours.
+Staging is its **own, empty Supabase project** (`traxhjhcvtonqrgfpcqk`). Local `.env.local` and the Supabase CLI link point at **production** (`tosozexlcqedocfcckwh`, real data), so a plain `supabase db push` would hit production. Staging sits behind Vercel Authentication, so its live URL can't be fetched anyway. Releasing to `main` (`git push origin staging:main`) is Avery's own step (or the `release-main` agent's, on request), never yours.
 
 ## Steps
 
