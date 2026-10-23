@@ -66,8 +66,13 @@ and what is unverified.
   `loading.tsx` would also cover the landing and every route). The `/spots`
   page lives in the `app/spots/(list)/` route group so its skeleton doesn't
   also wrap `/spots/[slug]` (it did: the list skeleton showed before a spot
-  page). Each skeleton mirrors its page's blocks, measured to within ~1 px at
-  375 and 1100 px; data-sized cards use Avery's journal. Bars are black at
+  page). Each skeleton follows its page's real layout and card style
+  (shadow cards on the journal and spot page, bordered boxes on /ai-apps and
+  /admin) but with one set of thin pill bars (14 px headings, 12 px lines) and
+  identical 24 px `rounded-lg` controls (Avery, 2026-10-21/23: "align the
+  heights, or ignore some details"). A pixel-matched version and a
+  one-card-for-everything version were both built and replaced; pages still
+  jump a little on arrival. Bars are black at
   7%; the skeleton body fades in after 120 ms, bars pulse, and the real page
   column fades in over 150 ms (`.page-enter`); all off under reduced motion
   (classes in `globals.css`). Suggested by the ui-designer agent, items 1–5. Home and

@@ -2,56 +2,67 @@
 
 import { cn } from "cn";
 import { LogIcon } from "@/components/add-button";
+import { PillNeck } from "@/components/pill-neck";
+import { TileGroup } from "@/components/tile-group";
 import { useLang } from "@/lib/i18n";
 import { PAGE_COLUMN } from "@/lib/layout";
 
 /**
  * What a signed-in page shows while its server render is still on the way
  * (2026-10-21, page switches felt frozen): the blue header as it will look,
- * then grey placeholders in the page's own layout. Used by the routes'
- * loading.tsx files, which Next.js prefetches for every visible <Link>, so a
- * click changes the screen at once; and by app/page.tsx's own Suspense
- * fallback for the journal (a loading.tsx there would also cover the
- * signed-out landing and every route under "/").
+ * then grey placeholders. Used by the routes' loading.tsx files, which
+ * Next.js prefetches for every visible <Link>, so a click changes the screen
+ * at once; and by app/page.tsx's own Suspense fallback for the journal (a
+ * loading.tsx there would also cover the signed-out landing and every route
+ * under "/").
  *
- * The header copies components/site-header.tsx and journal.tsx (same classes,
- * same 40 px "+" and avatar circles) so nothing moves when the real one
- * arrives; only the avatar fills in. No auto-hide: it is on screen briefly.
+ * Each page's skeleton follows its real layout and card style (shadow cards
+ * on the journal and spot page, bordered boxes on /ai-apps and /admin), but
+ * with one set of thin pill bars everywhere (14 px headings, 12 px lines) and
+ * identical 24 px controls (Avery, 2026-10-21/23: "align the heights, or
+ * ignore some details"). Pixel-matching was tried and looked busy, so the
+ * page still jumps a little when it arrives. The header copies
+ * components/site-header.tsx and journal.tsx (same classes, same 40 px "+"
+ * and avatar circles) so it never moves; only the avatar fills in.
  *
- * Each body follows its page's real structure (same margins, same heights,
- * measured at 358 and 1100 px on 2026-10-21), so the page doesn't jump when it
- * arrives. Heights that depend on data (goal, spot table, rack, session
- * cards) are set to Avery's journal. The body fades in after 120 ms so a fast
- * load never flashes it, and the bars pulse; both only without
- * prefers-reduced-motion (`.skeleton-body`, `.skeleton-bar` in globals.css).
- * The real page then fades in (`.page-enter` on each page column).
+ * The body fades in after 120 ms so a fast load never flashes it, and the bars
+ * pulse; both only without prefers-reduced-motion (`.skeleton-body`,
+ * `.skeleton-bar` in globals.css). The real page then fades in (`.page-enter`
+ * on each page column).
  */
 export type PageSkeletonVariant = "journal" | "spots" | "spot" | "aiApps" | "admin";
+
+/** The blue header as it will look (also used by components/page-loading.tsx). */
+export function LoadingHeader() {
+  return (
+    <header className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2">
+      <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+        <div className="py-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/surflog-logo.png"
+            alt="Surflog"
+            width={1200}
+            height={228}
+            className="block h-6 w-auto brightness-0 invert"
+          />
+        </div>
+        <div className="flex items-center gap-2.5" aria-hidden>
+          <span className="ab">
+            <LogIcon className="size-4" />
+          </span>
+          <span className="size-10 shrink-0 rounded-full bg-white/25" />
+        </div>
+      </div>
+    </header>
+  );
+}
 
 export function PageSkeleton({ variant }: { variant: PageSkeletonVariant }) {
   const { t } = useLang();
   return (
     <>
-      <header className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2">
-        <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
-          <div className="py-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/surflog-logo.png"
-              alt="Surflog"
-              width={1200}
-              height={228}
-              className="block h-6 w-auto brightness-0 invert"
-            />
-          </div>
-          <div className="flex items-center gap-2.5" aria-hidden>
-            <span className="ab">
-              <LogIcon className="size-4" />
-            </span>
-            <span className="size-10 shrink-0 rounded-full bg-white/25" />
-          </div>
-        </div>
-      </header>
+      <LoadingHeader />
       <div
         className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18 ${variant === "journal" ? "" : "pt-6"}`}
         role="status"
@@ -67,105 +78,166 @@ export function PageSkeleton({ variant }: { variant: PageSkeletonVariant }) {
 }
 
 /** A grey bar standing in for a line of text or a control: black at 7%
- *  (#ededed on white), dark enough to read on a white card. */
+ *  (#ededed on white), dark enough to read on a white card, with both ends
+ *  fully rounded (Avery, 2026-10-23). */
 function Bar({ className }: { className: string }) {
-  return <div className={cn("skeleton-bar rounded-[var(--r-tile)] bg-foreground/[0.07]", className)} />;
+  return <div className={cn("skeleton-bar rounded-full bg-foreground/[0.07]", className)} />;
 }
 
-/** A bar centred in a line box of the real text's height, so the next block
- *  starts where it will on the real page. */
-function Line({ box = "h-5", className }: { box?: string; className: string }) {
+/** A line standing in for a heading (14 px) or text (12 px) is a <Bar>; this is
+ *  a control (a button or tile): 24 px high, the real buttons' corners. */
+function Ctl({ className = "w-20" }: { className?: string }) {
+  return <Bar className={cn("h-6 shrink-0 rounded-lg", className)} />;
+}
+
+/** Heading + lines, stacked like the text inside a card. */
+function Lines({ heading = "w-24", lines = ["w-full", "w-2/3"], className = "" }: { heading?: string; lines?: string[]; className?: string }) {
   return (
-    <div className={`flex items-center ${box}`}>
-      <Bar className={className} />
+    <div className={cn("flex flex-col gap-2.5", className)}>
+      <Bar className={cn("h-3.5", heading)} />
+      {lines.map((w, i) => (
+        <Bar key={i} className={cn("h-3", w)} />
+      ))}
     </div>
   );
 }
 
-/** An empty white card (the WhiteCard surface, without its height easing,
- *  which a placeholder never needs) with a heading bar and a few lines. */
-function Card({ className = "", lines = 2 }: { className?: string; lines?: number }) {
+/** The white shadow card of the journal and the spot page (the WhiteCard
+ *  surface, without its height easing). */
+function Panel({ className = "", children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={`overflow-hidden rounded-[var(--r-card)] bg-card shadow-soft px-5 py-4 ${className}`}>
-      <Line className="h-3.5 w-24" />
-      <div className="mt-3 flex flex-col gap-2.5">
-        {Array.from({ length: lines }, (_, i) => (
-          <Bar key={i} className={`h-3 ${i % 2 ? "w-2/3" : "w-full"}`} />
-        ))}
-      </div>
+    <div className={cn("overflow-hidden rounded-[var(--r-card)] bg-card px-5 py-4 shadow-soft", className)}>
+      {children}
+    </div>
+  );
+}
+
+/** A heading line with a control at the right (card or section header). */
+function HeaderRow({ heading = "w-32", ctl, className = "" }: { heading?: string; ctl?: string; className?: string }) {
+  return (
+    <div className={cn("flex h-6 items-center justify-between gap-3", className)}>
+      <Bar className={cn("h-3.5", heading)} />
+      {ctl && <Ctl className={ctl} />}
     </div>
   );
 }
 
 /** The "← Back" link atop every sub page (a 24 px line box). */
-const BackLink = () => <Line box="h-6" className="h-3.5 w-24" />;
+const BackLink = () => (
+  <div className="flex h-6 items-center">
+    <Bar className="h-3.5 w-24" />
+  </div>
+);
 
-/** One session card (components/entry-card.tsx): header, board chip, notes,
- *  five condition tiles (3 columns below sm, one row from sm). */
-function SessionCard() {
+/** Page title (heading bar, and optionally a sub line) with controls at the right. */
+function TitleRow({ sub = true, ctls = [] }: { sub?: boolean; ctls?: string[] }) {
   return (
-    <div className="mt-2 rounded-[var(--r-card)] bg-card pb-3 shadow-soft sm:mt-3">
-      <div className="flex h-[60px] items-start justify-between gap-3 px-4 pt-4 sm:h-16 sm:px-6">
-        <div className="flex flex-col gap-2">
-          <Bar className="h-4 w-28" />
-          <Bar className="h-3 w-36" />
-        </div>
-        <Bar className="size-6 rounded-full" />
+    <div className="mt-3 flex min-h-10 flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <div className="flex flex-col gap-2.5">
+        <Bar className="h-3.5 w-40" />
+        {sub && <Bar className="h-3 w-64 max-w-full" />}
       </div>
-      <div className="mx-4 flex h-9 items-center sm:mx-6">
-        <Bar className="h-7 w-40 rounded-full" />
-      </div>
-      <div className="flex flex-col gap-2.5 px-4 pt-3 sm:px-6">
-        <Bar className="h-3 w-full" />
-        <Bar className="h-3 w-2/3" />
-      </div>
-      <div className="mt-4 grid grid-cols-3 gap-2 px-4 sm:flex sm:px-6">
-        {Array.from({ length: 5 }, (_, i) => (
-          <Bar key={i} className="h-[84px] sm:flex-1" />
+      <div className="flex shrink-0 gap-2">
+        {ctls.map((w, i) => (
+          <Ctl key={i} className={w} />
         ))}
       </div>
     </div>
   );
 }
 
-/** A spot row on /spots (components/spots-overview.tsx): name, reviews, facts. */
-function SpotRow() {
+/** A session card (components/entry-card.tsx): header, the board chip (photo
+ *  circle + stem + name pill) and a goal pill, notes, then five condition
+ *  tiles joined by stems. The chip and the tile group reuse the real PillNeck
+ *  and TileGroup, so their shapes and stems are the real card's. They are
+ *  `bg-secondary` like the real ones (which is also the neck's fill), with
+ *  `--secondary` set to the bars' grey (#ededed, black at 7% on white) so
+ *  chips, tiles and stems match the lines in the card (Avery, 2026-10-23);
+ *  each group pulses as one piece. */
+function SessionCard() {
   return (
-    <div className="border-b border-card-border px-4 py-3 last:border-b-0">
-      <div className="flex h-6 items-center gap-2">
-        <Bar className="h-3.5 w-28" />
-        <Bar className="h-3 w-10" />
+    <Panel className="mt-2 px-4 sm:mt-3 sm:px-6">
+      <div className="flex items-start justify-between gap-3">
+        <Lines heading="w-28" lines={["w-36"]} />
+        <Bar className="size-6" />
       </div>
-      <Line box="mt-1 h-[22px]" className="h-3 w-32" />
-      <Line box="mt-1.5 h-[19px]" className="h-3 w-3/4" />
-      {/* the facts wrap onto a second line on phones */}
-      <Line box="mt-1 h-[19px] sm:hidden" className="h-3 w-1/2" />
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <span className="skeleton-bar [--secondary:#ededed] relative inline-flex h-[30px] items-center">
+          <PillNeck className="absolute top-0 left-[28px]" />
+          <span className="size-[30px] shrink-0 rounded-full bg-secondary" />
+          <span className="ml-[3.5px] h-7 w-28 rounded-full bg-secondary" />
+        </span>
+        <span className="skeleton-bar h-7 w-24 rounded-full bg-secondary [--secondary:#ededed]" />
+      </div>
+      <Lines className="mt-4" heading="w-full" lines={["w-2/3"]} />
+      <TileGroup className="skeleton-bar [--secondary:#ededed] mt-4 grid grid-cols-3 gap-2 sm:flex">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} data-tile className="relative h-14 rounded-[var(--r-tile)] bg-secondary sm:flex-1" />
+        ))}
+      </TileGroup>
+    </Panel>
+  );
+}
+
+/** A bordered list row (spots, admin): name and a line, a control at the right. */
+function ListRow({ ctl = "w-14" }: { ctl?: string }) {
+  return (
+    <div className="flex items-center gap-3 border-b border-card-border px-4 py-3 last:border-b-0">
+      <Lines className="min-w-0 flex-1" heading="w-32" lines={["w-56 max-w-full"]} />
+      <Ctl className={ctl} />
     </div>
   );
 }
 
 const BODIES: Record<PageSkeletonVariant, React.ReactNode> = {
-  // components/journal.tsx: goal + calendar (+ last session on phones), spot
-  // table, board rack, then the Sessions title with its filter chips.
+  // components/journal.tsx: goal | calendar (+ last session on phones), the
+  // spot table, the board rack, then the Sessions title with its filter chips.
   journal: (
     <>
-      <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:gap-3">
-        <Card className="h-[180px] min-w-0 sm:h-[184px] sm:flex-1" lines={3} />
-        <div className="flex gap-2 sm:shrink-0">
-          <Card className="h-[136px] w-[194px] shrink-0 sm:h-[184px] sm:w-[234px]" lines={3} />
-          <Card className="h-[136px] min-w-0 flex-1 px-3 sm:hidden" lines={2} />
+      <div className="mt-4 flex flex-col gap-2 sm:mt-5 sm:gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+          <Panel className="sm:flex-1">
+            <Lines heading="w-40" lines={["w-3/4", "w-1/2", "w-2/3"]} />
+          </Panel>
+          <div className="flex gap-2 sm:gap-3">
+            <Panel className="w-[194px] shrink-0 sm:w-[234px]">
+              <Lines heading="w-24" lines={["w-full", "w-full", "w-full"]} />
+            </Panel>
+            <Panel className="min-w-0 flex-1 px-3 sm:hidden">
+              <Lines heading="w-16" lines={["w-full", "w-2/3"]} />
+            </Panel>
+          </div>
         </div>
-      </div>
-      <div className="mt-2 flex flex-col gap-2 sm:mt-3 sm:gap-3">
-        <Card className="h-[240px] sm:h-[117px]" lines={3} />
-        <Card className="h-[244px] sm:h-[156px]" lines={3} />
+        <Panel>
+          <Bar className="h-3.5 w-40" />
+          <div className="mt-4 flex flex-col gap-3">
+            {Array.from({ length: 2 }, (_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Bar className="h-3.5 w-28" />
+                <Bar className="h-3 w-8" />
+                <Bar className="h-3 flex-1" />
+              </div>
+            ))}
+          </div>
+        </Panel>
+        <Panel>
+          <HeaderRow heading="w-28" />
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {Array.from({ length: 2 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-lg bg-secondary p-3">
+                <Bar className="size-12 rounded-lg bg-foreground/[0.07]" />
+                <Lines heading="w-24" lines={["w-32"]} />
+              </div>
+            ))}
+          </div>
+        </Panel>
       </div>
       <div className="mt-4 sm:mt-5">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <Line box="h-5 pl-1 lg:h-8" className="h-3.5 w-16" />
-          <div className="mt-1.5 flex h-8 items-center gap-2.5 lg:mt-0">
+        <div className="flex h-8 items-center justify-between gap-3">
+          <Bar className="h-3.5 w-16" />
+          <div className="flex gap-2.5">
             {Array.from({ length: 3 }, (_, i) => (
-              <Bar key={i} className="size-7 rounded-full" />
+              <Bar key={i} className="size-7" />
             ))}
           </div>
         </div>
@@ -175,112 +247,126 @@ const BODIES: Record<PageSkeletonVariant, React.ReactNode> = {
     </>
   ),
   // components/spots-overview.tsx: back, title + "Add spot", intro, search,
-  // count, then groups of spot rows.
+  // count, then groups of spot rows in a shadow list.
   spots: (
     <>
       <BackLink />
-      <div className="mt-3 flex items-center justify-between gap-4">
-        <Line box="h-8" className="h-6 w-36" />
-        <Bar className="h-8 w-28 rounded-full" />
-      </div>
-      <div className="mt-2 max-w-prose">
-        <Line className="h-3 w-full" />
-        <Line box="h-5 sm:hidden" className="h-3 w-1/2" />
+      <TitleRow sub={false} ctls={["w-24"]} />
+      <div className="mt-2 flex max-w-prose flex-col gap-2.5">
+        <Bar className="h-3 w-full" />
+        <Bar className="h-3 w-1/2" />
       </div>
       <div className="mt-5 flex h-11 items-center gap-2 rounded-full border border-input bg-card px-4">
-        <Bar className="size-4 rounded-full" />
+        <Bar className="size-4" />
         <Bar className="h-3 w-24" />
       </div>
-      <Line box="mt-3 h-[19px]" className="h-3 w-16" />
+      <Bar className="mt-4 h-3 w-16" />
       {[1, 4].map((rows, g) => (
         <div key={g} className="mt-6">
-          <Line box="h-4" className="h-3 w-20" />
-          <div className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
+          <Bar className="h-3.5 w-20" />
+          <div className="mt-2 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
             {Array.from({ length: rows }, (_, i) => (
-              <SpotRow key={i} />
+              <ListRow key={i} ctl="size-6 w-6" />
             ))}
           </div>
         </div>
       ))}
     </>
   ),
-  // components/spot-detail.tsx: back, name + place, Pin and "Log a session
-  // here" (below the name on phones), About + reviews, your sessions.
+  // components/spot-detail.tsx: back, name + place with Pin / "Log a session
+  // here", the About card (facts, reviews), then your sessions here.
   spot: (
     <>
       <BackLink />
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div>
-          <Line box="h-8" className="h-6 w-40" />
-          <Line box="mt-0.5 h-5" className="h-3 w-32" />
+      <TitleRow ctls={["w-16", "w-32"]} />
+      <Panel className="mt-6">
+        <HeaderRow heading="w-16" ctl="w-24" />
+        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Lines key={i} heading="w-16" lines={["w-24"]} />
+          ))}
         </div>
-        <div className="flex gap-2">
-          <Bar className="h-10 w-[99px] rounded-full" />
-          <Bar className="h-10 w-[173px] rounded-full" />
+        <div className="mt-5 border-t border-card-border pt-4">
+          <Bar className="h-3.5 w-20" />
+          <div className="mt-3 flex flex-col gap-4">
+            {Array.from({ length: 2 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Bar className="size-6" />
+                <Lines className="flex-1" heading="w-28" lines={["w-2/3"]} />
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-      <Card className="mt-6 h-[421px] sm:h-[303px]" lines={5} />
-      <Card className="mt-4 h-[520px]" lines={4} />
+      </Panel>
+      <Panel className="mt-4">
+        <Bar className="h-3.5 w-32" />
+        <Lines className="mt-4" heading="w-20" lines={["w-full", "w-2/3"]} />
+        <div className="mt-4 flex flex-col divide-y divide-card-border">
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              <Lines heading="w-28" lines={["w-48 max-w-full"]} />
+              <Bar className="h-3 w-12" />
+            </div>
+          ))}
+        </div>
+      </Panel>
     </>
   ),
-  // components/api-tokens.tsx: back, title, intro, the bordered "connect an
-  // AI app" box with its four tiles, then the connected list.
+  // components/api-tokens.tsx: the bordered "connect an AI app" box with its
+  // four tile buttons, then the connected apps as bordered rows.
   aiApps: (
     <>
       <BackLink />
-      <Line box="mt-3 h-8" className="h-6 w-32" />
-      <div className="mt-2 max-w-prose">
-        <Line className="h-3 w-full" />
-        <Line className="h-3 w-5/6" />
-        <Line box="h-5 sm:hidden" className="h-3 w-1/3" />
+      <div className="mt-3 flex h-8 items-center">
+        <Bar className="h-3.5 w-32" />
+      </div>
+      <div className="mt-2 flex flex-col gap-2.5">
+        <Bar className="h-3 w-full max-w-[520px]" />
+        <Bar className="h-3 w-1/2" />
       </div>
       <div className="mt-5 rounded-[var(--r-card)] border bg-card p-4">
-        <Line box="h-6" className="h-4 w-40" />
-        <Line box="mt-1 h-5" className="h-3 w-56 max-w-full" />
-        <div className="mt-3 flex flex-wrap gap-2">
-          {["w-[88px]", "w-[100px]", "w-[89px]", "w-[65px]"].map((w) => (
-            <Bar key={w} className={`h-8 rounded-lg ${w}`} />
+        <Bar className="h-3.5 w-40" />
+        <Bar className="mt-3 h-3 w-64 max-w-full" />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Ctl key={i} />
           ))}
         </div>
       </div>
-      <Line box="mt-7 h-6" className="h-4 w-20" />
+      <div className="mt-7 flex h-6 items-center">
+        <Bar className="h-3.5 w-20" />
+      </div>
       <div className="mt-3 flex flex-col gap-2">
         {Array.from({ length: 3 }, (_, i) => (
-          <div
-            key={i}
-            className="flex h-[83px] items-center gap-3 rounded-[var(--r-tile)] border bg-card px-3.5 sm:h-[65px]"
-          >
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <Bar className="h-3.5 w-40 max-w-full" />
-              <Bar className="h-3 w-56 max-w-full" />
-            </div>
-            <Bar className="h-8 w-16 rounded-lg" />
+          <div key={i} className="flex items-center gap-3 rounded-[var(--r-tile)] border bg-card px-3.5 py-3">
+            <Lines className="min-w-0 flex-1" heading="w-40 max-w-full" lines={["w-56 max-w-full"]} />
+            <Ctl className="w-14" />
           </div>
         ))}
       </div>
     </>
   ),
-  // components/admin/spots-admin.tsx: back, title, requests, then the
-  // catalogue with its add button, search and bordered lists.
+  // components/admin/spots-admin.tsx: back, title, the requests section, then
+  // the catalogue with its add button, search field and bordered lists.
   admin: (
     <>
       <BackLink />
-      <Line box="mt-3 h-8" className="h-6 w-28" />
-      <Line box="mt-7 h-6" className="h-4 w-36" />
-      <Line box="mt-2 h-5" className="h-3 w-48" />
-      <Line box="mt-4 h-5" className="h-3 w-40" />
-      <div className="mt-9 flex h-8 items-center justify-between gap-3">
-        <Bar className="h-4 w-16" />
-        <Bar className="h-8 w-28 rounded-full" />
+      <div className="mt-3 flex h-8 items-center">
+        <Bar className="h-3.5 w-28" />
       </div>
-      <div className="mt-3 h-8 rounded-lg border bg-card" />
-      <Line box="mt-5 h-4" className="h-3 w-24" />
-      <div className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] border bg-card">
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="flex flex-col gap-2 border-b px-3.5 py-3 last:border-b-0">
-            <Bar className="h-3.5 w-32" />
-            <Bar className="h-3 w-48 max-w-full" />
-          </div>
+      <div className="mt-7 flex h-6 items-center">
+        <Bar className="h-3.5 w-36" />
+      </div>
+      <Bar className="mt-3 h-3 w-48" />
+      <Bar className="mt-4 h-3 w-40" />
+      <HeaderRow heading="w-20" ctl="w-24" className="mt-9" />
+      <div className="mt-3 flex h-8 items-center rounded-lg border bg-card px-3">
+        <Bar className="h-3 w-24" />
+      </div>
+      <Bar className="mt-5 h-3.5 w-24" />
+      <div className="mt-2 overflow-hidden rounded-[var(--r-tile)] border bg-card">
+        {Array.from({ length: 5 }, (_, i) => (
+          <ListRow key={i} />
         ))}
       </div>
     </>

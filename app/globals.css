@@ -497,3 +497,35 @@ button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible
   .skeleton-bar { animation: skeleton-pulse 1.6s ease-in-out infinite; }
   .page-enter { animation: page-fade-in 150ms ease-out; }
 }
+
+/* Page loading animations (components/page-loading.tsx, 2026-10-21): five
+   candidates that stand in for the grey skeleton, picked at /dev/page-loading.
+   The whole body waits 120 ms and fades in like the skeleton's. Waves are one
+   SVG 200% as wide as the box holding it, drawn with whole periods in each
+   half, so translateX(-50%) lands on an identical picture and the loop has no
+   jump. The base rules below are the calm still frame (reduced motion, and
+   the first 120 ms); the motion lives in the no-preference block. */
+.pl-edges { -webkit-mask-image: linear-gradient(to right, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 22%, #000 78%, transparent); }
+.pl-wordmark { -webkit-mask: url(/surflog-logo.png) center / contain no-repeat; mask: url(/surflog-logo.png) center / contain no-repeat; }
+.pl-rise { transform: translateY(var(--pl-still, 45%)); }
+.pl-dot { opacity: .5; }
+.pl-dot:nth-child(2) { transform: translateY(-7px); opacity: 1; }
+@keyframes pl-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes pl-rise { from { transform: translateY(var(--pl-lo, 90%)); } to { transform: translateY(var(--pl-hi, 10%)); } }
+@keyframes pl-rock { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+@keyframes pl-bob-y { from { transform: translateY(5px); } to { transform: translateY(-5px); } }
+@keyframes pl-bob-r { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+@keyframes pl-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-16px); opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .page-loading-body { animation: page-fade-in 150ms ease-out 120ms backwards; }
+  .pl-scroll { animation: pl-scroll var(--d, 6s) linear infinite; }
+  .pl-rise { animation: pl-rise var(--d, 3s) ease-in-out infinite alternate; }
+  .pl-rock { animation: pl-rock 1.9s ease-in-out infinite alternate; }
+  /* The board rides the wave under it: the wave box scrolls 2 periods in 4 s,
+     so one bob is 2 s (1 s each way); height is a sine, tilt a cosine, hence
+     the quarter-period (0.5 s) head start on the lift. */
+  .pl-bob-y { animation: pl-bob-y 1s ease-in-out -0.5s infinite alternate; }
+  .pl-bob-r { animation: pl-bob-r 1s ease-in-out infinite alternate; }
+  .pl-dot { animation: pl-dot 1.3s ease-in-out calc((var(--i) - 2) * 0.17s) infinite; }
+}
