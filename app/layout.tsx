@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Funnel_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/lib/i18n";
 import { QueryProvider } from "@/components/query-provider";
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </LanguageProvider>
         </QueryProvider>
         <Toaster position="bottom-center" />
+        <Analytics />
       </body>
     </html>
   );
