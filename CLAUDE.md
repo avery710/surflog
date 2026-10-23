@@ -845,8 +845,10 @@ load only when a session starts.
   migration step with care**: local `.env.local` and the CLI link point at
   production): commits and pushes to `staging` only, never main, never
   force; lint + typecheck first; keeps `.env*`, `reports/` and Swelleye
-  readings out; asks before applying migrations; doesn't check the
-  deployment (Avery watches it).
+  readings out; asks before applying migrations; after the push watches the
+  GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
+  signed in) and reports pass/fail with the failing step. It never re-runs or
+  fixes a failed run.
 
 ## Conventions
 
