@@ -7,7 +7,7 @@ import { ActivityCalendar } from "@/components/activity-calendar";
 import { PatternsTable } from "@/components/patterns-table";
 import { GoalCard } from "@/components/goal";
 import { spotLabel, taipeiToday } from "@/lib/format";
-import { HEADER_BAR, HEADER_PILL, PAGE_COLUMN } from "@/lib/layout";
+import { PAGE_COLUMN } from "@/lib/layout";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang, type Lang } from "@/lib/i18n";
 import type { LandingSpot } from "@/lib/landing-spots";
@@ -79,10 +79,9 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
           with the page content under them. */}
       <header
         ref={headerRef}
-        className={`${HEADER_BAR} auto-hide-header`}
+        className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
       >
-        <div className={PAGE_COLUMN}>
-<div className={HEADER_PILL}>
+        <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
           {/* White wordmark on the blue bar — see journal.tsx's matching
               comment (2026-10-08: new logo file, white requested again). */}
           <div className="py-1">
@@ -114,7 +113,6 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
             </form>
             <LangToggle lang={lang} setLang={setLang} label={t("menu.language")} />
           </div>
-        </div>
         </div>
       </header>
 
