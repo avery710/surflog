@@ -9,7 +9,7 @@ import type { Session } from "./types";
  */
 export type SessionStat = Pick<
   Session,
-  "id" | "when" | "spot" | "boardId" | "goalText" | "goalMet" | "goalPointsMet" | "createdAt"
+  "id" | "when" | "spot" | "boardId" | "tags" | "goalText" | "goalMet" | "goalPointsMet" | "createdAt"
 >;
 
 export function toStat(s: Session): SessionStat {
@@ -18,6 +18,7 @@ export function toStat(s: Session): SessionStat {
     when: s.when,
     spot: s.spot,
     boardId: s.boardId ?? null,
+    ...(s.tags?.length ? { tags: s.tags } : {}),
     goalText: s.goalText ?? null,
     goalMet: s.goalMet ?? null,
     goalPointsMet: s.goalPointsMet ?? null,

@@ -9,6 +9,9 @@
  * 2026-10-07), and which of its points a session achieved (`goalsAchieved`
  * on create_session / update_session).
  *
+ * Tags (2026-10-23): `tags` on create_session / update_session (replaces the
+ * whole list) and in every session returned; list_sessions can filter by one.
+ *
  * Deliberately not here (v1): photos/video (bytes don't belong in a tool
  * call, and functions cap bodies at 4.5 MB), boards/spots admin, spot
  * requests. Write tools aren't registered at all for a read-only token.
@@ -26,6 +29,7 @@ import { htmlToPlainText, plainTextToHtml } from "@/lib/rich-text";
 import { createSessionFor, deleteSessionFor, updateSessionFor, type ServiceResult } from "@/lib/session-service";
 import { listSpots } from "@/lib/spot-store";
 import { isDuration } from "@/lib/time-slots";
+import { MAX_TAG_LENGTH, MAX_TAGS, STARTER_TAG_GROUPS } from "@/lib/tags";
 import type { Spot } from "@/lib/spots";
 import type { TokenAuth } from "@/lib/token-auth";
 import type { Board, Session, TideEvent } from "@/lib/types";
@@ -48,6 +52,17 @@ const GOAL_POINT = z
   .regex(/^[^\n]*$/, "one line per point");
 
 const GOALS_ACHIEVED = z.array(GOAL_POINT).max(20);
+
+// Tags: the app's starter names, or the user's own words. Starter names are
+// matched ignoring case; the service validates and tidies the list again.
+const STARTER_NAMES = STARTER_TAG_GROUPS.flatMap((g) => g.tags.map((t) => t.key)).join(", ");
+const TAGS = z
+  .array(z.string().trim().min(1).max(MAX_TAG_LENGTH))
+  .max(MAX_TAGS)
+  .describe(
+    `Short labels, at most ${MAX_TAGS} of up to ${MAX_TAG_LENGTH} characters. Prefer these starter tags when they fit: ` +
+      `${STARTER_NAMES}. Anything else is kept as the user's own tag. Only describe the session; no ratings.`
+  );
 
 type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
 
@@ -97,6 +112,7 @@ function compact(s: Session, spots: Map<string, Spot>, boards: Map<string, Board
     spotName: spot?.name ?? (s.spot.startsWith("custom:") ? s.spot.slice(7) : s.spot),
     when: s.when,
     ...(s.durationMin ? { durationMin: s.durationMin } : {}),
+    tags: s.tags ?? [],
     timezone: spot?.timezone ?? null,
     // From the HTML, not the stored `notes` mirror: the mirror was written by
     // whatever htmlToPlainText was at save time (see its 2026-10-07 fix).
@@ -133,15 +149,17 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
         from: DATE.optional().describe("Only sessions on or after this date"),
         to: DATE.optional().describe("Only sessions on or before this date"),
         spot: z.string().optional().describe("Only this spot slug (see list_spots)"),
+        tag: z.string().optional().describe("Only sessions with this tag (a starter name or the user's own; case-insensitive)"),
         limit: z.number().int().min(1).max(100).optional().describe("Default 20"),
       }),
       annotations: { readOnlyHint: true },
     },
-    async ({ from, to, spot, limit }) => {
+    async ({ from, to, spot, tag, limit }) => {
       const [all, maps] = await Promise.all([listSessions(ownerId), lookups(ownerId)]);
       const matched = all
         .filter((s) => (!from || s.when.slice(0, 10) >= from) && (!to || s.when.slice(0, 10) <= to))
         .filter((s) => !spot || s.spot === spot)
+        .filter((s) => !tag || (s.tags ?? []).some((t) => t.toLowerCase() === tag.trim().toLowerCase()))
         .sort((a, b) => b.when.localeCompare(a.when));
       const shown = matched.slice(0, limit ?? 20);
       return json({
@@ -286,13 +304,14 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
           .describe("How long the session was, in minutes. Optional; it must end the same day, and not in the future."),
         notes: NOTES.optional().describe("Plain text; line breaks are kept"),
         boardId: z.string().optional().describe("Board id from list_boards"),
+        tags: TAGS.optional(),
         goalsAchieved: GOALS_ACHIEVED.optional().describe(
           "Points of the current goal achieved in this session, exact wording from get_goal"
         ),
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
-    async ({ spot, when, durationMin, notes, boardId, goalsAchieved }) => {
+    async ({ spot, when, durationMin, notes, boardId, tags, goalsAchieved }) => {
       const limited = writeLimited();
       if (limited) return limited;
       // Catalogue spots only: `req:`/`custom:` are app-side concepts.
@@ -306,6 +325,7 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
         ...(durationMin ? { durationMin } : {}),
         notesHtml: plainTextToHtml(notes ?? ""),
         ...(boardId ? { boardId } : {}),
+        ...(tags?.length ? { tags } : {}),
         ...(ticks ? { goalAchieved: ticks.achieved } : {}),
       });
       if (!result.ok) return failed(result);
@@ -327,13 +347,14 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
         id: z.string(),
         notes: NOTES.optional().describe("Plain text; replaces the existing notes entirely"),
         boardId: z.string().nullable().optional().describe("Board id from list_boards, or null for no board"),
+        tags: TAGS.optional().describe("Every tag the session should have; REPLACES the existing tags (an empty list removes them all)"),
         goalsAchieved: GOALS_ACHIEVED.optional().describe(
           "Every goal point achieved in this session, exact wording; replaces the existing ticks"
         ),
       }),
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
-    async ({ id, notes, boardId, goalsAchieved }) => {
+    async ({ id, notes, boardId, tags, goalsAchieved }) => {
       const limited = writeLimited();
       if (limited) return limited;
       const maps = await lookups(ownerId);
@@ -348,6 +369,7 @@ export function registerSurflogTools(server: McpServer, auth: TokenAuth) {
       const result = await updateSessionFor(ownerId, id, {
         ...(notes !== undefined ? { notesHtml: plainTextToHtml(notes) } : {}),
         ...(boardId !== undefined ? { boardId } : {}),
+        ...(tags !== undefined ? { tags } : {}),
         ...(ticks !== undefined ? { goalAchieved: ticks } : {}),
       });
       if (!result.ok) return failed(result);

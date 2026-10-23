@@ -22,6 +22,7 @@ import { latestLoggableWhen } from "@/lib/format";
 import { endOfSession, isDuration } from "@/lib/time-slots";
 import { achievedGoalFields, parseGoalAchieved } from "@/lib/goal";
 import { sanitizeNotesHtml, htmlToPlainText } from "@/lib/rich-text";
+import { normalizeTags } from "@/lib/tags";
 import type { Cond, CondCwaTide, CondOpenMeteo, Session } from "@/lib/types";
 
 export type ServiceResult<T> =
@@ -29,6 +30,8 @@ export type ServiceResult<T> =
   | { ok: false; status: 400 | 404; error: string };
 
 const fail = (status: 400 | 404, error: string) => ({ ok: false as const, status, error });
+
+const TAGS_NOT_ON = "tags aren't switched on yet — the 20261023000000 migration hasn't been applied";
 
 const WHEN_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
@@ -72,6 +75,10 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
   // The goal points ticked as achieved — optional; see lib/goal.ts.
   const achieved = body.goalAchieved === undefined ? [] : parseGoalAchieved(body.goalAchieved);
   if (!achieved) return fail(400, "invalid goalAchieved");
+
+  // Tags — optional; starter keys or the user's own words (lib/tags.ts).
+  const tags = normalizeTags(body.tags);
+  if (!tags) return fail(400, "invalid tags (at most 8, each up to 24 characters)");
 
   // How long it was — optional, in the picker's steps, and over before midnight.
   let durationMin: number | null = null;
@@ -122,6 +129,8 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
     when,
     // omitted when unset, so the insert never names the column (works before its migration)
     ...(durationMin !== null ? { durationMin } : {}),
+    // omitted when empty, so the insert never names the column (works before its migration)
+    ...(tags.length ? { tags } : {}),
     notesHtml,
     notes,
     photos: [],
@@ -141,6 +150,7 @@ export async function createSessionFor(ownerId: string, input: unknown): Promise
     if (durationMin !== null && e instanceof Error && e.message.includes("duration_min")) {
       return fail(400, "durations aren't switched on yet — the 20261021000000 migration hasn't been applied");
     }
+    if (tags.length && e instanceof Error && e.message.includes("tags")) return fail(400, TAGS_NOT_ON);
     throw e;
   }
 }
@@ -174,6 +184,14 @@ export async function updateSessionFor(
     const notesHtml = sanitizeNotesHtml(body.notesHtml);
     patch.notesHtml = notesHtml;
     patch.notes = htmlToPlainText(notesHtml);
+  }
+
+  // Tags — the whole list, replacing what was there (empty clears it). Only
+  // written when it differs, so an untouched list never needs the column.
+  if (body.tags !== undefined) {
+    const tags = normalizeTags(body.tags);
+    if (!tags) return fail(400, "invalid tags (at most 8, each up to 24 characters)");
+    if (tags.join("\n") !== (existing.tags ?? []).join("\n")) patch.tags = tags;
   }
 
   // The goal points ticked as achieved — the whole list, replacing what was
@@ -223,7 +241,12 @@ export async function updateSessionFor(
     patch.cond = next;
   }
 
-  return { ok: true, data: await updateSession(id, patch) };
+  try {
+    return { ok: true, data: await updateSession(id, patch) };
+  } catch (e) {
+    if (patch.tags && e instanceof Error && e.message.includes("tags")) return fail(400, TAGS_NOT_ON);
+    throw e;
+  }
 }
 
 /** Delete a session and free its photo/video objects. */

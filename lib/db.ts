@@ -39,6 +39,7 @@ interface SessionRow {
   goal_met?: boolean | null;
   goal_points_met?: boolean[] | null; // added by 20260929000000_add_goal_points_met.sql
   duration_min?: number | null; // added by 20261021000000_add_session_duration.sql
+  tags?: string[] | null; // added by 20261023000000_add_session_tags.sql
   created_at: string;
   example: boolean | null;
 }
@@ -50,6 +51,7 @@ function rowToSession(row: SessionRow): Session {
     spot: row.spot,
     when: row.session_when,
     ...(row.duration_min != null ? { durationMin: row.duration_min } : {}),
+    ...(row.tags?.length ? { tags: row.tags } : {}),
     notesHtml: row.notes_html,
     notes: row.notes,
     photos: row.photos ?? [],
@@ -75,6 +77,8 @@ function sessionToRow(session: Partial<Session>): Partial<SessionRow> {
   if (session.when !== undefined) row.session_when = session.when;
   // not set when null, so an insert without a duration never names the column
   if (session.durationMin != null) row.duration_min = session.durationMin;
+  // an insert without tags never names the column (the service omits an empty list)
+  if (session.tags !== undefined) row.tags = session.tags;
   if (session.notesHtml !== undefined) row.notes_html = session.notesHtml;
   if (session.notes !== undefined) row.notes = session.notes;
   if (session.photos !== undefined) row.photos = session.photos;
@@ -140,6 +144,7 @@ export async function listSessionsPage(
   if (filter.spot) query = query.eq("spot", filter.spot);
   if (filter.board === NO_BOARD) query = query.is("board_id", null);
   else if (filter.board) query = query.eq("board_id", filter.board);
+  if (filter.tags?.length) query = query.overlaps("tags", filter.tags);
   if (filter.from) query = query.gte("session_when", filter.from);
   if (filter.to) query = query.lte("session_when", `${filter.to}T23:59`);
   const result = await query
@@ -157,6 +162,7 @@ export async function countSessions(ownerId: string, filter: SessionFilter = {})
   if (filter.spot) query = query.eq("spot", filter.spot);
   if (filter.board === NO_BOARD) query = query.is("board_id", null);
   else if (filter.board) query = query.eq("board_id", filter.board);
+  if (filter.tags?.length) query = query.overlaps("tags", filter.tags);
   if (filter.from) query = query.gte("session_when", filter.from);
   if (filter.to) query = query.lte("session_when", `${filter.to}T23:59`);
   const result = await query;
@@ -164,20 +170,28 @@ export async function countSessions(ownerId: string, filter: SessionFilter = {})
   return result.count ?? 0;
 }
 
+const STAT_COLUMNS = "id, spot, session_when, board_id, goal_text, goal_met, goal_points_met, created_at";
+
 /** Every session as a slim row (see SessionStat), newest first. The one query
  *  that touches all of an owner's sessions; it leaves out notes, photos and
- *  the condition blocks, which are most of each row's weight. */
+ *  the condition blocks, which are most of each row's weight. Reads `tags`
+ *  too, but falls back to the columns without it when the tags migration
+ *  (20261023000000) hasn't been applied to this database yet, so the
+ *  dashboard still loads. */
 export async function listSessionStats(ownerId: string): Promise<SessionStat[]> {
-  const result = await getSupabase()
-    .from(TABLE)
-    .select("id, spot, session_when, board_id, goal_text, goal_met, goal_points_met, created_at")
-    .eq("owner_id", ownerId)
-    .order("session_when", { ascending: false })
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: true });
-  const rows = assertNoError(result) as Pick<
+  const query = (columns: string) =>
+    getSupabase()
+      .from(TABLE)
+      .select(columns)
+      .eq("owner_id", ownerId)
+      .order("session_when", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true });
+  let result = await query(`${STAT_COLUMNS}, tags`);
+  if (result.error && result.error.message.includes("tags")) result = await query(STAT_COLUMNS);
+  const rows = assertNoError(result) as unknown as Pick<
     SessionRow,
-    "id" | "spot" | "session_when" | "board_id" | "goal_text" | "goal_met" | "goal_points_met" | "created_at"
+    "id" | "spot" | "session_when" | "board_id" | "tags" | "goal_text" | "goal_met" | "goal_points_met" | "created_at"
   >[];
   return rows.map((row) =>
     toStat({
@@ -185,6 +199,7 @@ export async function listSessionStats(ownerId: string): Promise<SessionStat[]> 
       spot: row.spot,
       when: row.session_when,
       boardId: row.board_id ?? null,
+      ...(row.tags?.length ? { tags: row.tags } : {}),
       goalText: row.goal_text ?? null,
       goalMet: row.goal_met ?? null,
       goalPointsMet: row.goal_points_met ?? null,

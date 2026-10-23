@@ -31,6 +31,7 @@ import { WindStrength } from "@/components/wind-strength";
 import { WindShoreBadge } from "@/components/wind-shore-badge";
 import { GoalSection } from "@/components/goal";
 import { TileGroup } from "@/components/tile-group";
+import { TagLine } from "@/components/tag-line";
 import { PillNeck } from "@/components/pill-neck";
 import { sessionAchieved } from "@/lib/goal";
 import { boardLabel, boardPhotoSrc } from "@/lib/boards";
@@ -412,6 +413,13 @@ export function EntryCard({
           dangerouslySetInnerHTML={{ __html: session.notesHtml }}
         />
       )}
+
+      {session.tags?.length ? (
+        // one quiet line under the notes (design chosen 2026-10-23, /dev/tags)
+        <div className={`px-4 sm:px-6 ${session.notesHtml || board || achieved.length > 0 ? "pt-2" : "pt-1"}`}>
+          <TagLine tags={session.tags} lang={lang} label={t("entry.tags")} />
+        </div>
+      ) : null}
 
       {sideBySide ? (
         // One or two media items next to the tiles (sm and up): the tiles keep the

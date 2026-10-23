@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SpotPicker, recentSpotSlugs, usePendingRequests, type PendingRequest } from "@/components/spot-picker";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
+import { TagPicker } from "@/components/tag-picker";
 import { GoalCheck } from "@/components/goal";
 import { goalOptions } from "@/lib/goal";
 import { DatePicker } from "@/components/date-picker";
@@ -118,6 +119,7 @@ export function LogForm({
   // undefined = not picked yet, so follow the last-used board.
   const [pickedBoardId, setBoardId] = useState<string | null | undefined>(undefined);
   const boardId = pickedBoardId === undefined ? preselectBoardId(boards, sessions) : pickedBoardId;
+  const [tags, setTags] = useState<string[]>([]);
   const [achieved, setAchieved] = useState<string[]>([]);
   const [editorKey, setEditorKey] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -142,6 +144,8 @@ export function LogForm({
           ...(duration ? { durationMin: duration } : {}),
           notesHtml,
           boardId,
+          // only sent when there are some, so an untagged session never needs the column
+          ...(tags.length ? { tags } : {}),
           // only the ticked goal points are recorded
           ...(achieved.length ? { goalAchieved: achieved } : {}),
         }),
@@ -162,6 +166,7 @@ export function LogForm({
       onCreated(session);
       setNotesHtml("");
       setDuration(null);
+      setTags([]);
       setAchieved([]);
       setEditorKey((k) => k + 1);
       media.forEach((m) => URL.revokeObjectURL(m.url));
@@ -277,6 +282,10 @@ export function LogForm({
 
       <div className="mt-4 flex flex-wrap items-center gap-4">
         <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full min-w-[180px]" />
+      </div>
+
+      <div className="mt-4">
+        <TagPicker value={tags} onChange={setTags} disabled={saving} />
       </div>
 
       <div className="mt-4">

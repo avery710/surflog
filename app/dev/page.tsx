@@ -44,6 +44,12 @@ const PAGES = [
       "Ten ways to draw the session's own length in blue on the Tide-tile curve, after the \"Growth, plotted.\" poster: blue spotlight (now, on the real chart), route, bold time + caption, time pill, milestones, route track below, and four wave iterations (ripple, rolling waves, scallops, wave route). Six synthetic cases at 140 / 220 / 360 px, with and without a duration. Suggestions only.",
   },
   {
+    href: "/dev/tags",
+    title: "Session tags (SURFLOG-11)",
+    description:
+      "UI proposals for tags on a session: the starter tag list with three zh-TW proposals each, the chosen grouped-chip picker, ten icon/separator treatments of the one-quiet-line card layout, and the chosen “#” pick-several filter chip with its menu. en/zh-TW. Suggestions only; nothing is wired up.",
+  },
+  {
     href: "/dev/footer-options",
     title: "Footer options",
     description:

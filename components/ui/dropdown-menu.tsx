@@ -282,6 +282,33 @@ function DropdownMenuRadioItem({
   )
 }
 
+/** A row with a check that toggles on its own (a multi-select list). Pass
+ *  `onSelect={(e) => e.preventDefault()}` to keep the menu open while ticking. */
+function DropdownMenuCheckboxItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+  return (
+    <DropdownMenuPrimitive.CheckboxItem
+      data-slot="dropdown-menu-checkbox-item"
+      className={cn(
+        // same box as the radio item: the check sits in the icon column
+        "relative flex w-full cursor-pointer items-center gap-2 rounded-[var(--r-tile)] py-2 pr-2.5 pl-[34px] text-[13.5px] font-medium outline-hidden select-none focus:bg-secondary data-disabled:pointer-events-none data-disabled:opacity-50",
+        className
+      )}
+      {...props}
+    >
+      <span className="pointer-events-none absolute left-2.5 flex size-4 items-center justify-center">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <CheckIcon className="size-4 text-muted-foreground" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+      {children}
+    </DropdownMenuPrimitive.CheckboxItem>
+  )
+}
+
 function DropdownMenuLabel({
   className,
   inset,
@@ -320,6 +347,7 @@ export {
   DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuRadioGroup,
+  DropdownMenuCheckboxItem,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuSub,

@@ -109,6 +109,11 @@ and what is unverified.
   duration, on 2026-10-21; the avatar and pin ones were already there).
   Apply to staging first, then production, with the CLI linked to the
   right project.
+- **Tags (SURFLOG-11, built 2026-10-23, not committed or deployed yet)**:
+  migration `20261023000000_add_session_tags.sql` is **applied nowhere**
+  (apply to staging first, then production). Without it the dashboard still
+  loads (`listSessionStats` falls back) and saving with tags says "not
+  switched on yet". See "Tags" under Data model.
 - Never tried on a real phone. Most "not verified" notes below still stand.
 - In the repo but not described here: spot **edit** requests
   (`lib/spot-edit-*.ts`, `app/api/spot-edit-requests`, migration
@@ -232,6 +237,7 @@ Session {
   spot                   // spots.slug | "req:<id>" (pending request) | legacy "custom:…"
   when                   // "YYYY-MM-DDTHH:mm", local time AT THE SPOT, half-hour grid, no tz
   durationMin?           // 30-min steps, at most 4 h (240); optional
+  tags?: string[]        // up to 8, ≤24 chars each; see Tags below. Editable after creation
   notesHtml, notes       // sanitized rich text (lib/rich-text.ts) + plain mirror
   photos: [{ id, type }] // video/* renders as <video>
   boardId
@@ -284,6 +290,34 @@ TideEvent = { type: "high" | "low", time, heightM }
 - **`lib/session-service.ts`** (`createSessionFor`, `updateSessionFor`,
   `deleteSessionFor`) is the only place sessions change; web routes and
   MCP both go through it.
+
+**Tags** (SURFLOG-11, 2026-10-23; `lib/tags.ts`, `sessions.tags text[]` with a
+GIN index). **Starter** tags (4 groups: Waves, Size, Crowd, Others; the list
+and zh-TW wording are Avery's picks, chosen at `/dev/tags`) are stored by their
+**English key** and shown in the viewer's language (`tagLabel`); **custom**
+tags are stored and shown as typed. `normalizeTags()` is the one validator
+(web, MCP, filter): trims, collapses spaces, matches starters by English or zh-TW
+wording ignoring case, no repeats, starters first in catalogue order, ≤8 tags,
+each ≤24 characters, else 400. Descriptive only: **no judgement tags (Epic,
+Good, Bad), the rating was removed on request**; no wind/tide tags (they come
+from the sources); no board-type tags (the board chip says it). Size group is
+unreviewed wording. UI: grouped-chip picker in the log form and edit panel
+(`components/tag-picker.tsx`, group labels 10 px, picked chips are filled blue
+with no check mark). **Collapsed by default** (2026-10-23, on request): the
+picked tags, then the 6 most used (`quickTags()`, topped up with common
+starters for a new user), then "+ Add tag"; "All tags" opens the grouped list,
+"Yours" = your own tags. The history comes from `KnownTagsProvider` (the slim
+session list), so no extra request; **one quiet
+line under the notes** on the card (`components/tag-line.tsx`, tag icon in a
+soft circle, dots between; not tappable; option 7 of 10); a fourth filter chip
+**Tag** (`#` icon, checkbox menu, any-of, counts per tag, repeated `?tag=`
+params, `overlaps` in the database). MCP: `tags` on `create_session` /
+`update_session` (replaces the whole list) and in every session returned;
+`list_sessions` takes `tag`. Not on share images or the public page, by default.
+Checked in the built-in browser on `/dev/session-card` (cases "Tags …", the
+real edit panel: toggling, adding, the 8 limit) and on a temporary page for the
+filter chip; **not checked against real Supabase, signed in, or on a phone,
+and the log form's picker was not opened.**
 
 **Boards** (`boards`: brand, `length_in`, `volume_l`, rocker, note,
 `photo_id`, `is_favorite`, `sort_order`). `sessions.board_id` is `on
@@ -485,7 +519,8 @@ Card) and a public link.
 ## UI
 
 **Session card** (`components/entry-card.tsx`):
-- **Order** (2026-10-16, after several flips on request): header, board
+- **Order** (2026-10-16, after several flips on request; the tag line was added
+  between notes and tiles 2026-10-23): header, board
   chip + goal pills (one flex-wrap row when they fit, else goals wrap
   beneath; CSS only, `GoalSection` `inline` prop; never a stem between
   chip and goals), notes, condition tiles, media. Missing parts drop out.
@@ -592,8 +627,8 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   Supabase, a real sign-in, a phone, or a failed load / Try again.**
 - **Session filter** (2026-10-17): a chip bar under the "Sessions" title
   (`components/session-filter.tsx`; Avery picked it over a panel, a
-  toolbar, a dialog and presets-only): **Date · Spot · Board** chips, each
-  opens a radio menu. **Icon-first look** (picked 2026-10-17 from nine: filled,
+  toolbar, a dialog and presets-only): **Date · Spot · Board · Tag** chips, each
+  opens a radio menu (Tag: a checkbox menu, several at once). **Icon-first look** (picked 2026-10-17 from nine: filled,
   outlined, soft tint, dark, underline, tiles, segmented, icon-first, dot): unset
   is a small round grey icon button with a tooltip (`Tooltip`, aria-label =
   its name); set it grows into a solid blue pill with the value and a chevron,

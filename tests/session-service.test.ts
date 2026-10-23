@@ -286,3 +286,61 @@ describe("sessions with a duration", () => {
   });
 });
 
+
+describe("sessions with tags", () => {
+  beforeEach(() => {
+    vi.mocked(resolveOwnedBoardId).mockResolvedValue({ ok: true, boardId: null } as never);
+  });
+
+  it("saves them tidied: starters first by their English key, then the user's own", async () => {
+    const r = await createSessionFor(ME, {
+      spot: "waiao",
+      when: "2026-10-05T08:00",
+      tags: ["With Ming", " solo ", "鏡面海", "glassy", "With Ming"],
+    });
+    expect(r.ok && r.data.tags).toEqual(["Glassy", "Solo", "With Ming"]);
+  });
+
+  it("leaves the field out entirely when there are none (works before the migration)", async () => {
+    await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", tags: [" ", ""] });
+    expect(vi.mocked(createSession).mock.calls[0][0]).not.toHaveProperty("tags");
+  });
+
+  it.each([
+    ["nope"],
+    [[1, 2]],
+    [["x".repeat(25)]],
+    [["a", "b", "c", "d", "e", "f", "g", "h", "i"]],
+  ])("refuses tags of %j", async (tags) => {
+    const r = await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", tags });
+    expect(r).toMatchObject({ ok: false, status: 400 });
+    expect(createSession).not.toHaveBeenCalled();
+  });
+
+  it("says so when the migration hasn't been applied", async () => {
+    vi.mocked(createSession).mockRejectedValueOnce(new Error("Supabase: Could not find the 'tags' column of 'sessions'"));
+    const r = await createSessionFor(ME, { spot: "waiao", when: "2026-10-05T08:00", tags: ["Glassy"] });
+    expect(r).toMatchObject({ ok: false, status: 400 });
+    expect(!r.ok && r.error).toMatch(/migration/);
+  });
+
+  it("can be changed after creation, replacing the whole list", async () => {
+    vi.mocked(getSession).mockResolvedValue(stored({ tags: ["Glassy"] }));
+    await updateSessionFor(ME, "s1", { tags: ["Crowded", "Glassy"] });
+    expect(vi.mocked(updateSession).mock.calls[0][1]).toMatchObject({ tags: ["Glassy", "Crowded"] });
+    await updateSessionFor(ME, "s1", { tags: [] });
+    expect(vi.mocked(updateSession).mock.calls[1][1]).toMatchObject({ tags: [] });
+  });
+
+  it("doesn't write the column when the list is unchanged", async () => {
+    vi.mocked(getSession).mockResolvedValue(stored({ tags: ["Glassy"] }));
+    await updateSessionFor(ME, "s1", { tags: ["glassy"], notesHtml: "x" });
+    expect(vi.mocked(updateSession).mock.calls[0][1]).not.toHaveProperty("tags");
+  });
+
+  it("400s an invalid list on update and writes nothing", async () => {
+    vi.mocked(getSession).mockResolvedValue(stored());
+    expect(await updateSessionFor(ME, "s1", { tags: "Glassy" })).toMatchObject({ ok: false, status: 400 });
+    expect(updateSession).not.toHaveBeenCalled();
+  });
+});

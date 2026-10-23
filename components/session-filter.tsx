@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CalendarDays, ChevronDown, MapPin, WandSparkles, X } from "lucide-react";
+import { CalendarDays, ChevronDown, Hash, MapPin, WandSparkles, X } from "lucide-react";
 import { DatePicker } from "@/components/date-picker";
 import { Tooltip } from "@/components/tooltip";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -24,6 +25,7 @@ import {
 } from "@/lib/session-filter";
 import type { SessionStat } from "@/lib/session-stats";
 import { useSpotCatalog } from "@/lib/spot-catalog";
+import { STARTER_TAG_GROUPS, customTagsOf, tagCounts, tagLabel } from "@/lib/tags";
 import type { Board } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +42,7 @@ const PRESET_KEY: Record<DatePresetId, keyof typeof DICT> = {
 
 /**
  * The header of the sessions section: "Sessions", then a row of filter chips
- * (Date · Spot · Board). Each chip opens a small menu; unset it is just an
+ * (Date · Spot · Board · Tag). Each chip opens a small menu; unset it is just an
  * icon, set it grows into a blue pill with its value and a Clear button
  * appears. The Date menu has
  * quick ranges plus "Custom range", which shows exact From / To fields under
@@ -59,7 +61,7 @@ export function SessionFilterBar({
   filter: SessionFilter;
   onChange: (next: SessionFilter) => void;
   /** Every session, slim: the source of the spot options. */
-  stats: Pick<SessionStat, "spot" | "boardId">[];
+  stats: Pick<SessionStat, "spot" | "boardId" | "tags">[];
   boards: Board[];
   /** How many sessions pass the filter. */
   matching: number;
@@ -83,6 +85,17 @@ export function SessionFilterBar({
   }, [stats, catalog, lang]);
   const sortedBoards = useMemo(() => sortBoards(boards), [boards]);
   const hasBoardless = stats.some((s) => !s.boardId);
+  // Tags you have used, with how many sessions carry each: starters in the
+  // catalogue's order, then your own by use. Ticked tags stay listed even if
+  // no session has them any more, so they can be unticked.
+  const tagOptions = useMemo(() => {
+    const counts = tagCounts(stats);
+    const starters = STARTER_TAG_GROUPS.flatMap((g) => g.tags.map((x) => x.key));
+    const mine = customTagsOf(stats).map((c) => c.tag);
+    const list = [...starters.filter((k) => counts.has(k)), ...mine];
+    for (const k of filter.tags ?? []) if (!list.includes(k)) list.push(k);
+    return list.map((tag) => ({ tag, count: counts.get(tag) ?? 0 }));
+  }, [stats, filter.tags]);
 
   const set = (patch: Partial<SessionFilter>) => {
     const next: SessionFilter = { ...filter, ...patch };
@@ -91,7 +104,10 @@ export function SessionFilterBar({
       if ("from" in patch) next.to = next.from;
       else next.from = next.to;
     }
-    for (const k of Object.keys(next) as (keyof SessionFilter)[]) if (!next[k]) delete next[k];
+    for (const k of Object.keys(next) as (keyof SessionFilter)[]) {
+      const v = next[k];
+      if (!v || (Array.isArray(v) && v.length === 0)) delete next[k];
+    }
     onChange(next);
   };
 
@@ -111,6 +127,13 @@ export function SessionFilterBar({
   const spotName = filter.spot ? catalog.label(filter.spot, lang) : undefined;
   const board = filter.board && filter.board !== NO_BOARD ? boards.find((b) => b.id === filter.board) : undefined;
   const boardName = filter.board === NO_BOARD ? t("form.noBoard") : board ? boardLabel(board) || t("filter.unnamedBoard") : undefined;
+
+  const pickedTags = filter.tags ?? [];
+  const tagName = pickedTags.length
+    ? pickedTags.length === 1
+      ? tagLabel(pickedTags[0], lang)
+      : t("filter.tagsMore", { first: tagLabel(pickedTags[0], lang), n: pickedTags.length - 1 })
+    : undefined;
 
   return (
     <div>
@@ -189,6 +212,32 @@ export function SessionFilterBar({
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
+            </Chip>
+          )}
+
+          {(tagOptions.length > 0 || pickedTags.length > 0) && (
+            <Chip icon={<Hash className="size-3.5" aria-hidden />} label={t("filter.byTag")} value={tagName}>
+              {/* several at once: a session passes if it has ANY ticked tag */}
+              <DropdownMenuCheckboxItem
+                checked={pickedTags.length === 0}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={() => set({ tags: undefined })}
+              >
+                {t("filter.allTags")}
+              </DropdownMenuCheckboxItem>
+              {tagOptions.map((o) => (
+                <DropdownMenuCheckboxItem
+                  key={o.tag}
+                  checked={pickedTags.includes(o.tag)}
+                  onSelect={(e) => e.preventDefault()}
+                  onCheckedChange={(on) =>
+                    set({ tags: on ? [...pickedTags, o.tag] : pickedTags.filter((x) => x !== o.tag) })
+                  }
+                >
+                  <span className="min-w-0 flex-1 truncate">{tagLabel(o.tag, lang)}</span>
+                  <span className="ml-3 font-mono text-[11px] text-muted-foreground">{o.count}</span>
+                </DropdownMenuCheckboxItem>
+              ))}
             </Chip>
           )}
 

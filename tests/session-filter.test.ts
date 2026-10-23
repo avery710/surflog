@@ -98,3 +98,28 @@ describe("date presets", () => {
     expect(datePresetOf({ to: "2026-10-01" }, "2026-10-17")).toBe("custom");
   });
 });
+
+describe("tags in the filter", () => {
+  it("reads each repeated `tag` param, tidied", () => {
+    expect(q("tag=solo&tag=With%20Ming&tag=Glassy")).toEqual({ tags: ["Glassy", "Solo", "With Ming"] });
+  });
+  it("ignores an invalid list", () => {
+    expect(q(`tag=${"x".repeat(30)}`)).toEqual({});
+    expect(q("tag=")).toEqual({});
+  });
+  it("round-trips, including a tag with a comma", () => {
+    const f = { tags: ["Glassy", "A, B"], from: "2026-01-01" };
+    expect(parseFilter(filterToParams(f))).toEqual(f);
+  });
+  it("counts as one field", () => {
+    expect(activeFilterCount({ tags: ["Glassy", "Solo"], spot: "a" })).toBe(2);
+    expect(activeFilterCount({ tags: [] })).toBe(0);
+  });
+  it("passes a session with any of the tags, and none without", () => {
+    const f = { tags: ["Glassy", "Solo"] };
+    expect(matchesFilter({ ...row(), tags: ["Quiet", "Solo"] }, f)).toBe(true);
+    expect(matchesFilter({ ...row(), tags: ["Quiet"] }, f)).toBe(false);
+    expect(matchesFilter(row(), f)).toBe(false);
+    expect(matchesFilter(row(), {})).toBe(true);
+  });
+});

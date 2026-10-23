@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useSpotCatalog } from "@/lib/spot-catalog";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { BoardSelect } from "@/components/board-select";
+import { TagPicker } from "@/components/tag-picker";
 import {
   MediaPicker,
   UploadProgress,
@@ -67,6 +68,8 @@ export function EditPanel({
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
   const [notesHtml, setNotesHtml] = useState(session.notesHtml);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
+  const initialTags = session.tags ?? [];
+  const [tags, setTags] = useState<string[]>(initialTags);
   const initialAchieved = sessionAchieved(session);
   const [achieved, setAchieved] = useState<string[]>(initialAchieved);
   // The current goal's points, plus anything this session has ticked that
@@ -95,6 +98,8 @@ export function EditPanel({
         // only sent when changed, so an untouched board never needs a write
         ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
         // only sent when changed, like the board
+        ...(tags.join("\n") !== initialTags.join("\n") ? { tags } : {}),
+        // likewise
         ...(achieved.join("\n") !== initialAchieved.join("\n") ? { goalAchieved: achieved } : {}),
       }),
     });
@@ -199,6 +204,8 @@ export function EditPanel({
           <BoardSelect boards={boards} value={boardId} onChange={setBoardId} className="w-full bg-background" />
         </div>
       )}
+
+      <TagPicker value={tags} onChange={setTags} disabled={saving} />
 
       <MediaPicker
         picks={picks}

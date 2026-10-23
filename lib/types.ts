@@ -111,6 +111,10 @@ export interface Session {
    *  the same day). Optional, and fixed after creation like `when`. Added by
    *  20261021000000_add_session_duration.sql. */
   durationMin?: number | null;
+  /** Short labels (lib/tags.ts): starter tags by their English key, custom ones
+   *  as typed. At most 8; absent when there are none. Editable after creation.
+   *  Added by 20261023000000_add_session_tags.sql. */
+  tags?: string[];
   notesHtml: string; // sanitized: ul/ol/li/b/i only
   notes: string; // plain-text mirror
   photos: Photo[];

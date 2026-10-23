@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { LogForm } from "@/components/log-form";
@@ -24,6 +24,8 @@ import {
 import type { GoalRename } from "@/lib/goal";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
 import { SpotCatalogProvider, type OwnRequest } from "@/lib/spot-catalog";
+import { KnownTagsProvider } from "@/components/tag-picker";
+import { customTagsOf, tagCounts } from "@/lib/tags";
 import type { Spot } from "@/lib/spots";
 import { useAutoHideHeader } from "@/lib/use-auto-hide-header";
 import { useLang } from "@/lib/i18n";
@@ -83,6 +85,11 @@ export function Journal({
   // 10 at a time as the list scrolls (lib/use-session-feed.ts).
   const feed = useSessionFeed({ initialStats, initialLoaded, initialLatest });
   const { stats } = feed;
+  // the tag picker's history: the user's own tags (under "Yours") and how often each tag is used (what it shows first)
+  const tagHistory = useMemo(
+    () => ({ custom: customTagsOf(stats).map((c) => c.tag), counts: tagCounts(stats) }),
+    [stats]
+  );
 
   // While the list reloads (a new filter empties it) the page must keep its
   // length: a shorter page makes the browser pull a scrolled-down view up to
@@ -199,6 +206,7 @@ export function Journal({
   }
 
   return (
+    <KnownTagsProvider custom={tagHistory.custom} counts={tagHistory.counts}>
     <SpotCatalogProvider
       spots={spots}
       requests={requests}
@@ -409,6 +417,7 @@ export function Journal({
         </section>
       </div>
     </SpotCatalogProvider>
+    </KnownTagsProvider>
   );
 }
 

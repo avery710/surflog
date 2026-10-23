@@ -299,6 +299,31 @@ const CASES: CaseDef[] = [
     session: fakeSession({ goalText: "Pop up faster\nLook where I want to go", goalMet: null }),
   },
   {
+    id: "tags",
+    title: "Tags — three starters",
+    caption:
+      "session.tags: one quiet line under the notes (2026-10-23): a tag icon in a soft circle, then the words separated by dots. Starters read in the viewer's language (switch to 中文: Glassy → 鏡面海); the user's own tag (“With Ming”) stays as typed. Click Edit to see the tag picker.",
+    session: fakeSession({
+      notesHtml: "<p>Clean peaky waves, offshore in the morning.</p>",
+      notes: "Clean peaky waves, offshore in the morning.",
+      tags: ["Glassy", "Chest to shoulder", "Solo", "With Ming"],
+    }),
+  },
+  {
+    id: "tags-many",
+    title: "Tags — eight (the limit), long own tag",
+    caption: "Eight tags wrap onto a second line and a long own tag breaks inside its own words; nothing pushes the card wider.",
+    session: fakeSession({
+      tags: ["Glassy", "Peeling", "Chest to shoulder", "Quiet", "Dawn patrol", "With surf buddies", "Nanwan crew after the dawn patrol", "與朋友一起衝浪的早晨"],
+    }),
+  },
+  {
+    id: "tags-only",
+    title: "Tags, no notes, no board or goals",
+    caption: "The tag line is the only thing between the header and the tiles: it takes the tighter top padding.",
+    session: fakeSession({ notesHtml: "", notes: "", boardId: null, goalText: null, goalMet: null, goalPointsMet: null, tags: ["Crowded", "Choppy"] }),
+  },
+  {
     id: "long-notes",
     title: "Long Chinese notes, with a list",
     caption: "notesHtml with <ul><li> bullets — CJK line-wrapping and rich text at length.",
