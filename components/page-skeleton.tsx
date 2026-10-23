@@ -267,7 +267,7 @@ const BODIES: Record<PageSkeletonVariant, React.ReactNode> = {
           <Bar className="h-3.5 w-20" />
           <div className="mt-2 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
             {Array.from({ length: rows }, (_, i) => (
-              <ListRow key={i} ctl="size-6 w-6" />
+              <ListRow key={i} ctl="size-6 w-6 rounded-full" />
             ))}
           </div>
         </div>
