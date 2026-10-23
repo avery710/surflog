@@ -42,10 +42,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 (2026-10-21, on request). Pages grow into it with flex-1. */}
             <div className="flex min-h-dvh flex-col">{children}</div>
             <SiteFooter />
+            {/* inside LanguageProvider: it reports the app language */}
+            <Analytics />
           </LanguageProvider>
         </QueryProvider>
         <Toaster position="bottom-center" />
-        <Analytics />
       </body>
     </html>
   );
