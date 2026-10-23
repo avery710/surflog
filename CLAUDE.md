@@ -35,9 +35,11 @@ and what is unverified.
   `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `AUTH_SECRET` and
   `SIGNIN_ALLOWED_EMAILS`; Production keeps the originals plus
   `SPOT_ADMIN_EMAILS` (set by Avery, not read back). The staging workflow
-  refuses `STAGING_DOMAIN` = `surflog.tw`. **Release flow**: push
-  `staging`, check it, then fast-forward `main`
-  (`git push origin staging:main`), which deploys production. **Vercel
+  refuses `STAGING_DOMAIN` = `surflog.tw`. **Release flow**
+  (2026-10-23, by request; was a direct `git push origin staging:main`): push
+  `staging`, check it, then a **PR `staging` → `main`** (`release-main` agent),
+  which Avery reviews and merges with **Create a merge commit** (squash/rebase
+  would give `main` commits `staging` lacks); the merge deploys production. **Vercel
   Authentication is on, Standard Protection** (2026-10-21): every URL except
   the production custom domains needs a Vercel login, so staging,
   `surflog-staging.vercel.app` and all `surflog-<hash>….vercel.app` URLs
@@ -122,7 +124,7 @@ and what is unverified.
   migration `20261023000000_add_session_tags.sql` is **applied to the staging
   Supabase project (2026-10-23, from a worktree with its own CLI link, so the
   main checkout's production link was never touched), NOT to production yet**
-  (apply it there before fast-forwarding `main`). Without it the dashboard
+  (apply it there before merging the release PR into `main`). Without it the dashboard
   still loads (`listSessionStats` falls back) and saving with tags says "not
   switched on yet". Not tried on staging in a browser yet. See "Tags" under
   Data model.
@@ -910,6 +912,13 @@ load only when a session starts.
   GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
   signed in) and reports pass/fail with the failing step. It never re-runs or
   fixes a failed run.
+- **`release-main`** (2026-10-23, not yet run): opens or refreshes the PR
+  `staging` → `main`. Stops without a PR if `main` has non-merge commits
+  `staging` lacks, nothing would ship, `app/dev/layout.tsx` is missing, or
+  staging's GitHub Actions run isn't green on the tip commit. The PR body lists
+  migrations as "applied to production" checkboxes (it never applies one),
+  config changes, the commits that ship, and asks for a merge commit. **Never
+  pushes, merges, approves or closes**; Avery merges.
 
 ## Conventions
 

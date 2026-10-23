@@ -60,9 +60,16 @@ jobs:
       - name: Build
         run: vercel build --target=preview --token="$VERCEL_TOKEN"
 
+      # --archive=tgz uploads one tarball: the Hobby plan stops uploads after
+      # 5000 files per 24 h ("api-upload-free"), which a few deploys use up.
+      # The URL goes into a variable first so a failed deploy fails this step
+      # (inside echo "$(…)" the exit code was lost and the alias step failed
+      # on an empty URL instead).
       - name: Deploy
         id: deploy
-        run: echo "url=$(vercel deploy --prebuilt --target=preview --token="$VERCEL_TOKEN")" >> "$GITHUB_OUTPUT"
+        run: |
+          url=$(vercel deploy --prebuilt --archive=tgz --target=preview --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
       # surflog.tw belongs to production (deploy-production.yml); aliasing a
       # staging build onto it would put staging live on the real site.
