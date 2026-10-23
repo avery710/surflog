@@ -32,8 +32,30 @@ import { PAGE_COLUMN } from "@/lib/layout";
  */
 export type PageSkeletonVariant = "journal" | "spots" | "spot" | "aiApps" | "admin";
 
+/** Who is signed in, as far as the header's avatar needs. */
+export type SkeletonUser = { name?: string | null; email?: string | null; image?: string | null };
+
+/** The profile button as `UserMenu` draws it (same size, photo or initial), not
+ *  clickable; without a user it is a plain translucent circle. */
+function LoadingAvatar({ user }: { user?: SkeletonUser }) {
+  if (!user) return <span className="size-10 shrink-0 rounded-full bg-white/25" />;
+  const initial = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
+  return (
+    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary">
+      {user.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={user.image} alt="" referrerPolicy="no-referrer" className="size-full rounded-full object-cover" />
+      ) : (
+        <span className="flex size-full items-center justify-center rounded-full bg-badge text-[13px] font-bold text-badge-foreground">
+          {initial}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /** The blue header as it will look. */
-export function LoadingHeader() {
+export function LoadingHeader({ user }: { user?: SkeletonUser }) {
   return (
     <header className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2">
       <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
@@ -51,18 +73,18 @@ export function LoadingHeader() {
           <span className="ab">
             <LogIcon className="size-4" />
           </span>
-          <span className="size-10 shrink-0 rounded-full bg-white/25" />
+          <LoadingAvatar user={user} />
         </div>
       </div>
     </header>
   );
 }
 
-export function PageSkeleton({ variant }: { variant: PageSkeletonVariant }) {
+export function PageSkeleton({ variant, user }: { variant: PageSkeletonVariant; user?: SkeletonUser }) {
   const { t } = useLang();
   return (
     <>
-      <LoadingHeader />
+      <LoadingHeader user={user} />
       <div
         className={`${PAGE_COLUMN} min-w-0 flex-1 pb-18 ${variant === "journal" ? "" : "pt-6"}`}
         role="status"

@@ -74,7 +74,7 @@ export default function PageSkeletonDevPage() {
           ))}
         </div>
       ) : (
-        <PageSkeleton key={`${variant}-${run}`} variant={variant} />
+        <PageSkeleton key={`${variant}-${run}`} variant={variant} user={{ name: "Avery Lin" }} />
       )}
     </>
   );
