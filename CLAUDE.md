@@ -321,9 +321,8 @@ picked tags, then the 6 most used (`quickTags()`, topped up with common
 starters for a new user), then "+ Add tag"; "All tags" opens the grouped list (the height eases),
 "Yours" = your own tags (a × on a custom tag asks to strip it from **every** session, with the count; `DELETE /api/tags?tag=`, `removeTagFor` in lib/session-service.ts; the cards and filter catch up on the next page load). The history comes from `KnownTagsProvider` (the slim
 session list), so no extra request; **one quiet
-line under the notes** on the card (`components/tag-line.tsx`, a bare # in
-the tags’ grey with no circle (on request: the # replaced an earlier Tags
-icon; the # in a soft circle came before that), dots between; not tappable); a fourth filter chip
+line under the notes** on the card (`components/tag-line.tsx`, the words in the tags’ grey, with a text `#` in front of the first tag
+(no icon; the icons came before that), dots between; not tappable); a fourth filter chip
 **Tag** (`#` icon, checkbox menu, any-of, counts per tag, repeated `?tag=`
 params, `overlaps` in the database). MCP: `tags` on `create_session` /
 `update_session` (replaces the whole list) and in every session returned;
