@@ -555,7 +555,8 @@ function BoardChip({ board, className }: { board: Board; className?: string }) {
       {/* No visible "Board" / 衝浪板 label (removed on request) — the
           photo and name read as a board; screen readers still get it. */}
       <span className="sr-only">{t("entry.board")}</span>
-      <span className="relative min-w-0 truncate text-[13.5px] font-medium leading-none tracking-[-0.01em]">{name}</span>
+      {/* leading-5, not leading-none: truncate clips overflow, and a 13.5px line box cut off the g and y descenders */}
+      <span className="relative min-w-0 truncate text-[13.5px] font-medium leading-5 tracking-[-0.01em]">{name}</span>
     </>
   );
   const photoSrc = boardPhotoSrc(board);
