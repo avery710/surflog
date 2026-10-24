@@ -138,6 +138,12 @@ const PAGES = [
     title: "Main colour",
     description: "Candidate accent colours side by side on mock header/card/tile pieces.",
   },
+  {
+    href: "/dev/colors",
+    title: "Colour picker (live)",
+    description:
+      "Try any blue on the real pill header, buttons, chips and calendar dots: 24 presets, a colour picker, a hex field, the white-text contrast, and a snippet to paste into globals.css.",
+  },
 ];
 
 export default function DevIndexPage() {
