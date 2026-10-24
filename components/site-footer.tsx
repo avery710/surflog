@@ -24,7 +24,7 @@ function CircleLink({ link, label }: { link: SocialLink; label: string }) {
       ref={ref as React.Ref<HTMLAnchorElement>}
       href={link.href}
       aria-label={label}
-      className="wv relative inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white text-white transition-colors hover:text-black before:absolute before:-inset-1.5 before:content-['']"
+      className="wv glass-circle relative inline-flex size-8 shrink-0 items-center justify-center rounded-full text-white before:absolute before:-inset-1.5 before:content-['']"
       {...handlers}
     >
       <span className="wv-clip" aria-hidden>
