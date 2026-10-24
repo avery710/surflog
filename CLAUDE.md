@@ -1017,6 +1017,9 @@ load only when a session starts.
   and Tab / Shift+Tab to nest list items (own DOM moves, not
   `execCommand("indent")`; Tab outside a list still moves focus). Avery
   writes notes in Chinese; don't break CJK handling.
-- **Field focus** (2026-10-19): every text field, select/date/spot trigger
-  and the notes editor shows only a blue border on focus, no glow ring.
+- **Field focus** (2026-10-19; colour follows `--ring` since 2026-10-24, ink
+  `#292524`, was blue): every text field, select/date/spot trigger and the notes
+  editor shows only a ring-coloured border on focus, no glow ring. The
+  "What you've surfed" note field is the same look as its read view: same box,
+  no native textarea styling (`appearance-none`).
 - Secrets: open `.env.local` in the editor for Avery to paste into.
