@@ -536,6 +536,16 @@ html[data-glow-shape="trio"] .page-glow-shape {
     transition: none;
   }
 }
+/* Elastic overscroll (Mac trackpad, iOS) drags the whole page, sticky header
+   included, past the top and shows the canvas behind it, which was the white
+   page: the blue bar looked like it came loose from the top of the screen
+   (2026-10-24). The canvas takes <html>'s background, so it is blue on pages
+   with this header; <body> keeps painting the white page over everything
+   else. The bottom bounce is blue too, matching the blue footer. Pages
+   without the header (/signin, OAuth consent) keep a white canvas. */
+html:has(.auto-hide-header) {
+  background-color: var(--primary);
+}
 
 /*
  * iOS Safari zooms the page when a text control with a computed font-size
