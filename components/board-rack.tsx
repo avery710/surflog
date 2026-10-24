@@ -286,7 +286,17 @@ export function BoardRack({
       </WhiteCard>
 
       <Dialog open={editing != null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-lg" closeLabel={t("entry.close")}>
+        <DialogContent
+          className="max-w-lg"
+          closeLabel={t("entry.close")}
+          // Editing opens on the dialog itself: focusing the brand field
+          // selects its text and pops up the keyboard on a phone.
+          onOpenAutoFocus={(e) => {
+            if (editing === "new") return;
+            e.preventDefault();
+            (e.currentTarget as HTMLElement).focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{t(editing === "new" ? "board.addTitle" : "board.editTitle")}</DialogTitle>
           </DialogHeader>
