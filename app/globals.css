@@ -207,11 +207,11 @@
      (--card-border is now used only for dividers inside cards). --background
      stays white on purpose: inputs, checkboxes and photo placeholders inside
      white cards read it and must not turn grey. */
-  --secondary: color-mix(in srgb, #f5f5f5 var(--grey-opacity, 65%), transparent); /* surface-2: chips, tiles, board cards; a bit see-through (2026-10-24) so the page glow shows faintly through them */
+  --secondary: color-mix(in srgb, #eeeeee var(--grey-opacity, 80%), transparent); /* surface-2: chips, tiles, board cards; a bit see-through (2026-10-24) so the page glow shows faintly through them */
   --secondary-foreground: #0c0a09;
-  --muted: color-mix(in srgb, #f5f5f5 var(--grey-opacity, 65%), transparent);
+  --muted: color-mix(in srgb, #eeeeee var(--grey-opacity, 80%), transparent);
   --muted-foreground: #59696c;
-  --accent: color-mix(in srgb, #f5f5f5 var(--grey-opacity, 65%), transparent); /* original cool grey */
+  --accent: color-mix(in srgb, #eeeeee var(--grey-opacity, 80%), transparent); /* original cool grey */
   --accent-foreground: #292524;
   --destructive: #dc2626;
   --border: #e5e5e5;
@@ -401,8 +401,21 @@ html[data-glow-shape="trio"] .page-glow-shape {
    is a smooth gradient, so there is nothing to blur, and a blur layer per card
    flashed while cards resized or the list loaded. Use instead of `bg-card shadow-soft`. */
 @utility surface-card {
-  background-color: color-mix(in srgb, var(--card) var(--card-opacity, 60%), transparent);
+  background-color: color-mix(in srgb, var(--card) var(--card-opacity, 75%), transparent);
   box-shadow: var(--card-shadow);
+}
+
+/* Search bars and other card-coloured fields (2026-10-24, on request): the same fill
+   as surface-card (75% white by default), without its shadow. */
+@utility surface-fill {
+  background-color: color-mix(in srgb, var(--card) var(--card-opacity, 75%), transparent);
+}
+
+/* Floating menus, selects and popovers: solid white (--popover), 100% opaque
+   (2026-10-24, on request: a see-through menu was tried and reverted the same
+   day). Their shadow stays shadow-menu. */
+@utility surface-menu {
+  background-color: var(--popover);
 }
 
 /* The header pill (components/journal.tsx, site-header.tsx, landing.tsx,
@@ -425,9 +438,40 @@ html[data-glow-shape="trio"] .page-glow-shape {
 }
 /* The same glass as a full-width bar (2026-10-24, on request): square ends, only
    a bottom edge. */
+/* iOS-style liquid glass (2026-10-24, on request; the "rim-lit" look above was the
+   first try): clearer and brighter than frosted glass. A light wash, less blur but
+   more saturation and a lift in brightness so the page shows through vividly, a
+   crisp specular line on the top and bottom edges, light falling in from the top, a
+   little depth at the bottom, and a soft sheen at both ends like light caught by the
+   rounded edge of a lens. Browsers can't bend the backdrop (no refraction) except
+   Chromium with an SVG filter, which would break Safari, so none is used.
+   Every header using this class is `sticky` (a positioned ancestor for the sheen). */
 .glass-bar {
   border: 0;
-  border-bottom: 1px solid rgb(255 255 255 / 0.55);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.34) 0%, rgb(255 255 255 / 0.12) 60%, rgb(255 255 255 / 0.2) 100%);
+  -webkit-backdrop-filter: blur(10px) saturate(190%) brightness(1.06);
+  backdrop-filter: blur(10px) saturate(190%) brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    inset 0 -1px 0 rgb(255 255 255 / 0.55),
+    inset 0 12px 16px -12px rgb(255 255 255 / 0.6),
+    inset 0 -10px 14px -12px rgb(12 10 9 / 0.08),
+    0 8px 24px -6px rgb(12 10 9 / 0.14);
+}
+/* Chromium only (components/glass-refraction.tsx sets data-refract): the backdrop is bent
+   at the bar's top and bottom rims by an SVG displacement filter, with only a light 3px blur (a heavy blur would smear the bend away). Other
+   browsers keep the plain blurred glass above. */
+html[data-refract] .glass-bar {
+  -webkit-backdrop-filter: url(#glass-refract) blur(3px) saturate(190%) brightness(1.06);
+  backdrop-filter: url(#glass-refract) blur(3px) saturate(190%) brightness(1.06);
+}
+.glass-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(100deg, rgb(255 255 255 / 0.55) 0%, rgb(255 255 255 / 0) 26%, rgb(255 255 255 / 0) 74%, rgb(255 255 255 / 0.4) 100%);
 }
 
 @layer utilities {
@@ -609,7 +653,8 @@ html:has(.auto-hide-header) {
    touch area isn't clipped. White water at 28% over the blue banner: white icon
    on it stays ~5:1. */
 .wv-clip { position: absolute; inset: 0; border-radius: 9999px; overflow: hidden; pointer-events: none; }
-.wv .wf { opacity: 1; } /* footer water = the header "+" water (#e5e5e5), 2026-10-24 */
+.wv .wf { opacity: .5; } /* footer water: the header "+" water (#e5e5e5) at half strength (2026-10-24, on request); the whole layer fades, so the wave/body overlap shows no seam */
+.wv:hover { filter: brightness(.95); } /* as .ab.v3b:hover: same #e5e5e5 water (2026-10-24) */
 
 .ab.v3b:hover { filter: brightness(.95); }
 @keyframes ab-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1.5px) } }
@@ -650,4 +695,44 @@ button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible
   .skeleton-body { animation: page-fade-in 150ms ease-out 120ms backwards; }
   .skeleton-bar { animation: skeleton-pulse 1.6s ease-in-out infinite; }
   .page-enter { animation: page-fade-in 150ms ease-out; }
+}
+
+/* Grainy gradient page background (components/grainy-background.tsx,
+   2026-10-24, trial on request; values as supplied). Fixed to the viewport,
+   so a long journal doesn't stretch the gradient. `cqw` in the blur reads the
+   layer's own width (container-type), so the softness scales with the window. */
+.grainy {
+  overflow: hidden;
+  container-type: inline-size;
+  background: #f2f4f9;
+}
+.grainy .color {
+  position: absolute;
+  inset: -12%;
+  filter: blur(7cqw);
+  /* Flipped vertically (2026-10-24, on request): dark at the bottom, pale at
+     the top. The masks run left/right, so the flip leaves them as they are. */
+  transform: scaleY(-1);
+  background: linear-gradient(to bottom, #279a87 9.7%, #2a9086 24.2%, #2e8e88 40.3%, #3c958f 49.2%, #58a19c 54%, #8dbcbb 58.1%, #b8cfd3 60.9%, #dde3ea 63.7%, #eef1f6 71%, #f2f4f9 90.3%);
+}
+.grainy .color::before,
+.grainy .color::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.grainy .color::before {
+  background: linear-gradient(to bottom, #3fcaa6 9.7%, #44ccae 19.4%, #4fd0c4 27.4%, #6cd5e3 33.1%, #8ad9f3 37.9%, #a9ddf0 43.5%, #c4e5f0 50%, #dcecf3 55.6%, #ecf2f8 61.3%, #f3f6fb 90.3%);
+  mask-image: linear-gradient(to right, rgba(0,0,0,1) 9.7%, rgba(0,0,0,0.92) 17.7%, rgba(0,0,0,0.65) 29.8%, rgba(0,0,0,0.3) 41.9%, rgba(0,0,0,0.08) 51.6%, rgba(0,0,0,0) 58.1%);
+}
+.grainy .color::after {
+  background: linear-gradient(to bottom, #081c3a 9.7%, #0a2a41 21%, #0b3a45 26.6%, #095a50 32.3%, #067456 37.9%, #077a5a 44.4%, #1d8466 50%, #3f9479 54%, #6aa596 56.9%, #9cbdb9 59.3%, #cdd4dd 61.7%, #e1e2ea 64.5%, #eceef3 71%, #eff1f5 90.3%);
+  mask-image: linear-gradient(to left, rgba(0,0,0,1) 9.7%, rgba(0,0,0,0.93) 19.4%, rgba(0,0,0,0.7) 29.8%, rgba(0,0,0,0.35) 41.9%, rgba(0,0,0,0.1) 51.6%, rgba(0,0,0,0) 59.7%);
+}
+.grainy .grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.70;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='2.2' intercept='-0.60'/%3E%3CfeFuncG type='linear' slope='2.2' intercept='-0.60'/%3E%3CfeFuncB type='linear' slope='2.2' intercept='-0.60'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

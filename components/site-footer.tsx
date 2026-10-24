@@ -14,7 +14,7 @@ const YEAR = new Date().getFullYear();
 
 /** One 32px circle link (44px touch area via the invisible ::before) with the
  *  header "+" button's water hover: the clip span holds the water so the link
- *  itself doesn't clip its touch area. Dark outline and water on the white page. */
+ *  itself doesn't clip its touch area. A transparent circle with a thin black outline and icon (2026-10-24, on request). */
 const ICONS = { mail: Mail } as const;
 function CircleLink({ link, label }: { link: SocialLink; label: string }) {
   const { ref, handlers } = useWaterSpring(false, 32);
@@ -24,7 +24,7 @@ function CircleLink({ link, label }: { link: SocialLink; label: string }) {
       ref={ref as React.Ref<HTMLAnchorElement>}
       href={link.href}
       aria-label={label}
-      className="wv relative inline-flex size-8 shrink-0 items-center justify-center rounded-full border-[1.5px] border-foreground/20 text-foreground/40 before:absolute before:-inset-1.5 before:content-['']"
+      className="wv relative inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-white text-white transition-colors hover:text-black before:absolute before:-inset-1.5 before:content-['']"
       {...handlers}
     >
       <span className="wv-clip" aria-hidden>
@@ -42,7 +42,8 @@ function CircleLink({ link, label }: { link: SocialLink; label: string }) {
  * a centred stack of wordmark, round mail link and faded copyright), now with no
  * banner, a full-width hairline on top, straight on the page (2026-10-24, on request). `mt-auto`
  * pins it to the bottom of a short page; the 40px spacer keeps a gap without a
- * margin fighting `mt-auto`. No Privacy / Terms links until those pages exist.
+ * margin fighting `mt-auto`. No band: transparent, no divider, white content at 70%
+ * since 2026-10-24, on request. No Privacy / Terms links until those pages exist.
  */
 export function SiteFooter() {
   const { t } = useLang();
@@ -53,18 +54,18 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto">
       <div aria-hidden className="h-10" />
-      <div className="border-t border-foreground/20 pt-12 pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)]">
-        <div className={`${PAGE_COLUMN} flex flex-col items-center gap-4 text-center`}>
+      <div className="pt-10 pb-[calc(env(safe-area-inset-bottom)_+_2.5rem)]">
+        <div className={`${PAGE_COLUMN} flex flex-col items-center gap-4 text-center opacity-70`}>
           <Link href="/" aria-label={t("footer.homeLabel")} className="rounded-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/surflog-logo.png" alt="" width={1200} height={228} className="block h-5 w-auto" />
+            <img src="/surflog-logo.png" alt="" width={1200} height={228} className="block h-5 w-auto brightness-0 invert" />
           </Link>
           <nav aria-label={t("footer.navLabel")} className="flex flex-wrap justify-center gap-2">
             {SOCIAL_LINKS.filter((l) => l.href).map((l) => (
               <CircleLink key={l.key} link={l} label={t(l.labelKey, { email: SUPPORT_EMAIL })} />
             ))}
           </nav>
-          <p className="text-[12.5px] leading-4 text-muted-foreground">© {YEAR} Surflog</p>
+          <p className="text-[12.5px] leading-4 text-white">© {YEAR} Surflog</p>
         </div>
       </div>
     </footer>

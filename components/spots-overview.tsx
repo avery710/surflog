@@ -165,7 +165,7 @@ export function SpotsOverview({
         </div>
         <p className="mt-2 max-w-prose text-[13.5px] text-muted-foreground">{t("spots.intro")}</p>
 
-        <div className="mt-5 flex h-11 items-center gap-2 rounded-full border border-input bg-card px-4 transition-colors focus-within:border-ring">
+        <div className="mt-5 flex h-11 items-center gap-2 rounded-full border border-input surface-fill px-4 transition-colors focus-within:border-ring">
           <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             type="search"

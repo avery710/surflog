@@ -85,7 +85,7 @@ export function SpotEditReview({
             const rows = spot ? diffRows(spot, edit.changes) : [];
             const stale = spot ? staleKeys(spot, edit.base) : [];
             return (
-              <li key={edit.id} className="rounded-[var(--r-tile)] border bg-card p-4 shadow-[var(--shadow-card)]">
+              <li key={edit.id} className="rounded-[var(--r-card)] surface-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <span className="text-[14.5px] font-semibold">{spot ? (lang === "zh-TW" ? (spot.nameZh ?? spot.name) : spot.name) : edit.spotSlug}</span>
                   <span className="text-[12px] text-muted-foreground">

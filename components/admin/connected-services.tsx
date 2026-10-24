@@ -17,7 +17,7 @@ export function ConnectedServices({ services }: { services: ConnectedService[] }
       {services.length === 0 ? (
         <p className="mt-3 text-[13.5px] text-muted-foreground">{t("admin.servicesNone")}</p>
       ) : (
-        <div className="mt-3 overflow-x-auto rounded-[var(--r-tile)] border bg-card">
+        <div className="mt-3 overflow-x-auto rounded-[var(--r-card)] surface-card">
           <table className="w-full min-w-[420px] text-left text-[13.5px]">
             <thead className="text-[12px] text-muted-foreground">
               <tr>
