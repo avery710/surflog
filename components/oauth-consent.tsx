@@ -27,7 +27,7 @@ export function OAuthConsent({
   const [scope, setScope] = useState<"read" | "write">(request?.defaultScope ?? "write");
 
   return (
-    <div className="w-full max-w-[400px] rounded-[var(--r-card)] bg-card shadow-soft p-8">
+    <div className="w-full max-w-[400px] rounded-[var(--r-card)] surface-card p-8">
       <h1>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/surflog-logo.png" alt="Surflog" width={1200} height={228} className="block h-6 w-auto" />

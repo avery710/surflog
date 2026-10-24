@@ -92,6 +92,36 @@ const PAGES = [
       "components/signin-card.tsx as a new visitor sees it, plus each OAuth error banner.",
   },
   {
+    href: "/dev/glow-lab",
+    title: "Glow lab",
+    description:
+      "Live tuner for the page glow (colours, strength, size, position, blur), the header glass and the card opacity, with presets and on/off toggles. The real glow behind the page changes as you drag.",
+  },
+  {
+    href: "/dev/glow-options",
+    title: "Page glow colours",
+    description:
+      "The blue and green page glow in seven pairs (pale to vivid) on the same shape, behind a mock page, for picking the colours in app/globals.css.",
+  },
+  {
+    href: "/dev/glass-header",
+    title: "Header glass",
+    description:
+      "The header pill's liquid glass in six versions (clear, light blur, frosted, rim-lit, sky tint, refraction) over the same busy strip.",
+  },
+  {
+    href: "/dev/grey-options",
+    title: "Grey options",
+    description:
+      "The grey of chips, tiles and board cards in seven versions on the same sample card, for picking the value in app/globals.css.",
+  },
+  {
+    href: "/dev/oauth-consent",
+    title: "AI app consent",
+    description:
+      "components/oauth-consent.tsx, the /oauth/authorize screen: read-and-write and read-only defaults, and the invalid-link message. Allow / Deny do nothing.",
+  },
+  {
     href: "/dev/share",
     title: "Share images and public page",
     description:

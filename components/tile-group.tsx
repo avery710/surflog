@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import { flatNeckPath } from "@/components/pill-neck";
 
 /**
@@ -20,6 +20,7 @@ import { flatNeckPath } from "@/components/pill-neck";
  * the first child and tiles are `relative`, so tile content paints above.
  */
 export function TileGroup({ className, children }: { className?: string; children: React.ReactNode }) {
+  const maskId = `tile-neck-${useId().replace(/:/g, "")}`;
   const rootRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -49,10 +50,15 @@ export function TileGroup({ className, children }: { className?: string; childre
           }
         }
       }
+      // The grey is see-through (2026-10-24), so a stem that overlapped its tile by
+      // the 1px overrun showed as a darker seam. The stems are therefore masked to
+      // the gaps: every tile's box is cut out, so each pixel is covered once.
       overlay.innerHTML = paths.length
-        ? `<svg width="${root.clientWidth}" height="${root.clientHeight}" class="fill-secondary">${paths
+        ? `<svg width="${root.clientWidth}" height="${root.clientHeight}"><defs><mask id="${maskId}" maskUnits="userSpaceOnUse" x="0" y="0" width="${root.clientWidth}" height="${root.clientHeight}"><rect width="100%" height="100%" fill="white"/>${tiles
+            .map((t) => `<rect x="${t.l}" y="${t.t}" width="${t.r - t.l}" height="${t.b - t.t}" fill="black"/>`)
+            .join("")}</mask></defs><g mask="url(#${maskId})" class="fill-secondary">${paths
             .map((d) => `<path d="${d}"/>`)
-            .join("")}</svg>`
+            .join("")}</g></svg>`
         : "";
     };
     draw();
@@ -61,7 +67,7 @@ export function TileGroup({ className, children }: { className?: string; childre
     Array.from(root.children).forEach((c) => ro.observe(c));
     void document.fonts?.ready.then(draw);
     return () => ro.disconnect();
-  }, []);
+  }, [maskId]);
   return (
     <div ref={rootRef} className={`relative ${className ?? ""}`}>
       <div ref={overlayRef} aria-hidden className="pointer-events-none absolute inset-0" />
