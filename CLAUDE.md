@@ -762,6 +762,16 @@ running). Halo, band-beneath and bobbing variants were dropped; others
 stay at `/dev/add-button`. Every page uses **`PAGE_COLUMN`**
 (`lib/layout.ts`) — change the width there only.
 
+**Log dialog everywhere** (2026-10-25, by request): the header "+" on sub pages
+(`/spots`, `/spots/<slug>`, `/ai-apps`, `/admin`) opens the log form in place
+(`components/global-log-dialog.tsx`, mounted by `SiteHeader`) instead of linking
+to `/?log=1`; the spot page's "Log a session here" opens it on that spot
+(`openLogDialog(slug)`). Its data comes from `GET /api/log-context` (stats,
+boards, goal, spots, own requests) each time it opens. Only a **saved** session
+navigates, to `/` (`router.push` + `refresh`). "Request a spot" is not wired in
+this dialog. `?log=1` still works. Checked with tsc and lint only; **not in a
+browser, not on a phone**.
+
 **Footer** (`components/site-footer.tsx`, root layout; restyled 2026-10-24
 on request, was a full-width `bg-primary` banner): **no banner, straight on the
 page**: a **full-width hairline** on top (`border-foreground/20`), 48 px of

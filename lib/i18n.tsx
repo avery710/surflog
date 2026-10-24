@@ -388,6 +388,7 @@ export const DICT = {
   "goal.showLess": { en: "Show less", "zh-TW": "收合" },
   "goal.scrollHint": { en: "More goal points — scroll to see them", "zh-TW": "還有更多目標項目，可捲動查看" },
   "toast.couldntSaveGoal": { en: "Couldn't save the goal", "zh-TW": "無法儲存目標" },
+  "dialog.logLoadFailed": { en: "Couldn't load the form. Close it and try again.", "zh-TW": "無法載入表單，請關閉後再試一次。" },
   "dialog.logSessionTitle": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "empty.title": { en: "Nothing logged yet", "zh-TW": "還沒有任何紀錄" },
   "empty.body": {
