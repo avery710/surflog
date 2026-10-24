@@ -211,6 +211,8 @@
   --secondary-foreground: #0c0a09;
   --muted: color-mix(in srgb, #eeeeee var(--grey-opacity, 80%), transparent);
   --muted-foreground: #59696c;
+  /* Secondary text that sits straight on the page gradient (no card behind it): darker than --muted-foreground, which was picked for white cards and fades into the teal. */
+  --on-page: #1f2b2d;
   --accent: color-mix(in srgb, #eeeeee var(--grey-opacity, 80%), transparent); /* original cool grey */
   --accent-foreground: #292524;
   --destructive: #dc2626;

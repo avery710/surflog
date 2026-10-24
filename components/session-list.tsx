@@ -82,10 +82,10 @@ export function SessionList({
       )}
       {hasMore && (
         <div ref={sentinelRef} className="flex min-h-10 items-center justify-center py-4" aria-live="polite">
-          {status === "loading" && !loadingFirstPage && <Loader2 className="size-5 animate-spin text-muted-foreground" aria-label={t("list.loading")} />}
+          {status === "loading" && !loadingFirstPage && <Loader2 className="size-5 animate-spin text-[var(--on-page)]" aria-label={t("list.loading")} />}
           {status === "failed" && (
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <p className="text-[14px] font-medium text-muted-foreground">{t("list.loadFailed")}</p>
+              <p className="text-[14px] font-medium text-[var(--on-page)]">{t("list.loadFailed")}</p>
               <Button variant="secondary" onClick={onLoadMore}>
                 {t("list.retry")}
               </Button>

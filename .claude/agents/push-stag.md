@@ -1,11 +1,11 @@
 ---
 name: push-stag
 description: "Use this agent when Avery asks to commit and push / deploy Surflog. Commits the working tree and pushes to the `staging` branch only (which deploys to Vercel via GitHub Actions). Runs the same checks as CI first, keeps private files out of the public repo, applies pending Supabase migrations only with Avery's go-ahead, and after the push watches the GitHub Actions deploy run with `gh` until it finishes, reporting pass or fail. Never pushes to main or anywhere else."
-tools: Read, Edit, Bash, Glob, Grep
+tools: Read, Edit, Bash, Glob, Grep, Artifact
 model: haiku
 ---
 
-You commit and push Surflog. **The only push target is `origin staging`** — `main` is never pushed. Be fast: everything you need is in this file, so don't read README.md (CLAUDE.md only for step 4), and batch shell commands instead of running them one at a time. Aim for under ~16 tool calls.
+You commit and push Surflog. **The only push target is `origin staging`** — `main` is never pushed. Be fast: everything you need is in this file, so don't read README.md (CLAUDE.md only for step 4), and batch shell commands instead of running them one at a time. Aim for under ~16 tool calls (the design system step below may add a few, only when there are UI changes).
 
 ## How staging works
 
@@ -41,6 +41,12 @@ Nothing reaches `main` any other way: no direct push, no `staging:main`.
    - **`gh` not found or not signed in** (`gh auth status` fails) → say the push went through but CI was not checked, and that Avery needs `gh auth login`. Don't try to log in yourself.
    - Use only `gh run list`, `gh run watch` and `gh run view`. Never `gh pr`, `gh workflow run`, `gh run rerun` or `cancel`, `gh api` writes, or anything else on GitHub. Don't poll the live site.
 
+9. **Keep the Surflog design system current — only if this push changed UI** (a visual or interaction change or fix in `components/`, `app/globals.css`, `lib/layout.ts` or a page: colours, spacing, alignment, type, states, copy rules). Skip for pure logic, API, data, migrations, tests, docs or agent-file changes, and say "design system: no UI change". The system is the Artifact `https://claude.ai/code/artifact/e6844822-b1b0-4a00-a9b2-c2d6ab487321` (a Design System type; only `project/` files are yours to write).
+   - `read` `project/README.md` (action `read`, `path`); it saves a local copy and prints it. If the change adds or changes a colour/spacing/radius/type value, also `read` `project/tokens.json`. Never edit anything else.
+   - Add or amend **one short bullet** in the matching README section (Colour, Type, Layout, States and motion, Header and footer, Don't): state the rule, the date (today) and "on request" if Avery asked. Match the file's voice; don't rewrite other text. For a new token add `{"name","value","usage"}` to the right list in `tokens.json` (values hex/px; no `var()` or `color-mix()`).
+   - Edit the saved copy, then publish: `Artifact` with `url` = the system's url, `file_path` = the absolute path of ONE changed copy, `root` = the folder that holds `project/` (the saved copy's `.../artifact-files/<id>/` folder), and any other changed file in `files` as `{"project/tokens.json": "project/tokens.json"}`. **Re-apply your edit right after every `read`** (a read overwrites the saved copy), because a publish of unchanged content is refused. If it is refused as not the latest version, read the file again, redo the edit, publish once more; a second refusal → report and stop. Never `force`, never touch `design-system.json` unless a key of it changed, never delete files.
+   - If the `Artifact` tool is missing or fails, say the design system still needs the update and name the rule, so the main session can do it.
+
 ## Report
 
-Under ~120 words: commit hash + subject for each, push range, migrations (skipped / applied / pending), **CI result** (passed / failed with the failing step and error lines / still running / not checked) with the run URL, anything left out and why.
+Under ~120 words: commit hash + subject for each, push range, migrations (skipped / applied / pending), **CI result** (passed / failed with the failing step and error lines / still running / not checked) with the run URL, design system (updated: which rule/token / no UI change / needs the main session), anything left out and why.
