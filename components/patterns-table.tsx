@@ -266,7 +266,7 @@ export function PatternsTable({
                               setEditing(null);
                             }
                           }}
-                          className={`w-full resize-none overflow-y-auto text-[14px] leading-6 ${INLINE_FIELD}`}
+                          className={`block box-border m-0 w-full min-w-0 max-w-full appearance-none resize-none overflow-y-auto text-[14px] leading-6 ${INLINE_FIELD}`}
                         />
                       ) : (
                         <button
@@ -284,8 +284,8 @@ export function PatternsTable({
                           aria-label={t("patterns.editDescription", { spot: label })}
                           className={
                             note
-                              ? `w-full min-w-0 text-left text-[14px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${INLINE_FIELD_IDLE}`
-                              : `text-left text-[13px] font-medium text-[var(--faint)] hover:text-muted-foreground ${INLINE_FIELD_IDLE}`
+                              ? `block w-full min-w-0 max-w-full text-left text-[14px] whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${INLINE_FIELD_IDLE}`
+                              : `block w-full min-w-0 max-w-full text-left text-[13px] font-medium text-[var(--faint)] hover:text-muted-foreground ${INLINE_FIELD_IDLE}`
                           }
                         >
                           {note || t("patterns.addDescription")}
