@@ -17,11 +17,11 @@ import { AnimatedHeight } from "@/components/animated-height";
  * Put padding and layout on a child (or via `className` for margins); keep
  * the card's own box free of padding so the measured inner height is the
  * whole content. Use this for any new white card instead of repeating
- * `rounded-[var(--r-card)] bg-card shadow-soft`.
+ * `rounded-[var(--r-card)] surface-card`.
  */
 export function WhiteCard({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <AnimatedHeight className={cn("rounded-[var(--r-card)] bg-card shadow-soft", className)}>
+    <AnimatedHeight className={cn("rounded-[var(--r-card)] surface-card", className)}>
       {children}
     </AnimatedHeight>
   );

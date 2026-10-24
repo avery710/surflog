@@ -38,7 +38,7 @@ export type SkeletonUser = { name?: string | null; email?: string | null; image?
 /** The profile button as `UserMenu` draws it (same size, photo or initial), not
  *  clickable; without a user it is a plain translucent circle. */
 function LoadingAvatar({ user }: { user?: SkeletonUser }) {
-  if (!user) return <span className="size-10 shrink-0 rounded-full bg-white/25" />;
+  if (!user) return <span className="size-10 shrink-0 rounded-full bg-black/10" />;
   const initial = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
   return (
     <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary">
@@ -57,8 +57,9 @@ function LoadingAvatar({ user }: { user?: SkeletonUser }) {
 /** The blue header as it will look. */
 export function LoadingHeader({ user }: { user?: SkeletonUser }) {
   return (
-    <header className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2">
-      <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+    <header className="sticky top-0 z-30 glass-bar pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2">
+      <div className={PAGE_COLUMN}>
+<div className="flex items-center justify-between gap-4 py-1.5">
         <div className="py-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -66,7 +67,7 @@ export function LoadingHeader({ user }: { user?: SkeletonUser }) {
             alt="Surflog"
             width={1200}
             height={228}
-            className="block h-6 w-auto brightness-0 invert"
+            className="block h-6 w-auto"
           />
         </div>
         <div className="flex items-center gap-2.5" aria-hidden>
@@ -76,6 +77,7 @@ export function LoadingHeader({ user }: { user?: SkeletonUser }) {
           <LoadingAvatar user={user} />
         </div>
       </div>
+</div>
     </header>
   );
 }
@@ -128,7 +130,7 @@ function Lines({ heading = "w-24", lines = ["w-full", "w-2/3"], className = "" }
  *  surface, without its height easing). */
 function Panel({ className = "", children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("overflow-hidden rounded-[var(--r-card)] bg-card px-5 py-4 shadow-soft", className)}>
+    <div className={cn("overflow-hidden rounded-[var(--r-card)] surface-card px-5 py-4", className)}>
       {children}
     </div>
   );
@@ -287,7 +289,7 @@ const BODIES: Record<PageSkeletonVariant, React.ReactNode> = {
       {[1, 4].map((rows, g) => (
         <div key={g} className="mt-6">
           <Bar className="h-3.5 w-20" />
-          <div className="mt-2 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
+          <div className="mt-2 overflow-hidden rounded-[var(--r-tile)] surface-card">
             {Array.from({ length: rows }, (_, i) => (
               <ListRow key={i} ctl="size-6 w-6 rounded-full" />
             ))}

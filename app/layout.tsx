@@ -33,7 +33,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${funnel.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-panel text-foreground">
+      <body className="relative min-h-full flex flex-col bg-panel text-foreground">
+        {/* The two page glows (see .page-glow in globals.css): a clipped box at
+            the top of the page, behind everything, scrolling with it. */}
+        <div aria-hidden className="page-glow">
+          <span className="page-glow-sky" />
+          <span className="page-glow-mint" />
+          <span className="page-glow-shape" />
+        </div>
         <QueryProvider>
           <LanguageProvider>
             {/* Every page (header + content, not the footer) is at least one
