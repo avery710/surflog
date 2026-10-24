@@ -27,9 +27,15 @@ import type { SessionStat } from "@/lib/session-stats";
 const DOT_PX = 10;
 const GAP_PX = 10;
 const DOTS_PER_ROW = 7;
+// The seven columns share whatever width the card has (2026-10-24, on request:
+// a card wider than its content left a blank strip on the right), each dot and
+// weekday letter centred in its column. At the 10 px minimum a card that hugs
+// its content comes out exactly as wide as the old fixed grid.
 const DOTS_GRID_STYLE: React.CSSProperties = {
-  gridTemplateColumns: `repeat(${DOTS_PER_ROW}, ${DOT_PX}px)`,
+  gridTemplateColumns: `repeat(${DOTS_PER_ROW}, minmax(${DOT_PX}px, 1fr))`,
   gap: `${GAP_PX}px`,
+  flex: "1 1 auto",
+  justifyItems: "center",
 };
 
 /** Sunday-first weekday header above the dot grid — one line, once, not
@@ -348,7 +354,7 @@ export function ActivityCalendar({
       <div
         ref={cardRef}
         className={cn(
-          "flex rounded-[var(--r-card)] bg-card shadow-soft pt-2.5 pr-3 pb-3 pl-3 sm:pt-3 sm:pr-5 sm:pb-4 sm:pl-4",
+          "flex rounded-[var(--r-card)] surface-card pt-2.5 pr-3 pb-3 pl-3 sm:pt-3 sm:pr-5 sm:pb-4 sm:pl-4",
           fit ? "flex-1" : "shrink-0 sm:flex-1"
         )}
       >
@@ -579,7 +585,7 @@ function LastSession({ session, today }: { session: LastSessionData; today: stri
   const height = fmt1(om ? om.swellHeightM : session.cond?.swellHeightM);
   const period = fmt1(om ? om.swellPeriodS : session.cond?.swellPeriodS);
   return (
-    <div className="flex min-w-0 flex-1 flex-col rounded-[var(--r-card)] bg-card pt-2.5 pr-3 pb-3 pl-3 shadow-soft sm:hidden">
+    <div className="flex min-w-0 flex-1 flex-col rounded-[var(--r-card)] surface-card pt-2.5 pr-3 pb-3 pl-3 sm:hidden">
       <h3 className="mb-3 min-h-5 shrink-0 font-sans text-[13px] leading-5 font-bold break-words text-muted-foreground">
         {t("calendar.last.title")}
       </h3>

@@ -101,7 +101,7 @@ export function DatePicker({
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 w-[17rem] max-w-[calc(100vw-1rem)] origin-(--radix-popover-content-transform-origin) rounded-[var(--r-card)] bg-popover p-3 text-popover-foreground shadow-menu outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95"
+          className="z-50 w-[17rem] max-w-[calc(100vw-1rem)] origin-(--radix-popover-content-transform-origin) rounded-[var(--r-card)] surface-menu p-3 text-popover-foreground shadow-menu outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95"
         >
           <div className="mb-2 flex items-center justify-between">
             <NavButton label={t("datepicker.prevMonth")} onClick={() => setView((v) => shiftMonth(v.year, v.month, -1))}>

@@ -165,7 +165,7 @@ export function SpotsOverview({
         </div>
         <p className="mt-2 max-w-prose text-[13.5px] text-muted-foreground">{t("spots.intro")}</p>
 
-        <div className="mt-5 flex h-11 items-center gap-2 rounded-full border border-input bg-card px-4 transition-colors focus-within:border-ring">
+        <div className="mt-5 flex h-11 items-center gap-2 rounded-full border border-input surface-fill px-4 transition-colors focus-within:border-ring">
           <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             type="search"
@@ -210,14 +210,14 @@ export function SpotsOverview({
         {pinnedShown.length > 0 && (
           <section className="mt-6" data-group="pinned">
             <GroupHeading title={t("spots.pinned")} count={pinnedShown.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">{pinnedShown.map((s) => row(s))}</ul>
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">{pinnedShown.map((s) => row(s))}</ul>
           </section>
         )}
 
         {pending.length > 0 && (
           <section className="mt-6" data-group="pending">
             <GroupHeading title={t("picker.pending")} count={pending.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">
               {pending.map((r) => (
                 <li key={r.id} className="border-b border-card-border px-4 py-3 text-[14.5px] font-semibold break-words last:border-b-0">
                   {r.name}
@@ -230,7 +230,7 @@ export function SpotsOverview({
         {groups.map((g) => (
           <section key={g.key} className="mt-6" data-group={g.key}>
             <GroupHeading title={g.title} count={g.list.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] bg-card shadow-soft">
+            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">
               {g.list.map((s) => row(s, true))}
             </ul>
           </section>

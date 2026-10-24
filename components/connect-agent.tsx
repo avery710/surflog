@@ -268,7 +268,7 @@ export function ConnectAgent({
   const NOTE: Partial<Record<AgentId, TKey>> = { chatgpt: "connect.chatgpt.note", claude: "connect.menuNote" };
 
   return (
-    <section className="mt-5 rounded-[var(--r-card)] border bg-card p-4">
+    <section className="mt-5 rounded-[var(--r-card)] surface-card p-4">
       <h2 className="text-base font-bold">{t("connect.title")}</h2>
       <p className="mt-1 max-w-prose text-[13px] text-muted-foreground">{t("connect.intro")}</p>
 

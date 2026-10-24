@@ -19,7 +19,7 @@ import {
 import { attachFiles } from "@/lib/upload-client";
 import { GoalCheck } from "@/components/goal";
 import { goalOptions, sessionAchieved } from "@/lib/goal";
-import { fmtDuration, fmtTime } from "@/lib/format";
+import { fmtTime } from "@/lib/format";
 import { useLang, type TKey } from "@/lib/i18n";
 import type { Board, Cond, Session } from "@/lib/types";
 
@@ -159,12 +159,7 @@ export function EditPanel({
           <span className="flex h-9 items-center pl-0.5 font-mono text-sm">{date}</span>
         </Field>
         <Field label={t("form.time")}>
-          <span className="flex h-9 items-center gap-2 pl-0.5 font-mono text-sm">
-            {time}
-            {session.durationMin ? (
-              <span className="font-sans text-xs text-muted-foreground">{fmtDuration(session.durationMin)}</span>
-            ) : null}
-          </span>
+          <span className="flex h-9 items-center pl-0.5 font-mono text-sm">{time}</span>
         </Field>
       </div>
 

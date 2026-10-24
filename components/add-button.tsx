@@ -223,7 +223,7 @@ export function AddButton({
   };
   const inner = (
     <>
-      <WaterFill fill="#cfd5ff" />
+      <WaterFill fill="#e5e5e5" />
       <span className="ic">
         <LogIcon className="size-4" />
       </span>

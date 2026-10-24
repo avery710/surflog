@@ -253,9 +253,10 @@ export function Journal({
           it. */}
       <header
         ref={headerRef}
-        className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
+        className="sticky top-0 z-30 glass-bar pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
       >
-        <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+        <div className={PAGE_COLUMN}>
+<div className="flex items-center justify-between gap-4 py-1.5">
           <h1 className="py-1">
             {/* White wordmark on the blue bar (2026-10-08, new logo file and
                 `brightness-0 invert` requested again — supersedes the
@@ -266,7 +267,7 @@ export function Journal({
               alt="Surflog"
               width={1200}
               height={228}
-              className="block h-6 w-auto brightness-0 invert"
+              className="block h-6 w-auto"
             />
           </h1>
           <div className="flex items-center gap-2.5">
@@ -278,6 +279,7 @@ export function Journal({
             <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
           </div>
         </div>
+</div>
       </header>
 
       {/* The page's content column — previously app/page.tsx's own

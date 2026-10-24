@@ -79,9 +79,10 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
           with the page content under them. */}
       <header
         ref={headerRef}
-        className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
+        className="sticky top-0 z-30 glass-bar pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
       >
-        <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+        <div className={PAGE_COLUMN}>
+<div className="flex items-center justify-between gap-4 py-1.5">
           {/* White wordmark on the blue bar — see journal.tsx's matching
               comment (2026-10-08: new logo file, white requested again). */}
           <div className="py-1">
@@ -91,7 +92,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
               alt="Surflog"
               width={1200}
               height={228}
-              className="block h-6 w-auto brightness-0 invert"
+              className="block h-6 w-auto"
             />
           </div>
           <div className="flex items-center gap-2.5">
@@ -106,7 +107,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
                   colour is the same blue as this background. */}
               <button
                 type="submit"
-                className="whitespace-nowrap rounded-full bg-card px-4 py-2 text-[14px] font-bold text-primary outline-none transition-[filter] hover:brightness-95 active:scale-[0.975] focus-visible:ring-3 focus-visible:ring-white"
+                className="whitespace-nowrap rounded-full bg-primary px-4 py-2 text-[14px] font-bold text-primary-foreground outline-none transition-[filter] hover:brightness-125 active:scale-[0.975] focus-visible:ring-3 focus-visible:ring-white"
               >
                 {t("landing.signIn")}
               </button>
@@ -114,6 +115,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
             <LangToggle lang={lang} setLang={setLang} label={t("menu.language")} />
           </div>
         </div>
+</div>
       </header>
 
       {/* min-w-0 — same flexbox fix as journal.tsx's matching div, see its
@@ -148,7 +150,7 @@ export function Landing({ signInAction, spots }: { signInAction: () => Promise<v
                 readOnly
               />
             </div>
-            <div className="w-full sm:flex sm:w-[260px] sm:shrink-0">
+            <div className="w-full sm:flex sm:w-[260px] sm:shrink-0 sm:[&>section]:w-full">
               <ActivityCalendar sessions={all} />
             </div>
           </div>
@@ -278,7 +280,7 @@ function Section({ n, title, body, children }: { n: string; title: string; body:
 
 function Panel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("rounded-[var(--r-card)] bg-card shadow-soft p-5", className)}>{children}</div>
+    <div className={cn("rounded-[var(--r-card)] surface-card p-5", className)}>{children}</div>
   );
 }
 
