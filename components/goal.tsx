@@ -246,7 +246,7 @@ export function GoalCard({
     // not the other way round; flex-1 + h-full-ish fill keeps this card as
     // tall as the calendar's minimum when it has only a point or two.
     <section className="flex flex-1 flex-col">
-      <div className="flex flex-1 items-stretch gap-3 rounded-[var(--r-card)] bg-card shadow-soft px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="flex flex-1 items-stretch gap-3 rounded-[var(--r-card)] surface-card px-3 py-2.5 sm:px-4 sm:py-3">
         <div className="flex min-w-0 flex-1 flex-col">
           {/* No horizontal padding here (unlike the px-2 used by the body
               rows below, for their own hover/input backgrounds) — the card's

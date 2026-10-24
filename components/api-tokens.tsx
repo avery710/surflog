@@ -91,7 +91,7 @@ export function ApiTokens({ initialTokens, mcpUrl }: { initialTokens: ApiToken[]
             {active.map((tk) => (
               <li
                 key={tk.id}
-                className="flex items-center gap-3 rounded-[var(--r-tile)] border bg-card px-3.5 py-3"
+                className="flex items-center gap-3 rounded-[var(--r-card)] surface-card px-3.5 py-3"
               >
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[14px] font-semibold">

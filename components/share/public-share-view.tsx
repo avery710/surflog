@@ -83,7 +83,7 @@ export function PublicShareView({
         />
 
         <div className="mt-auto pt-10">
-          <section className="rounded-[var(--r-card)] bg-card shadow-soft px-6 py-5 text-center">
+          <section className="rounded-[var(--r-card)] surface-card px-6 py-5 text-center">
             {/* Signed in: a nudge to log their own session (the journal opens with the
                 log form, like the header "+"); signed out: the sign-up pitch. */}
             <p className="text-[15px] font-semibold">{t(signedIn ? "share.page.ctaMember" : "share.page.cta")}</p>

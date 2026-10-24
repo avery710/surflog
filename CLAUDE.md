@@ -108,6 +108,17 @@ and what is unverified.
   Variables but reaches the route at runtime: no manual copy needed. The
   scheduled 03:17 run itself has not been watched yet. A paused project
   doesn't wake from requests: restore it in Supabase.
+- **AI Platform restyle** (2026-10-24, pushed to `staging` as `bcbf1ae` + merge
+  `1d0eb9d`, **not on `main` yet**): colours from Avery's "AI Platform" design
+  system on Surflog's own fonts, radii and components: ink-grey primary, glass
+  header bar, fixed page glow, see-through cards and greys, quiet footer. Details
+  under UI (Header, Footer, Necks, Activity calendar) and Conventions (theme,
+  Colour tokens). Tuning pages, dev-only: `/dev/glow-lab` (live sliders for the
+  glow, glass, card and grey opacity, with presets; resets on leave),
+  `/dev/glow-options`, `/dev/glass-header`, `/dev/grey-options`,
+  `/dev/oauth-consent` (the consent screen, Allow/Deny inert). Share images
+  and the landing sticker WebPs are still blue. Checked on `/dev/*` pages and
+  the real journal on localhost; **not on staging in a browser, not on a phone**.
 - **The original**: a Claude artifact
   (`https://claude.ai/artifact/Bs9xqTtE8Yj1mqPopK8evM`, source
   `reference/surf-journal.html`), conditions typed in by hand.
@@ -584,7 +595,11 @@ Card) and a public link.
 - **Necks** (`components/pill-neck.tsx`, `components/tile-group.tsx`
   measured with `ResizeObserver`): grey stems joining chip photo/name,
   neighbouring tiles, goal pills. The board chip's stem SVG must stay its
-  **first child**.
+  **first child**. Since the greys went see-through (2026-10-24) a stem that
+  overlaps its tile doubles into a darker seam, so `TileGroup` masks its stems
+  to the gaps (every tile box cut out of an SVG `<mask>`, id from `useId`).
+  The pill necks (`PillNeck`, board chip, goal pills) still overlap their pills
+  and may show the same seam: not checked.
 - **Edit panel** offers only fields the card shows; other `cond` values
   ride along. Date/time read-only; "Refresh conditions" and the
   `refreshConditions` flag were removed 2026-10-16.
@@ -592,7 +607,7 @@ Card) and a public link.
   real iframes (`frame/`, height by `postMessage`) because `sm:`/`lg:`
   follow the window. Cases in `media-cases.ts`.
 
-**Dashboard** (`components/journal.tsx`): white cards directly on the grey
+**Dashboard** (`components/journal.tsx`): see-through white cards directly on the
 page, `gap-2 sm:gap-3` (phones also tighten card padding and gutters).
 Row 1 goal card + activity calendar, row 2 "What you've surfed", row 3
 board rack. `app/dev/dashboard/page.tsx` mirrors this markup — keep in
@@ -609,7 +624,10 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   stacked phone layout was **reverted on request 2026-10-16 — don't bring
   back**.
 - **Activity calendar**: its header comment is the source of truth.
-  Sunday-first week rows, "Days in the water". Below `sm` at full width
+  Sunday-first week rows, "Days in the water". Since 2026-10-24 the seven dot
+  columns share the card's width (`minmax(10px, 1fr)`, centred), so a card wider
+  than its content has no blank strip; a hugging card is unchanged. The
+  landing's 260 px column now makes the card fill it (`sm:[&>section]:w-full`). Below `sm` at full width
   it also shows the last session (`LastSession`) as **its own white card beside
   the calendar card** (2026-10-17, by request; it used to share the calendar's
   card behind a divider), same height, 8 px gap; at 320 px it is 90 px wide and
@@ -725,11 +743,18 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   "Sessions" label, 15px bold title + 13px description like the AI app
   card (2026-10-21, by request; the 20 px / card version was replaced).
 
-**Header**: solid `bg-primary`, sticky, hides on scroll down
-(`lib/use-auto-hide-header.ts`, not under reduced motion).
-`components/site-header.tsx` (sub pages) duplicates the journal header's
-classes — keep in step. White controls and focus rings on the blue. **The
-wordmark stays black, by request.** The "+" is Avery's own mark
+**Header** (2026-10-24, AI Platform restyle, by request): a sticky,
+**full-width glass bar** (`.glass-bar` in `globals.css`), square ends: no fill,
+`backdrop-filter: blur(14px) saturate(200%)`, a bright 1.5 px inner top edge, a
+faint inner bottom edge and soft inner glow, a 1 px light bottom border, soft
+drop shadow (the "rim-lit" option D of `/dev/glass-header`; the numbers are CSS
+variables). Logo and buttons sit in `PAGE_COLUMN`. Hides on scroll down
+(`lib/use-auto-hide-header.ts`, not under reduced motion). Same markup in
+`journal.tsx`, `site-header.tsx` (sub pages), `landing.tsx` and
+`page-skeleton.tsx` — keep in step. **Black wordmark** (no `brightness-0
+invert` any more); the white "+" circle keeps its ink glyph. A fully rounded
+glass pill at the column width came first the same day and was replaced on
+request. Not checked on a phone or on the real journal while scrolling. The "+" is Avery's own mark
 (`LogIcon`), one component (`components/add-button.tsx`) with a
 **water-wave hover inside the circle; the glyph never moves** (variant 3c,
 damped spring `useWaterSpring`, constants in `step()`; never watched
@@ -737,11 +762,15 @@ running). Halo, band-beneath and bobbing variants were dropped; others
 stay at `/dev/add-button`. Every page uses **`PAGE_COLUMN`**
 (`lib/layout.ts`) — change the width there only.
 
-**Footer** (`components/site-footer.tsx`, root layout, 2026-10-16):
-full-width `bg-primary` banner, **one layout at every width** (approved;
-the centred phone stack was dropped): white wordmark + "© year Surflog"
-left, icon-only mail circle right to `mailto:support@surflog.tw`
-(`SUPPORT_EMAIL`, address only in `aria-label`). `mt-auto` pins it on
+**Footer** (`components/site-footer.tsx`, root layout; restyled 2026-10-24
+on request, was a full-width `bg-primary` banner): **no banner, straight on the
+page**: a **full-width hairline** on top (`border-foreground/20`), 48 px of
+space, then the original centred stack: black wordmark, the round mail button
+to `mailto:support@surflog.tw` (`SUPPORT_EMAIL`, address only in
+`aria-label`; 32 px, border `foreground/20`, icon `foreground/40`, light grey
+`#e5e5e5` water on hover, the same as the header "+"), "© year Surflog" in
+`muted-foreground`. Tried and replaced the same day: a left/right "quiet line"
+row with the address as text, and a solid black divider. `mt-auto` pins it on
 short pages. Every page (header + content) sits in a `min-h-dvh` box in the
 root layout (2026-10-21, by request), so the footer always starts below the
 first screen, also while a page or skeleton loads; `/signin` and the OAuth
@@ -775,7 +804,8 @@ no overlay. Lazy-loaded, paused offscreen, poster only under reduced motion.
 field; CSV export; the spot-fit tag row; gust on the wind tile; hover
 tooltips on figures; Funnel Sans for figures; a ticket-shaped card; tiles
 butted with pinched corners; a divider above the notes; a transposed phone
-calendar; the liquid-glass header pill and black header underline; the
+calendar; the black header underline (a glass header is back since
+2026-10-24, on request: see Header); the
 second landing AI card; dark mode; a rack "default board"; the stacked
 patterns table; submenu side flyouts. Details: `.claude/agents/ui-designer.md`
 "Style references".
@@ -927,7 +957,24 @@ load only when a session starts.
 - Times are local to the session's spot, no timezone suffix stored.
 - Single light theme: **white page** (2026-10-16, by request; was light grey), white
   outline-free cards separated by a stronger shadow (`shadow-soft`,
-  `--card-shadow`: 1px contact line + 4/12 blur at alpha .06). Rounded but tight since
+  `--card-shadow`: 1px contact line + 4/12 blur at alpha .06). **Since 2026-10-24
+  (AI Platform restyle) the cards are see-through**: the `surface-card` utility
+  (`globals.css`) = 60% white (`--card-opacity`) + `--card-shadow`, swapped in for
+  `bg-card shadow-soft` everywhere; **no backdrop blur on cards** (a blur layer
+  per card flickered while cards resized; removed). The grey fills are 65%
+  opaque too (see Colour tokens). Behind it all, the **page glow**: a fixed
+  `.page-glow` box in `app/layout.tsx` (top 600 px of the screen, behind
+  everything, `pointer-events: none`) with two blurred orbs at the top right,
+  sized like the "Surflog x AI Platform" canvas (520 px blue, right -80 /
+  top -56; 300 px green, right 220 / top 104; fade by 68%, blur 30 px); colours
+  are Avery's pick "Vivid" (blue `rgb(80 150 240)` @ 0.75, green
+  `rgb(70 208 160)` @ 0.65). Every number is a CSS variable. Also built and
+  **off by default**: grain (noise layer + contrast filter on a white ground) and
+  other shapes (arcs, corner sweep, horizon band, three orbs) via
+  `data-glow-shape` on `<html>`; tried live and rolled back the same day (the
+  contrast pushes the mint to neon). Never `background-attachment: fixed` (it
+  repainted every scroll frame), never clip with `overflow-x` on body (the page
+  scrolled 80 px sideways); the glow's own box clips it. Rounded but tight since
   2026-10-16: cards `--r-card` 6px, tiles `--r-tile` 4px, inputs
   `--radius` 9px, pill buttons fully round. **Funnel Sans** for UI and
   notes, **IBM Plex Mono** for readings. Share images and landing sticker
@@ -938,8 +985,20 @@ load only when a session starts.
   accordion at every width**, never a side flyout (`InlineCollapse`,
   `components/ui/dropdown-menu.tsx`; not checked in a browser). Dialogs
   keep `--shadow-card`.
-- Colour tokens (`app/globals.css`, whose comments hold the history):
-  `--primary` `#0018FF` for buttons, header, badges, focus rings; `--panel`
+- Colour tokens (`app/globals.css`, whose comments hold the history).
+  **2026-10-24, AI Platform colours** (from Avery's "AI Platform" design system,
+  colours only; fonts, radii and components unchanged, by request):
+  `--primary` **`#292524` ink grey** (was `#0018FF`) for buttons, badges, focus
+  rings, set filter chips, surfed-day dots and the session mark on the tide
+  curve; `--foreground` `#0c0a09`; `--secondary` / `--muted` / `--accent`
+  `#f5f5f5` **at 65%** (`color-mix` with `--grey-opacity`; the AI Platform warm
+  `#f0efed` was tried and read brown); `--border` / `--input` `#e5e5e5`;
+  `--destructive` `#dc2626`; the other greys (`--muted-foreground` `#59696c`,
+  `--faint`, `--tide-curve`, `--badge`) are the original cool ones, restored on
+  request. The design-system copy is the "Surflog" Design System artifact, whose
+  README was rewritten 2026-10-24 (its `tokens.json` and component cards still
+  show the old blue). Before: `--primary`
+  `#0018FF` for buttons, header, badges, focus rings; `--panel`
   `#ffffff` is the **page background only** (body and public share page);
   `--secondary` / `--muted` `#f2f5f5` fill tiles, pills and board cards;
   `--background` stays white (inputs read it); `--badge` `#374151` for the
@@ -958,6 +1017,9 @@ load only when a session starts.
   and Tab / Shift+Tab to nest list items (own DOM moves, not
   `execCommand("indent")`; Tab outside a list still moves focus). Avery
   writes notes in Chinese; don't break CJK handling.
-- **Field focus** (2026-10-19): every text field, select/date/spot trigger
-  and the notes editor shows only a blue border on focus, no glow ring.
+- **Field focus** (2026-10-19; colour follows `--ring` since 2026-10-24, ink
+  `#292524`, was blue): every text field, select/date/spot trigger and the notes
+  editor shows only a ring-coloured border on focus, no glow ring. The
+  "What you've surfed" note field is the same look as its read view: same box,
+  no native textarea styling (`appearance-none`).
 - Secrets: open `.env.local` in the editor for Avery to paste into.

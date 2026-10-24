@@ -29,9 +29,10 @@ export function SiteHeader({
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-30 bg-primary pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
+      className="sticky top-0 z-30 glass-bar pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2 auto-hide-header"
     >
-      <div className={`${PAGE_COLUMN} flex flex-wrap items-center justify-between gap-4`}>
+      <div className={PAGE_COLUMN}>
+<div className="flex items-center justify-between gap-4 py-1.5">
         <Link href="/" className="rounded-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-white">
           {/* White on the blue bar, as in journal.tsx. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -40,7 +41,7 @@ export function SiteHeader({
             alt="Surflog"
             width={1200}
             height={228}
-            className="block h-6 w-auto brightness-0 invert"
+            className="block h-6 w-auto"
           />
         </Link>
         <div className="flex items-center gap-2.5">
@@ -51,6 +52,7 @@ export function SiteHeader({
           <UserMenu user={user} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} />
         </div>
       </div>
+</div>
     </header>
   );
 }

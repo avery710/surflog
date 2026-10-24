@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/lib/i18n";
 import { QueryProvider } from "@/components/query-provider";
 import { SiteFooter } from "@/components/site-footer";
+import { GrainyBackground } from "@/components/grainy-background";
+import { GlassRefraction } from "@/components/glass-refraction";
 import "./globals.css";
 
 // Fonts per CLAUDE.md: Funnel Sans for UI and notes (og.com's body font),
@@ -33,7 +35,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${funnel.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-panel text-foreground">
+      <body className="relative isolate min-h-full flex flex-col bg-panel text-foreground">
+        {/* Trial 2026-10-24: the grainy gradient stands in for the two page
+            glows (.page-glow in globals.css, markup was a div with
+            page-glow-sky / -mint / -shape spans). */}
+        <GrainyBackground />
+        <GlassRefraction />
         <QueryProvider>
           <LanguageProvider>
             {/* Every page (header + content, not the footer) is at least one
@@ -42,10 +49,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 (2026-10-21, on request). Pages grow into it with flex-1. */}
             <div className="flex min-h-dvh flex-col">{children}</div>
             <SiteFooter />
+            {/* inside LanguageProvider: it reports the app language */}
+            <Analytics />
           </LanguageProvider>
         </QueryProvider>
         <Toaster position="bottom-center" />
-        <Analytics />
       </body>
     </html>
   );
