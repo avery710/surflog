@@ -103,8 +103,9 @@ function ShareButton({ label, tip, onClick }: { label: string; tip: string; onCl
 
 const noop = () => {};
 
-/** Extra header-cell classes by column. The notes header starts where its
- *  text does: body cell 4px + field border 1.5px + field padding 12px. */
+/** Extra header-cell classes by column. The notes header starts where the
+ *  editable field's left edge does (and its hover fill): the body cell has the
+ *  same 17.5px left padding. */
 const HEAD_CELL = [
   "w-[26%] pl-1.5 sm:w-[20%] sm:pl-4",
   "w-11 sm:w-[88px]",
@@ -237,7 +238,7 @@ export function PatternsTable({
                     <td className="whitespace-nowrap px-2 py-1 sm:px-4 align-middle font-mono text-[13.5px] tabular-nums">
                       {r.n}
                     </td>
-                    <td className={`w-full min-w-0 px-1 py-0.5 align-middle ${readOnly ? "rounded-r-[var(--r-tile)]" : ""}`}>
+                    <td className={`w-full min-w-0 py-0.5 align-middle ${readOnly ? "rounded-r-[var(--r-tile)] px-1" : "pl-[17.5px] pr-1"}`}>
                       {readOnly ? (
                         note ? (
                           <p className="px-3.5 py-[2px] text-[14px] leading-5 min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{note}</p>
