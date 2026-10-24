@@ -943,7 +943,9 @@ load only when a session starts.
   readings out; asks before applying migrations; after the push watches the
   GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
   signed in) and reports pass/fail with the failing step. It never re-runs or
-  fixes a failed run.
+  fixes a failed run. Since 2026-10-25, when a push carries UI changes it also
+  adds the rule (and any new token) to the "Surflog" Design System artifact
+  (README.md / tokens.json); not yet run.
 - **`release-main`** (2026-10-23, not yet run): opens or refreshes the PR
   `staging` → `main`. Stops without a PR if `main` has non-merge commits
   `staging` lacks, nothing would ship, `app/dev/layout.tsx` is missing, or
