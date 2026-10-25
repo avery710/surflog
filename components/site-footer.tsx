@@ -61,7 +61,7 @@ export function SiteFooter() {
             <span aria-hidden className="h-0.5 min-w-0 flex-1 rounded-full bg-white/60" />
             <Link href="/" aria-label={t("footer.homeLabel")} className="shrink-0 rounded-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/surflog-logo.png" alt="" width={1200} height={228} className="block h-[18px] w-auto brightness-0 invert sm:h-5" />
+              <img src="/surflog-logo.png" alt="" width={1200} height={228} className="block h-5 w-auto brightness-0 invert" />
             </Link>
             <span aria-hidden className="h-0.5 min-w-0 flex-1 rounded-full bg-white/60" />
           </div>

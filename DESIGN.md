@@ -48,7 +48,7 @@ A surf journal: log a session and the wave, wind and tide conditions get attache
 ## Header and footer
 
 - **Header**: a sticky, full-width **liquid glass bar** (`glass-bar`), square ends, in the iOS style (2026-10-24, on request; **made nearly clear 2026-10-25** after an iOS lock-screen reference, since the first version read as frosted white): a faint white wash (16% at the top, 4% in the middle, 10% at the bottom), an 8px backdrop blur at 180% saturation and a slight brightness lift (1.03) so the page shows through vividly; a crisp white specular line on the top and bottom edges, a soft bright band just inside each edge like light gathered in a lens, a soft shadow beneath, and a faint sheen at both ends (28% / 20%). **In Chromium it also refracts**: an SVG displacement filter (scale 22) bends what passes under the bar's top and bottom rims (blur drops to 2px so the bend stays visible); Safari and Firefox keep the plain version. The black wordmark on the left, the white + button and the avatar on the right, all in the page column. Hides on scroll down.
-- **Footer**: no band and no divider, straight on the gradient. 40px of padding above and below, then a centred stack, **white at 70% opacity**: the white wordmark, the round mail button (32px, a **clear glass circle**, `glass-circle`, the header's glass at button size with no border, and a white icon; light grey #E5E5E5 water rises inside it on hover at **30% opacity** and **the icon stays white**; 2026-10-25, on request), and "© year Surflog".
+- **Footer**: no band and no divider, straight on the gradient (2026-10-25, on request: the flat "tide line" version, picked from 14 drawn on a footer canvas). 40px of padding above and below, **white at 70% opacity**. A flat **tide line** runs the width of the page column (two 2px round-ended bars, white at 60%) with the white wordmark (20px tall, on every width) in the gap between them. 20px beneath it, **the round mail button and "© year Surflog" stacked in one centred column**, 12px apart: the button is a **clear glass circle** (32px, `glass-circle`, the header's glass at button size with no border, and a white icon; light grey #E5E5E5 water rises inside it on hover at **30% opacity** and **the icon stays white**).
 
 ## States and motion
 
@@ -269,11 +269,12 @@ The session list's filter control: one element that morphs from a small round gr
 
 The page footer on every screen: no band and no divider, straight on the gradient.
 
-- Transparent, with **40px above and below** its content (plus the device's bottom safe area). A 40px gap above it keeps it off the last card; `mt-auto` pins it to the bottom of a short page.
-- A centred stack, 16px apart, all **white at 70% opacity**: the white wordmark (20px tall), the round mail button, "© year Surflog" in 12.5px.
+- Transparent, with **40px above and below** its content (plus the device's bottom safe area). A 40px gap above it keeps it off the last card; `mt-auto` pins it to the bottom of a short page. All of it is **white at 70% opacity**.
+- **The tide line** (2026-10-25, on request; "variation 12" of 14 drawn on a footer canvas, the flat one of two: a wavy version was the other pick): two flat bars, 2px tall with round ends, white at 60%, run from each edge of the page column to the white wordmark (20px tall on every width, never smaller) sitting in the gap between them, 16px from it on phones and 24px from `sm`. It echoes the tide chart, where the labels also sit in gaps in the curve.
+- **Beneath the line, 20px down, one centred column**, 12px apart: the round mail button, then "© year Surflog" (12.5px). The two are stacked, not side by side.
 - The mail button is 32px (44px touch area), a **clear glass circle** (`glass-circle`, 2026-10-25, on request: the header's glass at button size, a faint white wash, 8px blur at 180% saturation, a bright top edge and soft inner glow, no border) with a white icon; it links to `mailto:support@surflog.tw` (the address is only in its `aria-label`). On hover `water` (#E5E5E5) rises inside it at **30% opacity** and the button darkens 5%; **the icon stays white** and never moves. The rendition shows rest and a still of the hovered state.
 - No Privacy / Terms links until those pages exist. Hidden on `/dev/session-card` and `/dev/footer-options`.
-- History (all on request, 2026-10-24): a full-width `primary` banner, a hairline above a grey stack, a black band, black content with a content-width divider, then this. The divider was removed last. On 2026-10-25 the mail button went from a white outline (icon turning black on hover, water at 50%) to glass.
+- History (all on request): 2026-10-24, a full-width `primary` banner, a hairline above a grey stack, a black band, black content with a content-width divider, then a plain centred stack (wordmark, mail button, ©). 2026-10-25, the mail button went from a white outline to glass, then the stack became the tide line above. Seven other directions were drawn and not built: a glass bar, a floating glass pill, a glass card with a tagline, a huge wordmark, one quiet © line, a white "Email us" pill, and wave and curve versions of the line.
 - Source: `components/site-footer.tsx`, `.wv` and `.glass-circle` in `app/globals.css`. Static rendition.
 
 #### GoalCard
@@ -327,7 +328,7 @@ A 28px pill for picking a session's tags, and the quiet tag line that shows them
 
 - Off: `secondary` with `muted-foreground` text. Picked: filled `primary`, white text, no check mark (width never changes).
 - "+ Add tag" is a dashed outline pill; typing opens an inline field at the same 13px.
-- Group labels (Waves, Size, Lineup, Others) are 12px uppercase semibold, the same size as the "Tags" label above them.
+- Group labels (Waves, Size, Lineup, Others) are 10px uppercase semibold.
 - On the card, tags are one `tag-line` under the notes: a `#`, then words separated by dots, in `muted-foreground`. Not tappable.
 - Descriptive only: no judgement tags, no wind/tide or board tags. Up to 8 tags, 24 characters each.
 - Source: `components/tag-picker.tsx`, `components/tag-line.tsx`. Static rendition.
