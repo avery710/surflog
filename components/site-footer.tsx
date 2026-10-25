@@ -38,12 +38,13 @@ function CircleLink({ link, label }: { link: SocialLink; label: string }) {
 }
 
 /**
- * Footer on every page (root layout): the original layout (2026-10-16 option B:
- * a centred stack of wordmark, round mail link and faded copyright), now with no
- * banner, a full-width hairline on top, straight on the page (2026-10-24, on request). `mt-auto`
+ * Footer on every page (root layout): no banner, straight on the page. Since
+ * 2026-10-25 (variation 12 of the footer canvas, on request) the wordmark sits in
+ * the middle of a flat "tide line" that runs the width of the column, with the
+ * round mail link and the faded copyright stacked in a column beneath it. `mt-auto`
  * pins it to the bottom of a short page; the 40px spacer keeps a gap without a
- * margin fighting `mt-auto`. No band: transparent, no divider, white content at 70%
- * since 2026-10-24, on request. No Privacy / Terms links until those pages exist.
+ * margin fighting `mt-auto`. White content at 70%. No Privacy / Terms links
+ * until those pages exist.
  */
 export function SiteFooter() {
   const { t } = useLang();
@@ -55,17 +56,23 @@ export function SiteFooter() {
     <footer className="mt-auto">
       <div aria-hidden className="h-10" />
       <div className="pt-10 pb-[calc(env(safe-area-inset-bottom)_+_2.5rem)]">
-        <div className={`${PAGE_COLUMN} flex flex-col items-center gap-4 text-center opacity-70`}>
-          <Link href="/" aria-label={t("footer.homeLabel")} className="rounded-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/surflog-logo.png" alt="" width={1200} height={228} className="block h-5 w-auto brightness-0 invert" />
-          </Link>
-          <nav aria-label={t("footer.navLabel")} className="flex flex-wrap justify-center gap-2">
-            {SOCIAL_LINKS.filter((l) => l.href).map((l) => (
-              <CircleLink key={l.key} link={l} label={t(l.labelKey, { email: SUPPORT_EMAIL })} />
-            ))}
-          </nav>
-          <p className="text-[12.5px] leading-4 text-white">© {YEAR} Surflog</p>
+        <div className={`${PAGE_COLUMN} flex flex-col items-center gap-5 text-center opacity-70`}>
+          <div className="flex w-full items-center gap-4 sm:gap-6">
+            <span aria-hidden className="h-0.5 min-w-0 flex-1 rounded-full bg-white/60" />
+            <Link href="/" aria-label={t("footer.homeLabel")} className="shrink-0 rounded-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/surflog-logo.png" alt="" width={1200} height={228} className="block h-[18px] w-auto brightness-0 invert sm:h-5" />
+            </Link>
+            <span aria-hidden className="h-0.5 min-w-0 flex-1 rounded-full bg-white/60" />
+          </div>
+          <div className="flex flex-col items-center gap-3">
+            <nav aria-label={t("footer.navLabel")} className="flex flex-wrap justify-center gap-2">
+              {SOCIAL_LINKS.filter((l) => l.href).map((l) => (
+                <CircleLink key={l.key} link={l} label={t(l.labelKey, { email: SUPPORT_EMAIL })} />
+              ))}
+            </nav>
+            <p className="text-[12.5px] leading-4 text-white">© {YEAR} Surflog</p>
+          </div>
         </div>
       </div>
     </footer>

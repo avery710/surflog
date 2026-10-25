@@ -763,14 +763,19 @@ stay at `/dev/add-button`. Every page uses **`PAGE_COLUMN`**
 (`lib/layout.ts`) — change the width there only.
 
 **Footer** (`components/site-footer.tsx`, root layout; restyled 2026-10-24
-on request, was a full-width `bg-primary` banner): **no banner, straight on the
-page**: a **full-width hairline** on top (`border-foreground/20`), 48 px of
-space, then the original centred stack: black wordmark, the round mail button
-to `mailto:support@surflog.tw` (`SUPPORT_EMAIL`, address only in
-`aria-label`; 32 px, border `foreground/20`, icon `foreground/40`, light grey
-`#e5e5e5` water on hover, the same as the header "+"), "© year Surflog" in
-`muted-foreground`. Tried and replaced the same day: a left/right "quiet line"
-row with the address as text, and a solid black divider. `mt-auto` pins it on
+on request, was a full-width `bg-primary` banner; **redone 2026-10-25, by
+request, as "variation 12" of the 14 drawn on the "Surflog footer variations"
+canvas**): no banner, no hairline, straight on the page, white at 70%. A flat
+"tide line" runs the width of the column (two 2 px round-ended `bg-white/60`
+bars) with the white wordmark in the gap between them; beneath it, **the round
+mail button and "© year Surflog" stacked in one centred column** (not a row).
+The mail button is the 32 px `glass-circle` to `mailto:support@surflog.tw`
+(`SUPPORT_EMAIL`, address only in `aria-label`) with the light grey `#e5e5e5`
+water on hover, the same as the header "+". Variation 4 (waves instead of flat
+lines) was the other pick; the rest (glass bar, pill, card, big wordmark, white
+button, "Email us" pill, curves) are on the canvas only. Not checked on a phone
+or in a browser. Tried and replaced 2026-10-24: a left/right "quiet line" row
+with the address as text, and a solid black divider. `mt-auto` pins it on
 short pages. Every page (header + content) sits in a `min-h-dvh` box in the
 root layout (2026-10-21, by request), so the footer always starts below the
 first screen, also while a page or skeleton loads; `/signin` and the OAuth
