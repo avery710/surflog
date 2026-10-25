@@ -1,5 +1,6 @@
 "use client";
 
+import { openLogDialog } from "@/components/global-log-dialog";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Pencil, Pin, Plus } from "lucide-react";
@@ -142,11 +143,9 @@ export function SpotDetail({
             <Pin className={cn("size-4", pinned && "fill-current")} aria-hidden />
             {t(pinned ? "spotPage.pinned" : "spotPage.pin")}
           </button>
-          <Button asChild className="h-10 rounded-full px-4">
-            <Link href={`/?log=1&spot=${encodeURIComponent(spot.slug)}`}>
-              <Plus aria-hidden />
-              {t("spotPage.logHere")}
-            </Link>
+          <Button className="h-10 rounded-full px-4" onClick={() => openLogDialog(spot.slug)}>
+            <Plus aria-hidden />
+            {t("spotPage.logHere")}
           </Button>
         </div>
       </div>

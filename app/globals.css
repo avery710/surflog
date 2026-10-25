@@ -211,6 +211,8 @@
   --secondary-foreground: #0c0a09;
   --muted: color-mix(in srgb, #eeeeee var(--grey-opacity, 80%), transparent);
   --muted-foreground: #59696c;
+  /* Secondary text that sits straight on the page gradient (no card behind it): darker than --muted-foreground, which was picked for white cards and fades into the teal. */
+  --on-page: #1f2b2d;
   --accent: color-mix(in srgb, #eeeeee var(--grey-opacity, 80%), transparent); /* original cool grey */
   --accent-foreground: #292524;
   --destructive: #dc2626;
@@ -719,6 +721,14 @@ button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible
    so a long journal doesn't stretch the gradient. `cqw` in the blur reads the
    layer's own width (container-type), so the softness scales with the window. */
 .grainy {
+  /* Fixed size, not `inset: 0` (2026-10-24, bug on iPhone Safari): `inset: 0`
+     follows the visible viewport, which grows and shrinks as the address bar
+     and toolbar collapse while scrolling, so the blurred gradient rescaled and
+     seemed to move. `lvh` is the largest viewport (toolbars hidden) and never
+     changes while scrolling; the top 0 anchor keeps it from drifting. */
+  inset: 0 0 auto 0;
+  height: 100vh;
+  height: 100lvh;
   overflow: hidden;
   container-type: inline-size;
   background: #eef3f3;

@@ -328,7 +328,7 @@ Good, Bad), the rating was removed on request**; no wind/tide tags (they come
 from the sources); no board-type tags (the board chip says it). Size group is
 unreviewed wording. UI: grouped-chip picker in the log form and edit panel
 (`components/tag-picker.tsx`; in the log form it sits **above the notes**, in the
-edit panel after the board; group labels 10 px, picked chips are filled blue
+edit panel after the board; group labels 12 px like the "Tags" label, picked chips are filled blue
 with no check mark). **Collapsed by default** (2026-10-23, on request): the
 picked tags, then the 6 most used (`quickTags()`, topped up with common
 starters for a new user), then "+ Add tag"; "All tags" opens the grouped list (the height eases),
@@ -620,7 +620,9 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   2026-10-23**: it used to read the wrapper's already-new height as the start
   and so never eased; it now starts from the old content height (checked on
   `/dev/tags`: ~240 ms both ways), which also changes the patterns table,
-  board rack and tag picker, not re-checked on those). Share icon tooltip is portalled to `body`. A
+  board rack and tag picker, not re-checked on those). The notes cell has 17.5 px
+  left padding so the editable field's edge (and its hover fill) lines up with the
+  "Notes" header (2026-10-25; not verified in a browser). Share icon tooltip is portalled to `body`. A
   stacked phone layout was **reverted on request 2026-10-16 — don't bring
   back**.
 - **Activity calendar**: its header comment is the source of truth.
@@ -761,6 +763,16 @@ damped spring `useWaterSpring`, constants in `step()`; never watched
 running). Halo, band-beneath and bobbing variants were dropped; others
 stay at `/dev/add-button`. Every page uses **`PAGE_COLUMN`**
 (`lib/layout.ts`) — change the width there only.
+
+**Log dialog everywhere** (2026-10-25, by request): the header "+" on sub pages
+(`/spots`, `/spots/<slug>`, `/ai-apps`, `/admin`) opens the log form in place
+(`components/global-log-dialog.tsx`, mounted by `SiteHeader`) instead of linking
+to `/?log=1`; the spot page's "Log a session here" opens it on that spot
+(`openLogDialog(slug)`). Its data comes from `GET /api/log-context` (stats,
+boards, goal, spots, own requests) each time it opens. Only a **saved** session
+navigates, to `/` (`router.push` + `refresh`). "Request a spot" is not wired in
+this dialog. `?log=1` still works. Checked with tsc and lint only; **not in a
+browser, not on a phone**.
 
 **Footer** (`components/site-footer.tsx`, root layout; restyled 2026-10-24
 on request, was a full-width `bg-primary` banner; **redone 2026-10-25, by
@@ -946,7 +958,9 @@ load only when a session starts.
   readings out; asks before applying migrations; after the push watches the
   GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
   signed in) and reports pass/fail with the failing step. It never re-runs or
-  fixes a failed run.
+  fixes a failed run. Since 2026-10-25, when a push carries UI changes it also
+  adds the rule (and any new token) to the "Surflog" Design System artifact
+  (README.md / tokens.json); not yet run.
 - **`release-main`** (2026-10-23, not yet run): opens or refreshes the PR
   `staging` → `main`. Stops without a PR if `main` has non-merge commits
   `staging` lacks, nothing would ship, `app/dev/layout.tsx` is missing, or
@@ -990,6 +1004,10 @@ load only when a session starts.
   accordion at every width**, never a side flyout (`InlineCollapse`,
   `components/ui/dropdown-menu.tsx`; not checked in a browser). Dialogs
   keep `--shadow-card`.
+- `--on-page` (2026-10-25, `#1f2b2d`; not verified in a browser): grey text that
+  sits straight on the page gradient with no card behind it (dashboard section
+  labels, empty state, no-match line, filter "Clear all", list loader and
+  failure text). Cards keep `--muted-foreground`.
 - Colour tokens (`app/globals.css`, whose comments hold the history).
   **2026-10-24, AI Platform colours** (from Avery's "AI Platform" design system,
   colours only; fonts, radii and components unchanged, by request):
