@@ -327,7 +327,7 @@ A 28px pill for picking a session's tags, and the quiet tag line that shows them
 
 - Off: `secondary` with `muted-foreground` text. Picked: filled `primary`, white text, no check mark (width never changes).
 - "+ Add tag" is a dashed outline pill; typing opens an inline field at the same 13px.
-- Group labels (Waves, Size, Lineup, Others) are 10px uppercase semibold.
+- Group labels (Waves, Size, Lineup, Others) are 12px uppercase semibold, the same size as the "Tags" label above them.
 - On the card, tags are one `tag-line` under the notes: a `#`, then words separated by dots, in `muted-foreground`. Not tappable.
 - Descriptive only: no judgement tags, no wind/tide or board tags. Up to 8 tags, 24 characters each.
 - Source: `components/tag-picker.tsx`, `components/tag-line.tsx`. Static rendition.

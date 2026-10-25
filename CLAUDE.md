@@ -328,7 +328,7 @@ Good, Bad), the rating was removed on request**; no wind/tide tags (they come
 from the sources); no board-type tags (the board chip says it). Size group is
 unreviewed wording. UI: grouped-chip picker in the log form and edit panel
 (`components/tag-picker.tsx`; in the log form it sits **above the notes**, in the
-edit panel after the board; group labels 10 px, picked chips are filled blue
+edit panel after the board; group labels 12 px like the "Tags" label, picked chips are filled blue
 with no check mark). **Collapsed by default** (2026-10-23, on request): the
 picked tags, then the 6 most used (`quickTags()`, topped up with common
 starters for a new user), then "+ Add tag"; "All tags" opens the grouped list (the height eases),
