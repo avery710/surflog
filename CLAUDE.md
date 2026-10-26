@@ -14,6 +14,10 @@ earlier wording is in git: `git log -p -- CLAUDE.md`. Dates below are when
 something was decided or last checked. Pixel-level layout lives in the
 components and their header comments; this file keeps decisions, don'ts
 and what is unverified.
+**The look (colours, type, spacing, radii, component looks, header and footer,
+motion) lives in `DESIGN.md`**, generated from the Surflog Design System
+artifact: read it before changing UI, never edit it by hand, and keep it in
+step through `push-stag` (see Project agents).
 
 ## Status
 
@@ -774,26 +778,16 @@ navigates, to `/` (`router.push` + `refresh`). "Request a spot" is not wired in
 this dialog. `?log=1` still works. Checked with tsc and lint only; **not in a
 browser, not on a phone**.
 
-**Footer** (`components/site-footer.tsx`, root layout; restyled 2026-10-24
-on request, was a full-width `bg-primary` banner; **redone 2026-10-25, by
-request, as "variation 12" of the 14 drawn on the "Surflog footer variations"
-canvas**): no banner, no hairline, straight on the page, white at 70%. A flat
-"tide line" runs the width of the column (two 2 px round-ended `bg-white/60`
-bars) with the white wordmark in the gap between them; beneath it, **the round
-mail button and "© year Surflog" stacked in one centred column** (not a row).
-The mail button is the 32 px `glass-circle` to `mailto:support@surflog.tw`
-(`SUPPORT_EMAIL`, address only in `aria-label`) with the light grey `#e5e5e5`
-water on hover, the same as the header "+". Variation 4 (waves instead of flat
-lines) was the other pick; the rest (glass bar, pill, card, big wordmark, white
-button, "Email us" pill, curves) are on the canvas only. Not checked on a phone
-or in a browser. Tried and replaced 2026-10-24: a left/right "quiet line" row
-with the address as text, and a solid black divider. `mt-auto` pins it on
-short pages. Every page (header + content) sits in a `min-h-dvh` box in the
-root layout (2026-10-21, by request), so the footer always starts below the
-first screen, also while a page or skeleton loads; `/signin` and the OAuth
-consent now centre in the full screen. No Privacy/Terms links until those pages exist. The public
-share page's own muted line above it may read as doubled. The Google
-consent screen's support email is set in Google Cloud, not here.
+**Footer** (`components/site-footer.tsx`, root layout): how it looks is in
+`DESIGN.md` ("Header and footer", the Footer card), not repeated here. Not
+visual: it is `mt-auto`, so it pins to the bottom of a short page; every page
+(header + content) sits in a `min-h-dvh` box in the root layout (2026-10-21, by
+request), so the footer always starts below the first screen, also while a page
+or skeleton loads, and `/signin` and the OAuth consent centre in the full
+screen. No Privacy/Terms links until those pages exist. The public share page's
+own muted line above it may read as doubled. The Google consent screen's
+support email is set in Google Cloud, not here. Redone 2026-10-25 (the
+"tide line" footer, picked from 14 drawn on a canvas); not checked on a phone.
 
 **Landing** (`components/landing/landing.tsx`, signed-out `/`; preview
 `/dev/landing`): 01 conditions, 02 dashboard, 03 AI app, 04 spot list, 05
@@ -950,7 +944,7 @@ load only when a session starts.
   declined. `app/dev/layout.tsx` 404s the tree in production (route
   handlers there must repeat the check). No photos; actions hit the real
   API and fail; width frames don't trigger `sm:`/`lg:`.
-- **`push-stag`** (file brought in line with the staging/production split
+- **`push-stag`** (since 2026-10-25 it also checks, before every push, whether the diff changes a UI rule and if so updates the Surflog Design System artifact (brand book, tokens, component cards, previews, `bundle.css`) and regenerates `DESIGN.md` into the same commit; first run of that step not watched) (file brought in line with the staging/production split
   2026-10-23: staging is its own Supabase project, local `.env.local` and the
   CLI link point at production, so its migration step targets staging
   explicitly and never production): commits and pushes to `staging` only,
