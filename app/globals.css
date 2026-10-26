@@ -718,8 +718,7 @@ button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible
 
 /* Grainy gradient page background (components/grainy-background.tsx,
    2026-10-24, trial on request; values as supplied, replaced with a new set 2026-10-25: deeper blue-teal, pale #eef3f3 ground, grain 0.60). Fixed to the viewport,
-   so a long journal doesn't stretch the gradient. `cqw` in the blur reads the
-   layer's own width (container-type), so the softness scales with the window. */
+   so a long journal doesn't stretch the gradient. */
 .grainy {
   /* Fixed size, not `inset: 0` (2026-10-24, bug on iPhone Safari): `inset: 0`
      follows the visible viewport, which grows and shrinks as the address bar
@@ -730,13 +729,22 @@ button:not([data-slot="select-trigger"], [aria-haspopup="dialog"]):focus-visible
   height: 100vh;
   height: 100lvh;
   overflow: hidden;
-  container-type: inline-size;
   background: #eef3f3;
+  /* Its own GPU layer (2026-10-25, bug on iPhone Safari: the background went
+     white for a few frames whenever the toolbars collapsed or came back while
+     scrolling). Composited, the layer is drawn once and only moved; left in the
+     page's own paint it was redrawn as the viewport changed, and the body's
+     white showed until it was done. */
+  transform: translateZ(0);
 }
 .grainy .color {
   position: absolute;
   inset: -12%;
-  filter: blur(7cqw);
+  /* No blur (was `filter: blur(7cqw)`, removed 2026-10-25 with the flash fix
+     above): the stops are already smooth, so the blur changed the picture by
+     ~1.6/255 on average (95th percentile 4/255, rendered at 390 x 844), but a
+     filter over a layer bigger than the screen is the costliest thing Safari
+     redraws. The -12% bleed is kept so the gradient sits where it did. */
   /* Flipped vertically (2026-10-24, on request): dark at the bottom, pale at
      the top. The masks run left/right, so the flip leaves them as they are. */
   transform: scaleY(-1);
