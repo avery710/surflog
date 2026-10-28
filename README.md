@@ -208,9 +208,8 @@ One-time setup:
 Migrations run in the deploy workflows. A push to `staging` applies pending
 `supabase/migrations/` to the staging Supabase project before the deploy
 (job `migrate`). A push to `main` runs `plan` (a dry run against production,
-listed in the run summary), then `migrate` behind the GitHub Environment
-`production`, which waits for your approval and is skipped when nothing is
-pending, then the deploy. A failed migration stops the deploy. One-time setup,
+listed in the run summary), then `migrate`, which applies them without a
+manual approval and is skipped when nothing is pending, then the deploy. A failed migration stops the deploy. One-time setup,
 repo → Settings:
 
 - Secrets and variables → Actions → **Secrets**: `STAGING_DB_PASSWORD`,
@@ -221,8 +220,6 @@ repo → Settings:
 - **Variables**: `STAGING_SUPABASE_PROJECT_REF`, `PRODUCTION_SUPABASE_PROJECT_REF`
   (the project ref from each dashboard URL; the staging job refuses the
   production ref).
-- Environments → new environment `production` → **Required reviewers**: add
-  yourself. Without a reviewer the migration runs without waiting.
 
 Migrations cannot be rolled back, so write them add-only (new tables and
 columns); a rename or drop belongs in a later release, after the code stopped

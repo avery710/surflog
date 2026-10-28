@@ -9,9 +9,9 @@
 #
 # Migrations (plan → migrate → deploy): `plan` dry-runs the pending
 # supabase/migrations/ against the PRODUCTION Supabase project and lists them
-# in the job summary. `migrate` applies them, behind the GitHub Environment
-# "production" (add yourself as a required reviewer: Settings → Environments),
-# so you approve after reading the plan; it is skipped when nothing is pending.
+# in the job summary. `migrate` applies them straight away, with no manual
+# approval (removed 2026-10-28, by request); it is skipped when nothing is
+# pending. Every migration has already run on staging by then.
 # The deploy waits for it, and a failed migration stops the deploy. Both jobs
 # connect straight to the database through the session pooler (no `supabase
 # link`, no access token). Needs repo secret PRODUCTION_DB_PASSWORD and repo
@@ -86,8 +86,6 @@ jobs:
     needs: plan
     if: ${{ needs.plan.outputs.pending != '0' }}
     runs-on: ubuntu-latest
-    # approval gate: the plan above is in this run's summary
-    environment: production
     env:
       SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
       PROJECT_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
