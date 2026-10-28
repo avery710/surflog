@@ -24,6 +24,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# `shell: bash` makes every run step use `bash -eo pipefail`: without it a
+# failing command piped into `tee` reported success (a failed `supabase db
+# push` showed green and the deploy went ahead, 2026-10-28).
+defaults:
+  run:
+    shell: bash
+
 # queue production deploys instead of cancelling one halfway
 concurrency:
   group: deploy-production
