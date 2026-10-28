@@ -138,7 +138,7 @@ export function SessionFilterBar({
     <div>
       {/* Below `lg` the title sits above the chips; from `lg` they share one line, chips on the right. */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-        <div className="inline-flex items-center gap-1.5 pl-1 font-sans text-[13px] font-bold text-muted-foreground">
+        <div className="inline-flex items-center gap-1.5 pl-1 font-sans text-[13px] font-bold text-[var(--on-page)]">
           {t("section.sessions")}
           {active > 0 && (
             <>
@@ -244,7 +244,7 @@ export function SessionFilterBar({
                 setCustomOpen(false);
                 onChange({});
               }}
-              className="inline-flex h-6 shrink-0 animate-in items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground duration-200 fade-in-0 slide-in-from-left-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:animate-none"
+              className="inline-flex h-6 shrink-0 animate-in items-center gap-1 rounded-full px-2 text-xs font-medium text-[var(--on-page)] duration-200 fade-in-0 slide-in-from-left-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:animate-none"
             >
               <X className="size-3" aria-hidden />
               {t("filter.clearAll")}

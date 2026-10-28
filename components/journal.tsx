@@ -387,7 +387,7 @@ export function Journal({
 
         <section className="mt-4 sm:mt-5">
           {stats.length === 0 ? (
-            <div className="pl-1 font-sans text-[13px] font-bold text-muted-foreground">{t("section.sessions")}</div>
+            <div className="pl-1 font-sans text-[13px] font-bold text-[var(--on-page)]">{t("section.sessions")}</div>
           ) : (
             <SessionFilterBar
               filter={feed.filter}
@@ -427,7 +427,7 @@ export { LogIcon } from "@/components/add-button";
 
 function NoMatches() {
   const { t } = useLang();
-  return <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+  return <div className="flex items-center justify-center gap-2 py-10 text-[var(--on-page)]">
       <SearchX className="size-4 shrink-0" aria-hidden />
       <p className="font-sans text-[13px] leading-5 font-bold">{t("filter.noMatchTitle")}</p>
     </div>;
@@ -438,7 +438,7 @@ function EmptyState() {
   return (
     <div className="mt-3 pl-1 sm:mt-4">
       <h3 className="text-[15px] leading-snug font-bold">{t("empty.title")}</h3>
-      <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{t("empty.body")}</p>
+      <p className="mt-1 text-[13px] leading-relaxed text-[var(--on-page)]">{t("empty.body")}</p>
     </div>
   );
 }

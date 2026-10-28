@@ -58,7 +58,7 @@ export const STARTER_TAG_GROUPS: { id: TagGroupId; tags: StarterTag[] }[] = [
     tags: [
       { key: "Crowded", zh: "擁擠" },
       { key: "Empty break", zh: "人少" },
-      { key: "Aggro locals", zh: "Local 很兇" },
+      { key: "Aggro locals", zh: "排外" },
     ],
   },
   {

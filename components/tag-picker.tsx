@@ -339,14 +339,14 @@ export function TagPicker({
             <>
               {STARTER_TAG_GROUPS.map((group) => (
                 <div key={group.id} className="flex flex-col gap-1">
-                  <span className="pl-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground/80 uppercase">
+                  <span className="pl-0.5 text-xs font-semibold tracking-wide text-muted-foreground/80 uppercase">
                     {t(`tags.group.${group.id}` as TKey)}
                   </span>
                   <div className="flex flex-wrap gap-1.5">{group.tags.map((tag) => chip(tag.key))}</div>
                 </div>
               ))}
               <div className="flex flex-col gap-1">
-                <span className="pl-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground/80 uppercase">
+                <span className="pl-0.5 text-xs font-semibold tracking-wide text-muted-foreground/80 uppercase">
                   {t("form.tagsMine")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
