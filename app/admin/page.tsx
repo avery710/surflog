@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
+import { ActivityStats } from "@/components/admin/activity-stats";
 import { ConnectedServices } from "@/components/admin/connected-services";
+import { getActivityStats } from "@/lib/account-activity";
 import { SpotsAdmin } from "@/components/admin/spots-admin";
 import { SiteHeader } from "@/components/site-header";
 import { listConnectedServices } from "@/lib/oauth";
@@ -16,12 +18,14 @@ export default async function AdminPage() {
   const session = await auth();
   if (!session?.user?.id || !isSpotAdmin(session.user)) notFound();
 
-  const [spots, requestRows, services, edits] = await Promise.all([
+  const [spots, requestRows, services, edits, activity] = await Promise.all([
     listSpots(),
     listAllRequests(),
     listConnectedServices(),
     // none (not an error) until the spot_edit_requests migration is applied
     softly(() => listAllEditRequests().then((rows) => rows.map(toAdmin)), []),
+    // null (not an error) until the account_activity migration is applied
+    getActivityStats().catch(() => null),
   ]);
   return (
     <>
@@ -33,6 +37,7 @@ export default async function AdminPage() {
         }
       />
       <SpotsAdmin initialSpots={spots} initialRequests={requestRows.map((r) => rowToRequest(r, true))} initialEdits={edits}>
+        <ActivityStats stats={activity} />
         <ConnectedServices services={services} />
       </SpotsAdmin>
     </>

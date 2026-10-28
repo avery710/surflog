@@ -388,6 +388,7 @@ export const DICT = {
   "goal.showLess": { en: "Show less", "zh-TW": "收合" },
   "goal.scrollHint": { en: "More goal points — scroll to see them", "zh-TW": "還有更多目標項目，可捲動查看" },
   "toast.couldntSaveGoal": { en: "Couldn't save the goal", "zh-TW": "無法儲存目標" },
+  "dialog.logLoadFailed": { en: "Couldn't load the form. Close it and try again.", "zh-TW": "無法載入表單，請關閉後再試一次。" },
   "dialog.logSessionTitle": { en: "Log a session", "zh-TW": "新增衝浪紀錄" },
   "empty.title": { en: "Nothing logged yet", "zh-TW": "還沒有任何紀錄" },
   "empty.body": {
@@ -885,6 +886,21 @@ export const DICT = {
   },
   "connect.connected": { en: "Connected: {name}", "zh-TW": "已連結：{name}" },
   "tokens.personal": { en: "Personal token", "zh-TW": "個人權杖" },
+  "admin.activity": { en: "Sign-ups and active users", "zh-TW": "註冊與活躍使用者" },
+  "admin.activityIntro": {
+    en: "People who opened their journal, across all users. Counts only, no names. A sign-up is a person's first day here; people who joined earlier are counted from their first saved session. Days are Taipei time.",
+    "zh-TW": "所有使用者中開啟過日誌的人數。僅顯示數量，不含姓名。註冊指一個人第一次出現的那天；較早加入的人以第一次儲存浪況的日期計算。日期以台北時間為準。",
+  },
+  "admin.activityOff": {
+    en: "Not switched on yet: apply the account_activity migration.",
+    "zh-TW": "尚未啟用：請先套用 account_activity 的 migration。",
+  },
+  "admin.activity.total": { en: "Total sign-ups", "zh-TW": "累計註冊" },
+  "admin.activity.newToday": { en: "New today", "zh-TW": "今日新註冊" },
+  "admin.activity.new7": { en: "New, last 7 days", "zh-TW": "近 7 天新註冊" },
+  "admin.activity.activeToday": { en: "Active today", "zh-TW": "今日活躍" },
+  "admin.activity.active7": { en: "Active, last 7 days", "zh-TW": "近 7 天活躍" },
+  "admin.activity.chart": { en: "Daily active users, last 30 days", "zh-TW": "近 30 天每日活躍使用者" },
   "admin.services": { en: "Connected services", "zh-TW": "已連結的服務" },
   "admin.servicesIntro": {
     en: "Apps that have connected to Surflog through sign-in, across all users. Counts only, no names.",

@@ -8,7 +8,7 @@
  */
 export function GrainyBackground() {
   return (
-    <div aria-hidden className="grainy pointer-events-none fixed inset-0 -z-10">
+    <div aria-hidden className="grainy pointer-events-none fixed -z-10">
       <div className="color" />
       <div className="grain" />
     </div>

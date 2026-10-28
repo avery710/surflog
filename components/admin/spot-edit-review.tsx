@@ -72,10 +72,10 @@ export function SpotEditReview({
   }
 
   return (
-    <section className="mt-9">
-      <h2 className="text-base font-bold">
+    <div className="mt-7">
+      <h3 className="text-sm font-bold">
         {t("spotEdit.adminTitle")} <span className="font-mono text-muted-foreground">{pending.length}</span>
-      </h2>
+      </h3>
       {pending.length === 0 ? (
         <p className="mt-2 text-[13.5px] text-muted-foreground">{t("spotEdit.adminNone")}</p>
       ) : (
@@ -123,6 +123,6 @@ export function SpotEditReview({
           })}
         </ul>
       )}
-    </section>
+    </div>
   );
 }

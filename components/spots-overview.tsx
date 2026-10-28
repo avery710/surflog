@@ -6,6 +6,7 @@ import { ArrowLeft, MessageSquare, Pencil, Pin, Plus, Search, X } from "lucide-r
 import { toast } from "sonner";
 import { cn } from "cn";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
+import { CollapsibleSection } from "@/components/collapsible-section";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
 import { SpotReviewsDialog, Stars } from "@/components/spot-reviews-dialog";
 import { SuggestSpotEditDialog } from "@/components/suggest-spot-edit-dialog";
@@ -21,6 +22,9 @@ import type { ReviewSummary } from "@/lib/spot-review";
 import type { Spot } from "@/lib/spots";
 
 const noop = () => {};
+
+const GROUP_HEADING = "text-xs font-semibold text-muted-foreground";
+const GROUP_BODY = "mt-1.5 rounded-[var(--r-tile)] surface-card";
 
 /** /spots — the log form's spot picker as a page: the whole shared catalogue,
  *  searched and grouped the same way (lib/spot-browse.ts), with one button to
@@ -208,32 +212,52 @@ export function SpotsOverview({
         )}
 
         {pinnedShown.length > 0 && (
-          <section className="mt-6" data-group="pinned">
-            <GroupHeading title={t("spots.pinned")} count={pinnedShown.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">{pinnedShown.map((s) => row(s))}</ul>
-          </section>
+          <CollapsibleSection
+            id="pinned"
+            dataGroup="pinned"
+            className="mt-6"
+            title={t("spots.pinned")}
+            count={pinnedShown.length}
+            headingClassName={GROUP_HEADING}
+            bodyClassName={GROUP_BODY}
+          >
+            <ul>{pinnedShown.map((s) => row(s))}</ul>
+          </CollapsibleSection>
         )}
 
         {pending.length > 0 && (
-          <section className="mt-6" data-group="pending">
-            <GroupHeading title={t("picker.pending")} count={pending.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">
+          <CollapsibleSection
+            id="pending"
+            dataGroup="pending"
+            className="mt-6"
+            title={t("picker.pending")}
+            count={pending.length}
+            headingClassName={GROUP_HEADING}
+            bodyClassName={GROUP_BODY}
+          >
+            <ul>
               {pending.map((r) => (
                 <li key={r.id} className="border-b border-card-border px-4 py-3 text-[14.5px] font-semibold break-words last:border-b-0">
                   {r.name}
                 </li>
               ))}
             </ul>
-          </section>
+          </CollapsibleSection>
         )}
 
         {groups.map((g) => (
-          <section key={g.key} className="mt-6" data-group={g.key}>
-            <GroupHeading title={g.title} count={g.list.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">
-              {g.list.map((s) => row(s, true))}
-            </ul>
-          </section>
+          <CollapsibleSection
+            key={g.key}
+            id={`group-${g.key}`}
+            dataGroup={g.key}
+            className="mt-6"
+            title={g.title}
+            count={g.list.length}
+            headingClassName={GROUP_HEADING}
+            bodyClassName={GROUP_BODY}
+          >
+            <ul>{g.list.map((s) => row(s, true))}</ul>
+          </CollapsibleSection>
         ))}
       </div>
 
@@ -251,14 +275,6 @@ export function SpotsOverview({
       />
       <SpotReviewsDialog spot={reviewing} onOpenChange={(open) => !open && setReviewing(null)} onSummary={setSummary} />
     </SpotCatalogProvider>
-  );
-}
-
-function GroupHeading({ title, count }: { title: string; count: number }) {
-  return (
-    <h2 className="text-xs font-semibold text-muted-foreground">
-      {title} <span className="font-mono">{count}</span>
-    </h2>
   );
 }
 

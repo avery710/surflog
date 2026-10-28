@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import { after } from "next/server";
 import { auth } from "@/auth";
+import { recordActivity } from "@/lib/account-activity";
 import { getGoal, listBoards, listSessionsPage, listSessionStats, listSpotNotes } from "@/lib/db";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { isSpotAdmin } from "@/lib/spot-admin";
@@ -50,6 +52,9 @@ async function SignedInJournal({
   searchParams: Promise<{ log?: string; spot?: string }>;
 }) {
   const canManageSpots = isSpotAdmin(user);
+  // Counts this person as active today (SURFLOG-33); runs after the response
+  // and never fails the page.
+  after(() => recordActivity(userId));
   // Sessions are paged by the database: the slim list of all of them (small,
   // for the dashboard) plus the first 10 in full; the rest load on scroll
   // from GET /api/sessions. Every query starts at once: one round trip to

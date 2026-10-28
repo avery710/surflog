@@ -14,6 +14,10 @@ earlier wording is in git: `git log -p -- CLAUDE.md`. Dates below are when
 something was decided or last checked. Pixel-level layout lives in the
 components and their header comments; this file keeps decisions, don'ts
 and what is unverified.
+**The look (colours, type, spacing, radii, component looks, header and footer,
+motion) lives in `DESIGN.md`**, generated from the Surflog Design System
+artifact: read it before changing UI, never edit it by hand, and keep it in
+step through `push-stag` (see Project agents).
 
 ## Status
 
@@ -328,7 +332,7 @@ Good, Bad), the rating was removed on request**; no wind/tide tags (they come
 from the sources); no board-type tags (the board chip says it). Size group is
 unreviewed wording. UI: grouped-chip picker in the log form and edit panel
 (`components/tag-picker.tsx`; in the log form it sits **above the notes**, in the
-edit panel after the board; group labels 10 px, picked chips are filled blue
+edit panel after the board; group labels 12 px like the "Tags" label, picked chips are filled blue
 with no check mark). **Collapsed by default** (2026-10-23, on request): the
 picked tags, then the 6 most used (`quickTags()`, topped up with common
 starters for a new user), then "+ Add tag"; "All tags" opens the grouped list (the height eases),
@@ -620,7 +624,9 @@ sync. The landing's dashboard mirror still has the old `gap-4` spacing.
   2026-10-23**: it used to read the wrapper's already-new height as the start
   and so never eased; it now starts from the old content height (checked on
   `/dev/tags`: ~240 ms both ways), which also changes the patterns table,
-  board rack and tag picker, not re-checked on those). Share icon tooltip is portalled to `body`. A
+  board rack and tag picker, not re-checked on those). The notes cell has 17.5 px
+  left padding so the editable field's edge (and its hover fill) lines up with the
+  "Notes" header (2026-10-25; not verified in a browser). Share icon tooltip is portalled to `body`. A
   stacked phone layout was **reverted on request 2026-10-16 — don't bring
   back**.
 - **Activity calendar**: its header comment is the source of truth.
@@ -762,21 +768,26 @@ running). Halo, band-beneath and bobbing variants were dropped; others
 stay at `/dev/add-button`. Every page uses **`PAGE_COLUMN`**
 (`lib/layout.ts`) — change the width there only.
 
-**Footer** (`components/site-footer.tsx`, root layout; restyled 2026-10-24
-on request, was a full-width `bg-primary` banner): **no banner, straight on the
-page**: a **full-width hairline** on top (`border-foreground/20`), 48 px of
-space, then the original centred stack: black wordmark, the round mail button
-to `mailto:support@surflog.tw` (`SUPPORT_EMAIL`, address only in
-`aria-label`; 32 px, border `foreground/20`, icon `foreground/40`, light grey
-`#e5e5e5` water on hover, the same as the header "+"), "© year Surflog" in
-`muted-foreground`. Tried and replaced the same day: a left/right "quiet line"
-row with the address as text, and a solid black divider. `mt-auto` pins it on
-short pages. Every page (header + content) sits in a `min-h-dvh` box in the
-root layout (2026-10-21, by request), so the footer always starts below the
-first screen, also while a page or skeleton loads; `/signin` and the OAuth
-consent now centre in the full screen. No Privacy/Terms links until those pages exist. The public
-share page's own muted line above it may read as doubled. The Google
-consent screen's support email is set in Google Cloud, not here.
+**Log dialog everywhere** (2026-10-25, by request): the header "+" on sub pages
+(`/spots`, `/spots/<slug>`, `/ai-apps`, `/admin`) opens the log form in place
+(`components/global-log-dialog.tsx`, mounted by `SiteHeader`) instead of linking
+to `/?log=1`; the spot page's "Log a session here" opens it on that spot
+(`openLogDialog(slug)`). Its data comes from `GET /api/log-context` (stats,
+boards, goal, spots, own requests) each time it opens. Only a **saved** session
+navigates, to `/` (`router.push` + `refresh`). "Request a spot" is not wired in
+this dialog. `?log=1` still works. Checked with tsc and lint only; **not in a
+browser, not on a phone**.
+
+**Footer** (`components/site-footer.tsx`, root layout): how it looks is in
+`DESIGN.md` ("Header and footer", the Footer card), not repeated here. Not
+visual: it is `mt-auto`, so it pins to the bottom of a short page; every page
+(header + content) sits in a `min-h-dvh` box in the root layout (2026-10-21, by
+request), so the footer always starts below the first screen, also while a page
+or skeleton loads, and `/signin` and the OAuth consent centre in the full
+screen. No Privacy/Terms links until those pages exist. The public share page's
+own muted line above it may read as doubled. The Google consent screen's
+support email is set in Google Cloud, not here. Redone 2026-10-25 (the
+"tide line" footer, picked from 14 drawn on a canvas); not checked on a phone.
 
 **Landing** (`components/landing/landing.tsx`, signed-out `/`; preview
 `/dev/landing`): 01 conditions, 02 dashboard, 03 AI app, 04 spot list, 05
@@ -933,7 +944,7 @@ load only when a session starts.
   declined. `app/dev/layout.tsx` 404s the tree in production (route
   handlers there must repeat the check). No photos; actions hit the real
   API and fail; width frames don't trigger `sm:`/`lg:`.
-- **`push-stag`** (file brought in line with the staging/production split
+- **`push-stag`** (since 2026-10-25 it also checks, before every push, whether the diff changes a UI rule and if so updates the Surflog Design System artifact (brand book, tokens, component cards, previews, `bundle.css`) and regenerates `DESIGN.md` into the same commit; first run of that step not watched) (file brought in line with the staging/production split
   2026-10-23: staging is its own Supabase project, local `.env.local` and the
   CLI link point at production, so its migration step targets staging
   explicitly and never production): commits and pushes to `staging` only,
@@ -941,7 +952,9 @@ load only when a session starts.
   readings out; asks before applying migrations; after the push watches the
   GitHub Actions deploy run with `gh run watch` (2026-10-23, now that `gh` is
   signed in) and reports pass/fail with the failing step. It never re-runs or
-  fixes a failed run.
+  fixes a failed run. Since 2026-10-25, when a push carries UI changes it also
+  adds the rule (and any new token) to the "Surflog" Design System artifact
+  (README.md / tokens.json); not yet run.
 - **`release-main`** (2026-10-23, not yet run): opens or refreshes the PR
   `staging` → `main`. Stops without a PR if `main` has non-merge commits
   `staging` lacks, nothing would ship, `app/dev/layout.tsx` is missing, or
@@ -985,6 +998,10 @@ load only when a session starts.
   accordion at every width**, never a side flyout (`InlineCollapse`,
   `components/ui/dropdown-menu.tsx`; not checked in a browser). Dialogs
   keep `--shadow-card`.
+- `--on-page` (2026-10-25, `#1f2b2d`; not verified in a browser): grey text that
+  sits straight on the page gradient with no card behind it (dashboard section
+  labels, empty state, no-match line, filter "Clear all", list loader and
+  failure text). Cards keep `--muted-foreground`.
 - Colour tokens (`app/globals.css`, whose comments hold the history).
   **2026-10-24, AI Platform colours** (from Avery's "AI Platform" design system,
   colours only; fonts, radii and components unchanged, by request):
