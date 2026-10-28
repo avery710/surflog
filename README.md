@@ -213,9 +213,11 @@ listed in the run summary), then `migrate` behind the GitHub Environment
 pending, then the deploy. A failed migration stops the deploy. One-time setup,
 repo → Settings:
 
-- Secrets and variables → Actions → **Secrets**: `SUPABASE_ACCESS_TOKEN` (a
-  personal access token from supabase.com/dashboard/account/tokens),
-  `STAGING_DB_PASSWORD`, `PRODUCTION_DB_PASSWORD`.
+- Secrets and variables → Actions → **Secrets**: `STAGING_DB_PASSWORD`,
+  `PRODUCTION_DB_PASSWORD`. No Supabase access token: the jobs connect straight
+  to each database through its session pooler (IPv4; the direct
+  `db.<ref>.supabase.co` address is IPv6-only, which GitHub's runners lack).
+  The pooler hosts are in the workflows (`POOLER_HOST`).
 - **Variables**: `STAGING_SUPABASE_PROJECT_REF`, `PRODUCTION_SUPABASE_PROJECT_REF`
   (the project ref from each dashboard URL; the staging job refuses the
   production ref).
