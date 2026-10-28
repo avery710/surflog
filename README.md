@@ -205,9 +205,27 @@ One-time setup:
 8. Push: `git push origin staging` deploys staging; pushing `main` deploys
    production. Watch both under the repo's Actions tab.
 
-Migrations are applied by hand to each Supabase project (`supabase link
---project-ref <ref>` then `supabase db push`): staging first, production
-once it works there.
+Migrations run in the deploy workflows. A push to `staging` applies pending
+`supabase/migrations/` to the staging Supabase project before the deploy
+(job `migrate`). A push to `main` runs `plan` (a dry run against production,
+listed in the run summary), then `migrate` behind the GitHub Environment
+`production`, which waits for your approval and is skipped when nothing is
+pending, then the deploy. A failed migration stops the deploy. One-time setup,
+repo → Settings:
+
+- Secrets and variables → Actions → **Secrets**: `SUPABASE_ACCESS_TOKEN` (a
+  personal access token from supabase.com/dashboard/account/tokens),
+  `STAGING_DB_PASSWORD`, `PRODUCTION_DB_PASSWORD`.
+- **Variables**: `STAGING_SUPABASE_PROJECT_REF`, `PRODUCTION_SUPABASE_PROJECT_REF`
+  (the project ref from each dashboard URL; the staging job refuses the
+  production ref).
+- Environments → new environment `production` → **Required reviewers**: add
+  yourself. Without a reviewer the migration runs without waiting.
+
+Migrations cannot be rolled back, so write them add-only (new tables and
+columns); a rename or drop belongs in a later release, after the code stopped
+using it. By hand, as a fallback: `supabase link --project-ref <ref>` then
+`supabase db push`, staging first.
 
 Run `npm run build` locally before pushing if in doubt — missing env vars
 fail loudly via `lib/supabase.ts`'s explicit check. Open-Meteo needs no key.
