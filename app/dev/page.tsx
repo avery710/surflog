@@ -8,6 +8,12 @@ import Link from "next/link";
  */
 const PAGES = [
   {
+    href: "/dev/roadmap",
+    title: "Roadmap (SURFLOG-38)",
+    description:
+      "components/roadmap.tsx and the goal card's roadmap part on a fake in-memory API: a level-1 user mid-way, or a first visit. Add, rename (own blocks only), drag, move, copy, remove + Undo, library, reset, level up. en/zh-TW. Nothing is saved.",
+  },
+  {
     href: "/dev/page-skeleton",
     title: "Loading skeleton",
     description:

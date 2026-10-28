@@ -22,6 +22,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { GoalRename } from "@/lib/goal";
+import type { Roadmap, RoadmapPayload } from "@/lib/roadmap";
+import { RoadmapProvider } from "@/components/roadmap-context";
 import { RequestSpotDialog } from "@/components/request-spot-dialog";
 import { SpotCatalogProvider, type OwnRequest } from "@/lib/spot-catalog";
 import { KnownTagsProvider } from "@/components/tag-picker";
@@ -46,6 +48,7 @@ export function Journal({
   initialSpotNotes,
   initialBoards,
   initialGoal,
+  initialRoadmap = null,
   initialSpots = [],
   initialRequests = [],
   canManageSpots = false,
@@ -64,6 +67,8 @@ export function Journal({
   initialSpotNotes: Record<string, string>;
   initialBoards: Board[];
   initialGoal: string | null;
+  /** The user's roadmap (SURFLOG-38), or null until its migration is applied. */
+  initialRoadmap?: Roadmap | null;
   /** The whole spot catalogue (the `spots` table). */
   initialSpots?: Spot[];
   /** The viewer's own spot requests. */
@@ -104,6 +109,11 @@ export function Journal({
   const [spotNotes, setSpotNotes] = useState(initialSpotNotes);
   const [boards, setBoards] = useState(initialBoards);
   const [goal, setGoal] = useState(initialGoal);
+  const [roadmap, setRoadmap] = useState(initialRoadmap);
+  const onRoadmap = useCallback((p: RoadmapPayload) => {
+    setRoadmap({ profile: p.profile, skills: p.skills });
+    setGoal(p.goal);
+  }, []);
   const [spots, setSpots] = useState(initialSpots);
   const [requests, setRequests] = useState(initialRequests);
   // "Request a spot" dialog (any user); `name` pre-fills it from the picker's search text.
@@ -206,6 +216,7 @@ export function Journal({
   }
 
   return (
+    <RoadmapProvider roadmap={roadmap}>
     <KnownTagsProvider custom={tagHistory.custom} counts={tagHistory.counts}>
     <SpotCatalogProvider
       spots={spots}
@@ -334,7 +345,7 @@ export function Journal({
             // the gap is 12px below `sm` to leave the card a little more room.
             <div className="flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-stretch">
               <div className="flex min-w-0 flex-col lg:flex-1">
-                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} />
+                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} roadmap={roadmap} onRoadmap={onRoadmap} />
               </div>
               <div className="flex flex-wrap items-stretch gap-2 sm:gap-3 lg:flex-nowrap">
                 <ActivityCalendar sessions={stats} latest={feed.latest} fit />
@@ -344,7 +355,7 @@ export function Journal({
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
               <div className="flex min-w-0 flex-1 flex-col">
-                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} />
+                <GoalCard goal={goal} sessions={stats} onSave={saveGoal} roadmap={roadmap} onRoadmap={onRoadmap} />
               </div>
               <ActivityCalendar sessions={stats} latest={feed.latest} />
             </div>
@@ -420,6 +431,7 @@ export function Journal({
       </div>
     </SpotCatalogProvider>
     </KnownTagsProvider>
+    </RoadmapProvider>
   );
 }
 

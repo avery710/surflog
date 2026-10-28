@@ -30,7 +30,7 @@ import { PAGE_COLUMN } from "@/lib/layout";
  * `.skeleton-bar` in globals.css). The real page then fades in (`.page-enter`
  * on each page column).
  */
-export type PageSkeletonVariant = "journal" | "spots" | "spot" | "aiApps" | "admin";
+export type PageSkeletonVariant = "journal" | "spots" | "spot" | "aiApps" | "admin" | "roadmap";
 
 /** Who is signed in, as far as the header's avatar needs. */
 export type SkeletonUser = { name?: string | null; email?: string | null; image?: string | null };
@@ -373,6 +373,34 @@ const BODIES: Record<PageSkeletonVariant, React.ReactNode> = {
   ),
   // components/admin/spots-admin.tsx: back, title, the requests section, then
   // the catalogue with its add button, search field and bordered lists.
+  // components/roadmap.tsx: the level list (a row on phones, a column from
+  // sm), then the level's heading and its skill blocks.
+  roadmap: (
+    <>
+      <BackLink />
+      <TitleRow sub={false} />
+      <div className="mt-4 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4">
+        <div className="flex gap-1 sm:flex-col">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="flex flex-1 items-center justify-center gap-2 py-2 sm:flex-none sm:justify-start sm:px-2.5">
+              <Bar className="size-6" />
+              <Bar className="hidden h-3 w-20 sm:block" />
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 min-w-0 sm:mt-0">
+          <Lines heading="w-40" lines={["w-64 max-w-full", "w-48"]} />
+          <div className="mt-4 flex flex-col gap-2">
+            {Array.from({ length: 5 }, (_, i) => (
+              <Panel key={i} className="px-3 py-3">
+                <HeaderRow heading="w-36" ctl="w-16" />
+              </Panel>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  ),
   admin: (
     <>
       <BackLink />

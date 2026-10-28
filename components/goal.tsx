@@ -13,6 +13,9 @@
  * touch the others.
  */
 import { PillNeck } from "@/components/pill-neck";
+import { GoalRoadmapStrip } from "@/components/goal-roadmap-strip";
+import { useGoalPointSkill } from "@/components/roadmap-context";
+import type { Roadmap, RoadmapPayload } from "@/lib/roadmap";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   closestCenter,
@@ -102,9 +105,14 @@ export function GoalCard({
   sessions,
   onSave,
   readOnly = false,
+  roadmap,
+  onRoadmap,
 }: {
   goal: string | null;
   sessions: Pick<SessionStat, "goalText" | "goalMet" | "goalPointsMet">[];
+  /** The user's roadmap (SURFLOG-38); null/absent hides the roadmap part (migration pending, landing). */
+  roadmap?: Roadmap | null;
+  onRoadmap?: (payload: RoadmapPayload) => void;
   /** Static display (landing demo): no edit/drag affordances, no hover tint. */
   readOnly?: boolean;
   /** Resolves true if saved, so the card knows whether to leave edit mode. */
@@ -366,6 +374,19 @@ export function GoalCard({
             </div>
           )}
           </AnimatedHeight>
+          {roadmap && onRoadmap && !readOnly && !editing && (
+            // its own height easing: the "Learned it?" prompt and the
+            // suggestions come and go without a jump
+            <AnimatedHeight>
+              <GoalRoadmapStrip
+                roadmap={roadmap}
+                goal={goal}
+                sessions={sessions}
+                onSave={onSave}
+                onRoadmap={onRoadmap}
+              />
+            </AnimatedHeight>
+          )}
         </div>
       </div>
     </section>
@@ -393,6 +414,14 @@ function DisplayPointItem({
 }) {
   const { t } = useLang();
   const reducedMotion = usePrefersReducedMotion();
+  // the roadmap skill this point belongs to (SURFLOG-38), shown as a second line in the pill
+  const skill = useGoalPointSkill()(text);
+  const label = (
+    <>
+      {text}
+      {skill && <span className="block text-[11.5px] font-medium leading-4 text-muted-foreground">{skill}</span>}
+    </>
+  );
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id,
     disabled: !sortable,
@@ -419,17 +448,17 @@ function DisplayPointItem({
               isDragging ? "cursor-grabbing" : "cursor-grab"
             )}
           >
-            {text}
+            {label}
           </span>
         ) : (
           interactive ? (
           // Takes the pointer (the list is pointer-events-none) so hover
           // fades just this chip; the click opens edit like the overlay.
           <span onClick={onEdit} className={cn(pill, "pointer-events-auto cursor-pointer hover:opacity-80")}>
-            {text}
+            {label}
           </span>
         ) : (
-          <span className={pill}>{text}</span>
+          <span className={pill}>{label}</span>
         )
         )}
       </span>
@@ -629,6 +658,8 @@ export function GoalCheck({
   onChange: (v: string[]) => void;
 }) {
   const { t } = useLang();
+  // the roadmap skill a point belongs to (SURFLOG-38), if it's a step's wording
+  const skillOf = useGoalPointSkill();
   return (
     <fieldset className="flex flex-col gap-2 rounded-[var(--r-tile)] bg-secondary px-4 py-3">
       <legend className="sr-only">{t("goal.whichDidYouAchieve")}</legend>
@@ -657,7 +688,12 @@ export function GoalCheck({
               >
                 {checked && <Check className="size-3" strokeWidth={3.5} />}
               </span>
-              <span className="min-w-0 text-[14.5px] font-bold leading-snug break-words">{p}</span>
+              <span className="min-w-0">
+                <span className="block text-[14.5px] font-bold leading-snug break-words">{p}</span>
+                {skillOf(p) && (
+                  <span className="block text-[12px] font-medium text-muted-foreground">{skillOf(p)}</span>
+                )}
+              </span>
             </label>
           );
         })}
