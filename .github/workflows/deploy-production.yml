@@ -6,6 +6,17 @@
 # secrets as deploy-staging.yml (VERCEL_TOKEN, VERCEL_ORG_ID,
 # VERCEL_PROJECT_ID). App env vars live in the Vercel project's Production
 # environment — `vercel pull` fetches them.
+#
+# Migrations (plan → migrate → deploy): `plan` dry-runs the pending
+# supabase/migrations/ against the PRODUCTION Supabase project and lists them
+# in the job summary. `migrate` applies them, behind the GitHub Environment
+# "production" (add yourself as a required reviewer: Settings → Environments),
+# so you approve after reading the plan; it is skipped when nothing is pending.
+# The deploy waits for it, and a failed migration stops the deploy. Needs repo
+# secrets SUPABASE_ACCESS_TOKEN and PRODUCTION_DB_PASSWORD and repo variable
+# PRODUCTION_SUPABASE_PROJECT_REF. Migrations cannot be rolled back: write them
+# add-only (new tables/columns), never a rename or drop in the same release as
+# the code that stops using it.
 name: Deploy production
 
 on:
@@ -19,7 +30,68 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      pending: ${{ steps.dry.outputs.pending }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Link the production project
+        run: |
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::PRODUCTION_SUPABASE_PROJECT_REF is not set (repo → Settings → Secrets and variables → Actions → Variables)."
+            exit 1
+          fi
+          supabase link --project-ref "$PROJECT_REF"
+
+      - name: List pending migrations
+        id: dry
+        run: |
+          supabase db push --dry-run 2>&1 | tee plan.txt
+          pending=$(grep -c '^ *•' plan.txt || true)
+          echo "pending=$pending" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Pending production migrations: $pending"
+            echo '```'
+            cat plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  migrate:
+    needs: plan
+    if: ${{ needs.plan.outputs.pending != '0' }}
+    runs-on: ubuntu-latest
+    # approval gate: the plan above is in this run's summary
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - run: supabase link --project-ref "$PROJECT_REF"
+
+      - name: Apply pending migrations
+        run: supabase db push --yes | tee -a "$GITHUB_STEP_SUMMARY"
+
   deploy:
+    needs: [plan, migrate]
+    # run when migrations succeeded or there were none; never after a failure
+    if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
     runs-on: ubuntu-latest
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
