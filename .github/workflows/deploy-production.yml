@@ -12,9 +12,10 @@
 # in the job summary. `migrate` applies them, behind the GitHub Environment
 # "production" (add yourself as a required reviewer: Settings → Environments),
 # so you approve after reading the plan; it is skipped when nothing is pending.
-# The deploy waits for it, and a failed migration stops the deploy. Needs repo
-# secrets SUPABASE_ACCESS_TOKEN and PRODUCTION_DB_PASSWORD and repo variable
-# PRODUCTION_SUPABASE_PROJECT_REF. Migrations cannot be rolled back: write them
+# The deploy waits for it, and a failed migration stops the deploy. Both jobs
+# connect straight to the database through the session pooler (no `supabase
+# link`, no access token). Needs repo secret PRODUCTION_DB_PASSWORD and repo
+# variable PRODUCTION_SUPABASE_PROJECT_REF. Migrations cannot be rolled back: write them
 # add-only (new tables/columns), never a rename or drop in the same release as
 # the code that stops using it.
 name: Deploy production
@@ -23,6 +24,13 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+
+# `shell: bash` makes every run step use `bash -eo pipefail`: without it a
+# failing command piped into `tee` reported success (a failed `supabase db
+# push` showed green and the deploy went ahead, 2026-10-28).
+defaults:
+  run:
+    shell: bash
 
 # queue production deploys instead of cancelling one halfway
 concurrency:
@@ -35,9 +43,9 @@ jobs:
     outputs:
       pending: ${{ steps.dry.outputs.pending }}
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
       PROJECT_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
+      POOLER_HOST: aws-0-ap-northeast-1.pooler.supabase.com # production is in Tokyo
     steps:
       - uses: actions/checkout@v4
 
@@ -45,18 +53,26 @@ jobs:
         with:
           version: 2.109.1
 
-      - name: Link the production project
+      - name: Check the project ref
         run: |
           if [ -z "$PROJECT_REF" ]; then
             echo "::error::PRODUCTION_SUPABASE_PROJECT_REF is not set (repo → Settings → Secrets and variables → Actions → Variables)."
             exit 1
           fi
-          supabase link --project-ref "$PROJECT_REF"
+
+      # The session pooler (IPv4), not db.<ref>.supabase.co: that address is
+      # IPv6-only and GitHub's runners have no IPv6. The password is
+      # URL-encoded and its encoded form masked in the log.
+      - name: Build the database URL
+        run: |
+          pw=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          echo "::add-mask::$pw"
+          echo "DB_URL=postgresql://postgres.$PROJECT_REF:$pw@$POOLER_HOST:5432/postgres" >> "$GITHUB_ENV"
 
       - name: List pending migrations
         id: dry
         run: |
-          supabase db push --dry-run 2>&1 | tee plan.txt
+          supabase db push --db-url "$DB_URL" --dry-run 2>&1 | tee plan.txt
           pending=$(grep -c '^ *•' plan.txt || true)
           echo "pending=$pending" >> "$GITHUB_OUTPUT"
           {
@@ -73,9 +89,9 @@ jobs:
     # approval gate: the plan above is in this run's summary
     environment: production
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
       PROJECT_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
+      POOLER_HOST: aws-0-ap-northeast-1.pooler.supabase.com # production is in Tokyo
     steps:
       - uses: actions/checkout@v4
 
@@ -83,10 +99,17 @@ jobs:
         with:
           version: 2.109.1
 
-      - run: supabase link --project-ref "$PROJECT_REF"
+      # The session pooler (IPv4), not db.<ref>.supabase.co: that address is
+      # IPv6-only and GitHub's runners have no IPv6. The password is
+      # URL-encoded and its encoded form masked in the log.
+      - name: Build the database URL
+        run: |
+          pw=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          echo "::add-mask::$pw"
+          echo "DB_URL=postgresql://postgres.$PROJECT_REF:$pw@$POOLER_HOST:5432/postgres" >> "$GITHUB_ENV"
 
       - name: Apply pending migrations
-        run: supabase db push --yes | tee -a "$GITHUB_STEP_SUMMARY"
+        run: supabase db push --db-url "$DB_URL" --yes | tee -a "$GITHUB_STEP_SUMMARY"
 
   deploy:
     needs: [plan, migrate]

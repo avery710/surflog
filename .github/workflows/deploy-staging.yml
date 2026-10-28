@@ -10,8 +10,9 @@
 #
 # Migrations: the `migrate` job applies pending supabase/migrations/ to the
 # STAGING Supabase project before the deploy, so new code never lands on a
-# database missing its tables. Needs repo secrets SUPABASE_ACCESS_TOKEN and
-# STAGING_DB_PASSWORD, and repo variable STAGING_SUPABASE_PROJECT_REF. It
+# database missing its tables. It connects straight to the database through
+# the session pooler (no `supabase link`, no access token). Needs repo secret
+# STAGING_DB_PASSWORD and repo variable STAGING_SUPABASE_PROJECT_REF. It
 # refuses the production project.
 name: Deploy staging
 
@@ -19,6 +20,13 @@ on:
   push:
     branches: [staging]
   workflow_dispatch:
+
+# `shell: bash` makes every run step use `bash -eo pipefail`: without it a
+# failing command piped into `tee` reported success (a failed `supabase db
+# push` showed green and the deploy went ahead, 2026-10-28).
+defaults:
+  run:
+    shell: bash
 
 # a newer push supersedes an in-flight deploy
 concurrency:
@@ -29,9 +37,9 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
       PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      POOLER_HOST: aws-0-ap-southeast-2.pooler.supabase.com # staging is in Sydney
     steps:
       - uses: actions/checkout@v4
 
@@ -52,11 +60,17 @@ jobs:
             exit 1
           fi
 
-      - name: Link the staging project
-        run: supabase link --project-ref "$PROJECT_REF"
+      # The session pooler (IPv4), not db.<ref>.supabase.co: that address is
+      # IPv6-only and GitHub's runners have no IPv6. The password is
+      # URL-encoded and its encoded form masked in the log.
+      - name: Build the database URL
+        run: |
+          pw=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          echo "::add-mask::$pw"
+          echo "DB_URL=postgresql://postgres.$PROJECT_REF:$pw@$POOLER_HOST:5432/postgres" >> "$GITHUB_ENV"
 
       - name: Apply pending migrations
-        run: supabase db push --yes | tee -a "$GITHUB_STEP_SUMMARY"
+        run: supabase db push --db-url "$DB_URL" --yes | tee -a "$GITHUB_STEP_SUMMARY"
 
   deploy:
     needs: migrate
