@@ -1,5 +1,6 @@
 "use client";
 
+import { CollapsibleSection } from "@/components/collapsible-section";
 import { useLang } from "@/lib/i18n";
 import type { ActivityStats } from "@/lib/account-activity";
 
@@ -22,8 +23,7 @@ export function ActivityStats({ stats }: { stats: ActivityStats | null }) {
     : [];
 
   return (
-    <section className="mt-7">
-      <h2 className="text-base font-bold">{t("admin.activity")}</h2>
+    <CollapsibleSection id="admin-activity" className="mt-7" title={t("admin.activity")} headingClassName="text-base font-bold">
       <p className="mt-1 text-[13px] text-muted-foreground">{t("admin.activityIntro")}</p>
       {!stats ? (
         <p className="mt-3 text-[13.5px] text-muted-foreground">{t("admin.activityOff")}</p>
@@ -52,6 +52,6 @@ export function ActivityStats({ stats }: { stats: ActivityStats | null }) {
           </div>
         </>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }

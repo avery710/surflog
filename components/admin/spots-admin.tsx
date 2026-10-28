@@ -7,6 +7,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
 import { SpotEditReview } from "@/components/admin/spot-edit-review";
 import { Button } from "@/components/ui/button";
+import { CollapsibleSection } from "@/components/collapsible-section";
 import { Input } from "@/components/ui/input";
 import { fmtDate } from "@/lib/format";
 import { useLang } from "@/lib/i18n";
@@ -139,10 +140,23 @@ export function SpotsAdmin({
         <h1 className="mt-3 text-2xl font-bold">{t("admin.title")}</h1>
         {children}
 
-        <section className="mt-7">
-          <h2 className="text-base font-bold">
+        <CollapsibleSection
+          id="admin-spots"
+          className="mt-9"
+          title={t("admin.spots")}
+          count={spots.length}
+          headingClassName="text-base font-bold"
+          actions={
+            <Button className="rounded-full px-4" onClick={() => setDialog({ kind: "add" })}>
+              <Plus aria-hidden />
+              {t("admin.addSpot")}
+            </Button>
+          }
+        >
+        <div className="mt-4">
+          <h3 className="text-sm font-bold">
             {t("admin.requests")} <span className="font-mono text-muted-foreground">{pending.length}</span>
-          </h2>
+          </h3>
           {pending.length === 0 ? (
             <p className="mt-2 text-[13.5px] text-muted-foreground">{t("admin.noRequests")}</p>
           ) : (
@@ -202,18 +216,11 @@ export function SpotsAdmin({
               </ul>
             </details>
           )}
-        </section>
+        </div>
 
-        <section className="mt-9">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-bold">
-              {t("admin.spots")} <span className="font-mono text-muted-foreground">{spots.length}</span>
-            </h2>
-            <Button className="rounded-full px-4" onClick={() => setDialog({ kind: "add" })}>
-              <Plus aria-hidden />
-              {t("admin.addSpot")}
-            </Button>
-          </div>
+        <SpotEditReview spots={spots} initialEdits={initialEdits} onSpotChanged={replaceSpot} />
+
+        <div className="mt-7">
           <Input
             className="mt-3 bg-[color-mix(in_srgb,var(--card)_var(--card-opacity,75%),transparent)]"
             value={query}
@@ -222,12 +229,17 @@ export function SpotsAdmin({
             onChange={(e) => setQuery(e.target.value)}
           />
           {groups.length === 0 && <p className="mt-3 text-[13.5px] text-muted-foreground">{t("admin.noSpots")}</p>}
-          {groups.map(([place, list]) => (
-            <div key={place} className="mt-5">
-              <h3 className="text-xs font-semibold text-muted-foreground">
-                {place} <span className="font-mono">{list.length}</span>
-              </h3>
-              <ul className="mt-1.5 overflow-hidden rounded-[var(--r-card)] surface-card">
+          {groups.map(([place, list], i) => (
+            <CollapsibleSection
+              key={place}
+              id={`admin-group-${i}`}
+              className="mt-5"
+              title={place}
+              count={list.length}
+              headingClassName="text-xs font-semibold text-muted-foreground"
+              bodyClassName="mt-1.5 rounded-[var(--r-card)] surface-card"
+            >
+              <ul>
                 {list.map((s) => (
                   <li key={s.slug} className="flex items-center gap-3 border-b px-3.5 py-2.5 last:border-b-0">
                     <div className="min-w-0 flex-1">
@@ -253,10 +265,10 @@ export function SpotsAdmin({
                   </li>
                 ))}
               </ul>
-            </div>
+            </CollapsibleSection>
           ))}
-        </section>
-        <SpotEditReview spots={spots} initialEdits={initialEdits} onSpotChanged={replaceSpot} />
+        </div>
+        </CollapsibleSection>
       </div>
 
       <AddSpotDialog

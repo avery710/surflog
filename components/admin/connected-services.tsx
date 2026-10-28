@@ -1,5 +1,6 @@
 "use client";
 
+import { CollapsibleSection } from "@/components/collapsible-section";
 import { useLang } from "@/lib/i18n";
 import type { ConnectedService } from "@/lib/oauth";
 import { useLocalStamp } from "@/lib/use-local-stamp";
@@ -11,8 +12,12 @@ export function ConnectedServices({ services }: { services: ConnectedService[] }
   const stamp = useLocalStamp(lang);
 
   return (
-    <section className="mt-9">
-      <h2 className="text-base font-bold">{t("admin.services")}</h2>
+    <CollapsibleSection
+      id="admin-services"
+      className="mt-9"
+      title={t("admin.services")}
+      headingClassName="text-base font-bold"
+    >
       <p className="mt-1 text-[13px] text-muted-foreground">{t("admin.servicesIntro")}</p>
       {services.length === 0 ? (
         <p className="mt-3 text-[13.5px] text-muted-foreground">{t("admin.servicesNone")}</p>
@@ -45,6 +50,6 @@ export function ConnectedServices({ services }: { services: ConnectedService[] }
           </table>
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
