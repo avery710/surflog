@@ -34,7 +34,7 @@ export function SpotsAdmin({
   initialRequests: SpotRequest[];
   /** Users' suggested edits to existing spots, pending first. */
   initialEdits: AdminEditRequest[];
-  /** Further admin sections, rendered under the catalogue. */
+  /** Further admin sections, rendered at the top, under the page title. */
   children?: React.ReactNode;
 }) {
   const { lang, t } = useLang();
@@ -137,6 +137,7 @@ export function SpotsAdmin({
           {t("admin.back")}
         </Link>
         <h1 className="mt-3 text-2xl font-bold">{t("admin.title")}</h1>
+        {children}
 
         <section className="mt-7">
           <h2 className="text-base font-bold">
@@ -256,7 +257,6 @@ export function SpotsAdmin({
           ))}
         </section>
         <SpotEditReview spots={spots} initialEdits={initialEdits} onSpotChanged={replaceSpot} />
-        {children}
       </div>
 
       <AddSpotDialog

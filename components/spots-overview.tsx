@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, MessageSquare, Pencil, Pin, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, MessageSquare, Pencil, Pin, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
 import { AddSpotDialog } from "@/components/add-spot-dialog";
@@ -62,6 +62,19 @@ export function SpotsOverview({
   const [reviewing, setReviewing] = useState<Spot | null>(null);
   const [pins, setPins] = useState(initialPins);
   const pinned = useMemo(() => new Set(pins), [pins]);
+  // Section ids the viewer has folded shut. Every section starts open, and the
+  // state lives only on this page (a reload opens them all again).
+  const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleSection = useCallback(
+    (id: string) =>
+      setClosed((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }),
+    []
+  );
 
   // Optimistic: the pin moves at once and is undone if the save fails.
   async function togglePin(spot: Spot) {
@@ -209,15 +222,37 @@ export function SpotsOverview({
 
         {pinnedShown.length > 0 && (
           <section className="mt-6" data-group="pinned">
-            <GroupHeading title={t("spots.pinned")} count={pinnedShown.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">{pinnedShown.map((s) => row(s))}</ul>
+            <GroupHeading
+              id="pinned"
+              title={t("spots.pinned")}
+              count={pinnedShown.length}
+              open={!closed.has("pinned")}
+              onToggle={toggleSection}
+            />
+            <ul
+              id="section-pinned"
+              hidden={closed.has("pinned")}
+              className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card"
+            >
+              {pinnedShown.map((s) => row(s))}
+            </ul>
           </section>
         )}
 
         {pending.length > 0 && (
           <section className="mt-6" data-group="pending">
-            <GroupHeading title={t("picker.pending")} count={pending.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">
+            <GroupHeading
+              id="pending"
+              title={t("picker.pending")}
+              count={pending.length}
+              open={!closed.has("pending")}
+              onToggle={toggleSection}
+            />
+            <ul
+              id="section-pending"
+              hidden={closed.has("pending")}
+              className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card"
+            >
               {pending.map((r) => (
                 <li key={r.id} className="border-b border-card-border px-4 py-3 text-[14.5px] font-semibold break-words last:border-b-0">
                   {r.name}
@@ -229,8 +264,18 @@ export function SpotsOverview({
 
         {groups.map((g) => (
           <section key={g.key} className="mt-6" data-group={g.key}>
-            <GroupHeading title={g.title} count={g.list.length} />
-            <ul className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card">
+            <GroupHeading
+              id={g.key}
+              title={g.title}
+              count={g.list.length}
+              open={!closed.has(g.key)}
+              onToggle={toggleSection}
+            />
+            <ul
+              id={`section-${g.key}`}
+              hidden={closed.has(g.key)}
+              className="mt-1.5 overflow-hidden rounded-[var(--r-tile)] surface-card"
+            >
               {g.list.map((s) => row(s, true))}
             </ul>
           </section>
@@ -254,10 +299,33 @@ export function SpotsOverview({
   );
 }
 
-function GroupHeading({ title, count }: { title: string; count: number }) {
+/** A section's title as a button that folds its list (`aria-expanded`
+ *  tells screen readers which way it is). The list is `section-<id>`. */
+function GroupHeading({
+  id,
+  title,
+  count,
+  open,
+  onToggle,
+}: {
+  id: string;
+  title: string;
+  count: number;
+  open: boolean;
+  onToggle: (id: string) => void;
+}) {
   return (
     <h2 className="text-xs font-semibold text-muted-foreground">
-      {title} <span className="font-mono">{count}</span>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={`section-${id}`}
+        onClick={() => onToggle(id)}
+        className="flex items-center gap-1.5 rounded-sm py-1 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <ChevronDown className={cn("size-3.5 transition-transform", !open && "-rotate-90")} aria-hidden />
+        {title} <span className="font-mono">{count}</span>
+      </button>
     </h2>
   );
 }
