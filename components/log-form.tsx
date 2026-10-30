@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 import { Tooltip } from "@/components/tooltip";
@@ -115,7 +115,9 @@ export function LogForm({
   // Only worth saying when the spot's clock isn't the one on the user's wall.
   const browserTimezone = useBrowserTimeZone();
   const showTimeNote = browserTimezone != null && browserTimezone !== spotTimezone;
-  const [notesHtml, setNotesHtml] = useState("");
+  // A ref, not state: the editor reports every keystroke, and re-rendering
+  // this whole form on each one made typing stutter. Only Save reads it.
+  const notesHtmlRef = useRef("");
   // undefined = not picked yet, so follow the last-used board.
   const [pickedBoardId, setBoardId] = useState<string | null | undefined>(undefined);
   const boardId = pickedBoardId === undefined ? preselectBoardId(boards, sessions) : pickedBoardId;
@@ -142,7 +144,7 @@ export function LogForm({
           spot,
           when: `${date}T${time}`,
           ...(duration ? { durationMin: duration } : {}),
-          notesHtml,
+          notesHtml: notesHtmlRef.current,
           boardId,
           // only sent when there are some, so an untagged session never needs the column
           ...(tags.length ? { tags } : {}),
@@ -164,7 +166,7 @@ export function LogForm({
       const session = attached.session ?? created;
       const failed = attached.failed;
       onCreated(session);
-      setNotesHtml("");
+      notesHtmlRef.current = "";
       setDuration(null);
       setTags([]);
       setAchieved([]);
@@ -280,7 +282,9 @@ export function LogForm({
           key={editorKey}
           defaultHtml=""
           placeholder={t("form.notesPlaceholder")}
-          onChangeHtml={setNotesHtml}
+          onChangeHtml={(html) => {
+            notesHtmlRef.current = html;
+          }}
         />
       </div>
 

@@ -14,6 +14,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Bold, Italic, List, ListOrdered, Underline } from "lucide-react";
 import { cn } from "cn";
+import { AnimatedHeight } from "@/components/animated-height";
 import { Tooltip } from "@/components/tooltip";
 import { sanitizeNotesHtml } from "@/lib/rich-text";
 import { useLang } from "@/lib/i18n";
@@ -133,49 +134,55 @@ export function RichTextEditor({
     emit();
   };
 
+  // The whole box eases its height: a line wrapping or Enter grows it, and
+  // the page below slides rather than jumping. Typing inside a line changes
+  // nothing, so it doesn't animate.
   return (
-    <div
-      className={cn(
-        "rounded-[9px] border border-transparent bg-secondary transition-colors focus-within:border-ring focus-within:bg-background",
-        className
-      )}
-    >
-      <div className="flex flex-wrap gap-1 px-2 pt-2">
-        <ToolbarButton label={t("editor.bullets")} onClick={() => runCmd("insertUnorderedList")}>
-          <List className="size-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label={t("editor.numbered")} onClick={() => runCmd("insertOrderedList")}>
-          <ListOrdered className="size-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label={t("editor.bold")} onClick={() => runCmd("bold")}>
-          <Bold className="size-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label={t("editor.italic")} onClick={() => runCmd("italic")}>
-          <Italic className="size-3.5" />
-        </ToolbarButton>
-        <ToolbarButton label={t("editor.underline")} onClick={() => runCmd("underline")}>
-          <Underline className="size-3.5" />
-        </ToolbarButton>
-      </div>
+    <AnimatedHeight>
       <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        role="textbox"
-        aria-multiline="true"
-        aria-label={t("form.notes")}
-        data-placeholder={placeholder ?? t("editor.placeholder")}
         className={cn(
-          "editor-content font-sans px-4 py-2.5 text-[15px] leading-[1.6] outline-none",
-          minHeightClassName
+          "rounded-[9px] border border-transparent bg-secondary transition-colors focus-within:border-ring focus-within:bg-background",
+          className
         )}
-        onInput={handleInput}
-        onCompositionEnd={emit}
-        onKeyDown={handleKeyDown}
-        onPaste={handlePaste}
-        dangerouslySetInnerHTML={{ __html: initialHtml }}
-      />
-    </div>
+      >
+        <div className="flex flex-wrap gap-1 px-2 pt-2">
+          <ToolbarButton label={t("editor.bullets")} onClick={() => runCmd("insertUnorderedList")}>
+            <List className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton label={t("editor.numbered")} onClick={() => runCmd("insertOrderedList")}>
+            <ListOrdered className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton label={t("editor.bold")} onClick={() => runCmd("bold")}>
+            <Bold className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton label={t("editor.italic")} onClick={() => runCmd("italic")}>
+            <Italic className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton label={t("editor.underline")} onClick={() => runCmd("underline")}>
+            <Underline className="size-3.5" />
+          </ToolbarButton>
+        </div>
+        <div
+          ref={ref}
+          contentEditable
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="true"
+          aria-label={t("form.notes")}
+          data-placeholder={placeholder ?? t("editor.placeholder")}
+          // Black, not the system tint: iOS paints the caret blue otherwise.
+          className={cn(
+            "editor-content font-sans px-4 py-2.5 text-[15px] leading-[1.6] outline-none caret-black",
+            minHeightClassName
+          )}
+          onInput={handleInput}
+          onCompositionEnd={emit}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
+          dangerouslySetInnerHTML={{ __html: initialHtml }}
+        />
+      </div>
+    </AnimatedHeight>
   );
 }
 

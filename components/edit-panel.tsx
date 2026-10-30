@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,8 @@ export function EditPanel({
   const date = session.when.slice(0, 10);
   const time = fmtTime(session.when, session.durationMin);
   const [cond, setCond] = useState<Partial<Cond>>(session.cond ?? {});
-  const [notesHtml, setNotesHtml] = useState(session.notesHtml);
+  // A ref, not state (see log-form.tsx): the editor reports every keystroke.
+  const notesHtmlRef = useRef(session.notesHtml);
   const [boardId, setBoardId] = useState<string | null>(session.boardId ?? null);
   const initialTags = session.tags ?? [];
   const [tags, setTags] = useState<string[]>(initialTags);
@@ -93,7 +94,7 @@ export function EditPanel({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        notesHtml,
+        notesHtml: notesHtmlRef.current,
         cond: hasAnyCond(cond) ? cond : null,
         // only sent when changed, so an untouched board never needs a write
         ...(boardId !== (session.boardId ?? null) ? { boardId } : {}),
@@ -189,8 +190,10 @@ export function EditPanel({
       <div className="flex flex-col gap-1.5">
         <span className="pl-0.5 text-xs font-semibold text-muted-foreground">{t("form.notesOptional")}</span>
         <RichTextEditor
-          defaultHtml={notesHtml}
-          onChangeHtml={setNotesHtml}
+          defaultHtml={session.notesHtml}
+          onChangeHtml={(html) => {
+            notesHtmlRef.current = html;
+          }}
         />
       </div>
 
