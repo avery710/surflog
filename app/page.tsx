@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import { after } from "next/server";
 import { auth } from "@/auth";
+import { recordActivity } from "@/lib/account-activity";
 import { getGoal, listBoards, listSessionsPage, listSessionStats, listSpotNotes } from "@/lib/db";
 import { PAGE_SIZE } from "@/lib/pagination";
 import { isSpotAdmin } from "@/lib/spot-admin";
@@ -12,6 +14,7 @@ import { Landing } from "@/components/landing/landing";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { getLandingSpots } from "@/lib/landing-spots";
 import { hasConnectedApp } from "@/lib/token-auth";
+import { roadmapSoftly } from "@/lib/roadmap-store";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ log?: string; spot?: string }> }) {
   const session = await auth();
@@ -50,11 +53,14 @@ async function SignedInJournal({
   searchParams: Promise<{ log?: string; spot?: string }>;
 }) {
   const canManageSpots = isSpotAdmin(user);
+  // Counts this person as active today (SURFLOG-33); runs after the response
+  // and never fails the page.
+  after(() => recordActivity(userId));
   // Sessions are paged by the database: the slim list of all of them (small,
   // for the dashboard) plus the first 10 in full; the rest load on scroll
   // from GET /api/sessions. Every query starts at once: one round trip to
   // Supabase, not two (2026-10-21; the first page used to wait for the stats).
-  const [query, stats, sessions, spotNotes, boards, goal, spots, requestRows, pendingSpotRequests, aiConnected] = await Promise.all([
+  const [query, stats, sessions, spotNotes, boards, goal, spots, requestRows, pendingSpotRequests, aiConnected, roadmap] = await Promise.all([
     searchParams,
     listSessionStats(userId),
     listSessionsPage(userId, 1, PAGE_SIZE),
@@ -72,6 +78,8 @@ async function SignedInJournal({
     // whether to show the "connect an AI app" card; on any failure assume
     // connected, so a database hiccup never nags someone who already is
     hasConnectedApp(userId).catch(() => true),
+    // the goal card's roadmap part; null (hidden) until the roadmap migration is applied
+    roadmapSoftly(userId),
   ]);
   const latest = sessions[0] ?? null;
 
@@ -84,6 +92,6 @@ async function SignedInJournal({
   // column, so Journal applies that column itself to everything below
   // its header instead. See journal.tsx's own comment.
   return (
-    <Journal initialStats={stats} initialLoaded={sessions} initialLatest={latest} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} showAiAppCard={!aiConnected} user={user} openLogForm={query.log === "1"} logSpot={query.spot} />
+    <Journal initialStats={stats} initialLoaded={sessions} initialLatest={latest} initialSpotNotes={spotNotes} initialBoards={boards} initialGoal={goal} initialRoadmap={roadmap} initialSpots={spots} initialRequests={requests} canManageSpots={canManageSpots} pendingSpotRequests={pendingSpotRequests} showAiAppCard={!aiConnected} user={user} openLogForm={query.log === "1"} logSpot={query.spot} />
   );
 }

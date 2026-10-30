@@ -14,6 +14,10 @@ earlier wording is in git: `git log -p -- CLAUDE.md`. Dates below are when
 something was decided or last checked. Pixel-level layout lives in the
 components and their header comments; this file keeps decisions, don'ts
 and what is unverified.
+**The look (colours, type, spacing, radii, component looks, header and footer,
+motion) lives in `DESIGN.md`**, generated from the Surflog Design System
+artifact: read it before changing UI, never edit it by hand, and keep it in
+step through `push-stag` (see Project agents).
 
 ## Status
 
@@ -362,6 +366,58 @@ Each session **snapshots** the goal text with per-point ticks in
 matching. An AI "suggest a goal" button was deferred. **No Enter shortcut**
 in the goal editor (clashed with 注音/倉頡 candidate selection); add
 points with +.
+
+**Roadmap** (SURFLOG-38, built 2026-10-28, pushed to `staging` 2026-10-28; migration
+`20261029000000_create_roadmap.sql` is applied to staging by that push's CI
+`migrate` job, and to production by the release merge's; where it isn't,
+`/roadmap` says "isn't switched on yet" and the goal card hides its roadmap
+part, via `roadmapSoftly()`). Plan, flows and the 19 references:
+`GOAL-ROADMAP.md`. Levels **0 First waves · 新手村, 1 Beginner · 初級, 2
+Intermediate · 進階, 3 Advanced · 高階** (3 splits `3:long` / `3:short`); the
+four are fixed. Starter blocks: `lib/goal-roadmap.ts` (keys like `l1.read`,
+`l1.read.peak` are stored as `template_key`: never rename or reuse one;
+wording unreviewed, zh-TW in Taiwan surf slang, glossary in GOAL-ROADMAP.md).
+- **The goal is the next-session list**: nothing about it changed. A step is
+  "on next session" when a goal point has its wording (either language for a
+  default step), and its progress is the sessions that ticked that wording
+  (`stepTicks`, `lib/roadmap.ts`). Renaming an own step carries its goal point
+  and past ticks along (`applyGoalRenames` / `renameGoalPointsInSessions`);
+  marking a step learned takes its point off the goal.
+- **Blocks are the user's own copy** of the starter, seeded for every level on
+  the first level pick. Full CRUD (Avery, 2026-10-28) except: **default blocks
+  (with a `template_key`) can't be renamed** (400); skills only **move** to
+  another level (no copy); steps move or copy to another skill; remove has an
+  **Undo toast, no confirm** (Undo re-creates the block with new ids);
+  reorder is **drag and drop**; "Add a block from the library" adds a fresh
+  starter copy; reset puts a level back (learned marks on starter steps kept).
+  At most 3 skills "working on", only on your current level.
+- "Learned it?" on the goal card after 3 ticked sessions (`ASK_AFTER`), again
+  3 after "Not yet" (`snooze_from`). Levelling up is always the user's tap.
+- **Journal**: a goal point that is a step's wording shows its skill as a
+  second grey line in the goal pill, and under the tick in the log form and
+  edit panel's "Which goals did you achieve?" (`RoadmapProvider` /
+  `useGoalPointSkill`, `components/roadmap-context.tsx`, wrapped around the
+  journal). Under the points: the "Learned it?" prompt, "Next on your roadmap"
+  chips and the level line, in their own `AnimatedHeight`. Skill blocks on
+  `/roadmap` ease open and shut (`AnimatedHeight` around the whole block: it
+  never animates from 0 px, so the body alone wouldn't ease).
+- Code: `lib/roadmap.ts` (pure, shared), `lib/roadmap-store.ts` (Supabase),
+  `lib/roadmap-service.ts` (every change; 404 for foreign ids; answers the
+  whole roadmap + goal), `app/api/roadmap/**` (cookie only, `lib/roadmap-http.ts`),
+  `components/roadmap.tsx` (page), `components/goal-roadmap-strip.tsx` (goal
+  card part), avatar menu "Roadmap". Tests: `tests/roadmap*.test.ts`.
+- **Drag and drop**: one `DndContext` per level, a `SortableContext` per shelf
+  (level + group; own skills are the "Yours" shelf) and per skill; collision
+  and arrow keys are limited to the same list, collision by **corners**, and
+  every skill shows collapsed while one is dragged: with nested contexts, or
+  centre collision, or open skills of mixed height, a dragged skill dropped
+  back on itself.
+- Checked on `/dev/roadmap` (fake API) at 1280 and 375 px, en and zh-TW:
+  first-visit picker, rename (own only), move to level, remove + Undo, add,
+  library, keyboard drag of skills and steps, learned prompt, suggestions.
+  **Not checked: real Supabase, signed in, a mouse/touch drag, a phone.**
+  Not built: MCP tools for the roadmap, skill names on the goal pills, an
+  hours-in-the-water guide.
 
 **Spot notes** (`spot_notes`, PK `(owner_id, spot)`): one private note per
 spot, edited in "What you've surfed"; empty deletes the row.
@@ -774,26 +830,16 @@ navigates, to `/` (`router.push` + `refresh`). "Request a spot" is not wired in
 this dialog. `?log=1` still works. Checked with tsc and lint only; **not in a
 browser, not on a phone**.
 
-**Footer** (`components/site-footer.tsx`, root layout; restyled 2026-10-24
-on request, was a full-width `bg-primary` banner; **redone 2026-10-25, by
-request, as "variation 12" of the 14 drawn on the "Surflog footer variations"
-canvas**): no banner, no hairline, straight on the page, white at 70%. A flat
-"tide line" runs the width of the column (two 2 px round-ended `bg-white/60`
-bars) with the white wordmark in the gap between them; beneath it, **the round
-mail button and "© year Surflog" stacked in one centred column** (not a row).
-The mail button is the 32 px `glass-circle` to `mailto:support@surflog.tw`
-(`SUPPORT_EMAIL`, address only in `aria-label`) with the light grey `#e5e5e5`
-water on hover, the same as the header "+". Variation 4 (waves instead of flat
-lines) was the other pick; the rest (glass bar, pill, card, big wordmark, white
-button, "Email us" pill, curves) are on the canvas only. Not checked on a phone
-or in a browser. Tried and replaced 2026-10-24: a left/right "quiet line" row
-with the address as text, and a solid black divider. `mt-auto` pins it on
-short pages. Every page (header + content) sits in a `min-h-dvh` box in the
-root layout (2026-10-21, by request), so the footer always starts below the
-first screen, also while a page or skeleton loads; `/signin` and the OAuth
-consent now centre in the full screen. No Privacy/Terms links until those pages exist. The public
-share page's own muted line above it may read as doubled. The Google
-consent screen's support email is set in Google Cloud, not here.
+**Footer** (`components/site-footer.tsx`, root layout): how it looks is in
+`DESIGN.md` ("Header and footer", the Footer card), not repeated here. Not
+visual: it is `mt-auto`, so it pins to the bottom of a short page; every page
+(header + content) sits in a `min-h-dvh` box in the root layout (2026-10-21, by
+request), so the footer always starts below the first screen, also while a page
+or skeleton loads, and `/signin` and the OAuth consent centre in the full
+screen. No Privacy/Terms links until those pages exist. The public share page's
+own muted line above it may read as doubled. The Google consent screen's
+support email is set in Google Cloud, not here. Redone 2026-10-25 (the
+"tide line" footer, picked from 14 drawn on a canvas); not checked on a phone.
 
 **Landing** (`components/landing/landing.tsx`, signed-out `/`; preview
 `/dev/landing`): 01 conditions, 02 dashboard, 03 AI app, 04 spot list, 05
@@ -950,7 +996,7 @@ load only when a session starts.
   declined. `app/dev/layout.tsx` 404s the tree in production (route
   handlers there must repeat the check). No photos; actions hit the real
   API and fail; width frames don't trigger `sm:`/`lg:`.
-- **`push-stag`** (file brought in line with the staging/production split
+- **`push-stag`** (since 2026-10-25 it also checks, before every push, whether the diff changes a UI rule and if so updates the Surflog Design System artifact (brand book, tokens, component cards, previews, `bundle.css`) and regenerates `DESIGN.md` into the same commit; first run of that step not watched) (file brought in line with the staging/production split
   2026-10-23: staging is its own Supabase project, local `.env.local` and the
   CLI link point at production, so its migration step targets staging
   explicitly and never production): commits and pushes to `staging` only,

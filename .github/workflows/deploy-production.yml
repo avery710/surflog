@@ -6,6 +6,18 @@
 # secrets as deploy-staging.yml (VERCEL_TOKEN, VERCEL_ORG_ID,
 # VERCEL_PROJECT_ID). App env vars live in the Vercel project's Production
 # environment — `vercel pull` fetches them.
+#
+# Migrations (plan → migrate → deploy): `plan` dry-runs the pending
+# supabase/migrations/ against the PRODUCTION Supabase project and lists them
+# in the job summary. `migrate` applies them straight away, with no manual
+# approval (removed 2026-10-28, by request); it is skipped when nothing is
+# pending. Every migration has already run on staging by then.
+# The deploy waits for it, and a failed migration stops the deploy. Both jobs
+# connect straight to the database through the session pooler (no `supabase
+# link`, no access token). Needs repo secret PRODUCTION_DB_PASSWORD and repo
+# variable PRODUCTION_SUPABASE_PROJECT_REF. Migrations cannot be rolled back: write them
+# add-only (new tables/columns), never a rename or drop in the same release as
+# the code that stops using it.
 name: Deploy production
 
 on:
@@ -13,13 +25,94 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# `shell: bash` makes every run step use `bash -eo pipefail`: without it a
+# failing command piped into `tee` reported success (a failed `supabase db
+# push` showed green and the deploy went ahead, 2026-10-28).
+defaults:
+  run:
+    shell: bash
+
 # queue production deploys instead of cancelling one halfway
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      pending: ${{ steps.dry.outputs.pending }}
+    env:
+      SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
+      POOLER_HOST: aws-0-ap-northeast-1.pooler.supabase.com # production is in Tokyo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Check the project ref
+        run: |
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::PRODUCTION_SUPABASE_PROJECT_REF is not set (repo → Settings → Secrets and variables → Actions → Variables)."
+            exit 1
+          fi
+
+      # The session pooler (IPv4), not db.<ref>.supabase.co: that address is
+      # IPv6-only and GitHub's runners have no IPv6. The password is
+      # URL-encoded and its encoded form masked in the log.
+      - name: Build the database URL
+        run: |
+          pw=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          echo "::add-mask::$pw"
+          echo "DB_URL=postgresql://postgres.$PROJECT_REF:$pw@$POOLER_HOST:5432/postgres" >> "$GITHUB_ENV"
+
+      - name: List pending migrations
+        id: dry
+        run: |
+          supabase db push --db-url "$DB_URL" --dry-run 2>&1 | tee plan.txt
+          pending=$(grep -c '^ *•' plan.txt || true)
+          echo "pending=$pending" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Pending production migrations: $pending"
+            echo '```'
+            cat plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  migrate:
+    needs: plan
+    if: ${{ needs.plan.outputs.pending != '0' }}
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.PRODUCTION_SUPABASE_PROJECT_REF }}
+      POOLER_HOST: aws-0-ap-northeast-1.pooler.supabase.com # production is in Tokyo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      # The session pooler (IPv4), not db.<ref>.supabase.co: that address is
+      # IPv6-only and GitHub's runners have no IPv6. The password is
+      # URL-encoded and its encoded form masked in the log.
+      - name: Build the database URL
+        run: |
+          pw=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          echo "::add-mask::$pw"
+          echo "DB_URL=postgresql://postgres.$PROJECT_REF:$pw@$POOLER_HOST:5432/postgres" >> "$GITHUB_ENV"
+
+      - name: Apply pending migrations
+        run: supabase db push --db-url "$DB_URL" --yes | tee -a "$GITHUB_STEP_SUMMARY"
+
   deploy:
+    needs: [plan, migrate]
+    # run when migrations succeeded or there were none; never after a failure
+    if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped') }}
     runs-on: ubuntu-latest
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

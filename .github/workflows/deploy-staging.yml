@@ -7,6 +7,13 @@
 # live in the Vercel project's Preview environment, not in GitHub — `vercel
 # pull` fetches them. Preview points at the staging Supabase project, never
 # the production one.
+#
+# Migrations: the `migrate` job applies pending supabase/migrations/ to the
+# STAGING Supabase project before the deploy, so new code never lands on a
+# database missing its tables. It connects straight to the database through
+# the session pooler (no `supabase link`, no access token). Needs repo secret
+# STAGING_DB_PASSWORD and repo variable STAGING_SUPABASE_PROJECT_REF. It
+# refuses the production project.
 name: Deploy staging
 
 on:
@@ -14,13 +21,59 @@ on:
     branches: [staging]
   workflow_dispatch:
 
+# `shell: bash` makes every run step use `bash -eo pipefail`: without it a
+# failing command piped into `tee` reported success (a failed `supabase db
+# push` showed green and the deploy went ahead, 2026-10-28).
+defaults:
+  run:
+    shell: bash
+
 # a newer push supersedes an in-flight deploy
 concurrency:
   group: deploy-staging
   cancel-in-progress: true
 
 jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      POOLER_HOST: aws-0-ap-southeast-2.pooler.supabase.com # staging is in Sydney
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      # Same idea as "Refuse the production domain" below: a mis-set variable
+      # must never point the staging pipeline at the real data.
+      - name: Refuse the production database
+        run: |
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::STAGING_SUPABASE_PROJECT_REF is not set (repo → Settings → Secrets and variables → Actions → Variables)."
+            exit 1
+          fi
+          if [ "$PROJECT_REF" = "tosozexlcqedocfcckwh" ]; then
+            echo "::error::STAGING_SUPABASE_PROJECT_REF is the production project."
+            exit 1
+          fi
+
+      # The session pooler (IPv4), not db.<ref>.supabase.co: that address is
+      # IPv6-only and GitHub's runners have no IPv6. The password is
+      # URL-encoded and its encoded form masked in the log.
+      - name: Build the database URL
+        run: |
+          pw=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')
+          echo "::add-mask::$pw"
+          echo "DB_URL=postgresql://postgres.$PROJECT_REF:$pw@$POOLER_HOST:5432/postgres" >> "$GITHUB_ENV"
+
+      - name: Apply pending migrations
+        run: supabase db push --db-url "$DB_URL" --yes | tee -a "$GITHUB_STEP_SUMMARY"
+
   deploy:
+    needs: migrate
     runs-on: ubuntu-latest
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

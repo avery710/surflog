@@ -286,7 +286,9 @@ Your one technique goal, as points, with how many sessions met each; and the tic
 - Editing: one field per point, add with **+** (no Enter shortcut: it clashed with 注音 / 倉頡), drag handles to reorder.
 - In the log form and edit panel: a grey fieldset "Which did you achieve?" with ink checkboxes, one per point.
 - On a session card, achieved points show as grey pills after an ink check in a grey circle (see SessionCard). The `warm` nudge invites setting a goal.
-- Counts match points by exact wording. Text ≤200 characters. Source: `components/goal.tsx`. Static rendition.
+- Roadmap (2026-10-28, on request): a point that is a roadmap step's wording shows its skill as a second line in the pill (11.5px medium `muted-foreground`), and under its tick in the log form and edit panel (12px). Free-text points are unchanged.
+- Under the points, the roadmap part, easing in and out with the card's height: a "Learned it?" box (`secondary`, `r-tile`; `primary` pill **Yes, learned** + white pill **Not yet**) once a step on the list was ticked in 3 sessions; **Next on your roadmap** chips (dashed `primary` at 40% border, `primary` text, a + icon, the skill in `muted-foreground`), tapping one adds it to the goal; and a line above a hairline: map icon, "Level 1 · Beginner", 12×6px progress dashes (`primary` done, `secondary` not), "2/8 skills", → to the roadmap. Before a level is picked it reads "New: a roadmap of skills. Find your level" in `primary`.
+- Counts match points by exact wording. Text ≤200 characters. Source: `components/goal.tsx`, `components/goal-roadmap-strip.tsx`. Static rendition.
 
 #### LogForm
 
@@ -298,6 +300,7 @@ The "Log a session" dialog: spot, date, time and duration, then tags, notes, boa
 - Date is the DatePicker (md); Spot is the spot picker (Siargao and Bali first, "Near me" on tap); Board pre-selects the last-used board.
 - Notes are rich text (bold / italic / underline, `- ` bullets, Tab nests); keep Chinese IME composition intact.
 - Save is a `primary` pill with 24px side padding; an uploading hint sits beside it. The dialog is `card`, `shadow-card`, `r-card`, 24px padding, max 512px.
+- Goal ticks: a point that is a roadmap step shows its skill underneath (12px `muted-foreground`, 2026-10-28); ticking it counts a session for that step.
 - Source: `components/log-form.tsx`. Static rendition: no spot picker, goal ticks or media picker drawn.
 
 #### Menu
@@ -309,6 +312,18 @@ The floating panel behind every dropdown (the card's ⋯ menu, the avatar menu),
 - Submenus (avatar → Language) open **inline as an accordion**, never a side flyout.
 - The date picker's popover, the select list and the spot picker's popover share this surface; the phone spot picker is a full-screen sheet and stays opaque.
 - Source: `components/ui/dropdown-menu.tsx`, `select.tsx`, `date-picker.tsx`, `surface-menu` in `app/globals.css`. Static rendition.
+
+#### Roadmap
+
+The `/roadmap` page (2026-10-28, on request): your own roadmap of levels → skills → steps, built from blocks.
+
+- Levels **0 First waves · 新手村, 1 Beginner · 初級, 2 Intermediate · 進階, 3 Advanced · 高階** (3 picks Longboard or Mid-length / shortboard). On phones the levels are a row of four, from `sm` a 170px column: a 24px circle (`primary` with ✓ when passed, `primary` ring on your level, `secondary` otherwise) and the name; the level you view sits on a white card.
+- The level heading (17px bold) with a `primary` "You're here" badge, the self-description (13px `muted-foreground`) and a size/hours guide (12px `faint`).
+- Skills in groups (11px semibold `muted-foreground` labels): Ocean & safety, Riding, Lineup & etiquette, then **Yours**. Each skill is a white card: grip handle, chevron, name (14.5px bold), `done/total` or a ✓ dot, a **Work on** / **Working on ✓** pill (`secondary` / `primary`), and ⋯. It eases open and shut.
+- Steps inside: grip, an 18px circle that fills `primary` when learned (text struck through), a faint "ticked in N sessions", **+ Next session** / **On next session ✓** in `primary`, and ⋯.
+- Every block is the user's: drag to reorder (handles; keyboard Space, arrows, Space); ⋯ has Rename (own blocks only; default blocks can't be renamed), Move to level, steps also Move / Copy to another skill, Remove with an Undo toast (no confirm). A dashed box ends each level: "Add your own skill" (+, no Enter for 注音/倉頡) and "Add a block from the library" (a dialog of the starter blocks).
+- The level test sits last in a `secondary` box with an "I can do this" pill that turns `primary` once every skill is learned.
+- Source: `components/roadmap.tsx`. Static rendition.
 
 #### SessionCard
 
