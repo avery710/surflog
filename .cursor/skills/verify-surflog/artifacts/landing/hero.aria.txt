@@ -1,0 +1,111 @@
+- banner:
+  - img "Surflog"
+  - button "Sign in"
+  - group "Language":
+    - button "EN" [pressed]
+    - button "中文"
+- heading "Log it easy. Surf it better." [level=1]
+- paragraph: "Jot down your thoughts after a surf. Surflog fills in what the ocean was doing: swell, wind and tide. Every session counts."
+- button "Continue with Google"
+- paragraph: "01"
+- heading "Your surf log, your best sidekick" [level=2]
+- paragraph: Set a few things to work on and tick them off each session. See every day you surfed, month by month, and where you go most — with your own notes on each spot.
+- heading "Goal for next session" [level=2]
+- list:
+  - listitem: Eyes down the line achieved in 7 sessions
+  - listitem: Check the peak before you paddle in achieved in 3 sessions
+  - listitem: Sit back into your heels on backside achieved in 6 sessions
+- status
+- heading "Days in the water" [level=2]
+- text: S M T W T F S Oct Nov
+- button "Show older weeks"
+- button "Show more recent weeks" [disabled]
+- heading "What you've surfed" [level=2]
+- table:
+  - rowgroup:
+    - row "Spot Sessions My notes":
+      - columnheader "Spot"
+      - columnheader "Sessions"
+      - columnheader "My notes"
+  - rowgroup:
+    - row "Jialeshui 10 Best at mid tide, on ENE to SSE swell with a west wind. Steady river-mouth rights.":
+      - cell "Jialeshui"
+      - cell "10"
+      - cell "Best at mid tide, on ENE to SSE swell with a west wind. Steady river-mouth rights.":
+        - paragraph: Best at mid tide, on ENE to SSE swell with a west wind. Steady river-mouth rights.
+- heading "Your board rack" [level=2]
+- button "Reorder"
+- button "+ Add board"
+- list:
+  - listitem:
+    - img "Photo of Goofy Plank 7'0\""
+    - text: Goofy Plank
+    - button "Remove Goofy Plank 7'0\" from go-to boards": Go-to
+    - button "Actions for Goofy Plank 7'0\""
+    - text: 7'0" · 55 L · Low rocker Zero flex. Maximum wipeout.
+  - listitem:
+    - img "Photo of Stitch Barrel 5'6\""
+    - text: Stitch Barrel
+    - button "Actions for Stitch Barrel 5'6\""
+    - text: 5'6" · 32 L · Low rocker Blue alien energy. Pure joy.
+- status
+- paragraph: "02"
+- heading "Conditions fill themselves" [level=2]
+- paragraph: No more copying numbers from a forecast app. Save a session and the readings for that spot and hour are fetched for you — past dates too.
+- paragraph: You type
+- paragraph: Spot
+- paragraph: Jialeshui
+- paragraph: Time
+- paragraph: 06:00
+- paragraph: Notes
+- paragraph: Clean and glassy early…
+- article:
+  - text: Jialeshui Mon 16 Nov 2026 · 06:00
+  - img "Photo of Goofy Plank 7'0\""
+  - text: Board Goofy Plank 7'0"
+  - list "Achieved":
+    - listitem: Eyes down the line
+    - listitem: Sit back into your heels on backside
+  - paragraph: Clean and glassy early, sets every few minutes. Caught my best right of the month on the falling tide.
+  - text: Swell 1.1m E Period 8.2s Wind 3.1m/s Gentle WNW Offshore Water temp 27.4°C Air 26.8°C Tide falling
+  - img "Tide curve between low and high, dot marks the session": 08:12
+- paragraph: "03"
+- heading "Bring your own AI app" [level=2]
+- paragraph: "Connect the AI you already use: Claude, ChatGPT, Gemini and more. Log a session by just saying so, then have it analyse your journal and give you advice. Conditions fill in the same way as when you log manually."
+- paragraph: Surfed Jialeshui at 6 this morning. Really clean, not crowded, great for practising. I looked where I wanted to go on the take-off.
+- paragraph: create_session · jialeshui · 06:00
+- paragraph: Logged. Swell 1.1 m from the east at 8 s, light offshore wind, tide rising.
+- paragraph: Looking at my last ten sessions, what should I work on next?
+- paragraph: list_sessions · get_goal
+- paragraph: "For your next sessions, keep it to three simple goals: 1. Position: stay in a deliberate spot instead of chasing every wave. 2. Take-off: chest up, don't lie too far forward. 3. Eyes: pick your direction before take-off, then look down the line."
+- paragraph: "04"
+- heading "A world spot list, built by surfers" [level=2]
+- paragraph: 21 spots in 3 countries so far, from Taiwan to Siargao to Bali. Every surfer can add the breaks they know, rate and review them, and fix what's wrong, so the list grows wherever people surf.
+- paragraph: Add the spot you surf
+- paragraph: Not on the list yet? Send it in with a map link or your location and log a session there right away. Conditions fill in once it's approved.
+- paragraph: Rate it, review it
+- paragraph: Crowd, parking, hazards, when it works. Reviews are shared with every surfer, so the next one paddles out knowing.
+- paragraph: Keep it right, together
+- paragraph: Facing or best swell off? Suggest an edit. It's checked before it changes for everyone.
+- paragraph: "05"
+- heading "Share a session your way" [level=2]
+- paragraph: "Turn any session into a sticker for your story: pick a style, lay it over your own photo or video, and post. Or switch on a link anyone can open. A session stays private until you share it."
+- list:
+  - listitem:
+    - img "Preview of the share image"
+  - listitem:
+    - img "Preview of the share image"
+  - listitem:
+    - img "Preview of the share image"
+- heading "Ready for your next session?" [level=2]
+- paragraph: Sign in with Google and your journal is ready.
+- button "Continue with Google"
+- contentinfo:
+  - link "Surflog home":
+    - /url: /
+  - navigation "Contact and social links":
+    - 'link "Email support: support@surflog.tw"':
+      - /url: mailto:support@surflog.tw
+  - paragraph: © 2026 Surflog
+- region "Notifications alt+T"
+- alert
