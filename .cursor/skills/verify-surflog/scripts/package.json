@@ -1,0 +1,12 @@
+{
+  "name": "control-surflog",
+  "private": true,
+  "type": "module",
+  "description": "Verification scaffolding for Surflog — not part of the app runtime.",
+  "bin": {
+    "control-surflog": "./control-surflog.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.56.1"
+  }
+}
