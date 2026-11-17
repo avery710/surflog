@@ -1,0 +1,6 @@
+# Per-run process state (pid, logs, Chrome profile). Never evidence.
+run/
+
+# Screenshots and transcripts. Gitignored on purpose: a signed-in run
+# captures someone's private journal. The directory survives cleanup.
+evidence/
