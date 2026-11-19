@@ -1151,6 +1151,7 @@ export const DICT = {
   "clip.start": { en: "Clip start", "zh-TW": "片段開始" },
   "clip.end": { en: "Clip end", "zh-TW": "片段結束" },
   "clip.failed": { en: "Couldn't save that clip.", "zh-TW": "無法儲存這個片段。" },
+  "clip.check": { en: "Check for suggestions", "zh-TW": "查看建議" },
   "clip.skill.takeoff": { en: "Takeoff", "zh-TW": "起乘" },
   "clip.skill.bottom_turn": { en: "Bottom turn", "zh-TW": "底轉" },
   "clip.skill.trim": { en: "Trim", "zh-TW": "滑行" },
