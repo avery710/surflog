@@ -9,10 +9,14 @@ that table.
 
 1. Claim one `pending` job.
 2. Download the video from the `photos` bucket.
-3. ffmpeg: a ~1 fps, 480 px-wide proxy. Gemini 2.5 Flash returns rides as
-   JSON `{ startSec, endSec }`.
-4. ffmpeg cuts each ride at ~5 fps. A second call returns skill segments
-   with a confidence.
+3. ffmpeg: a 1 fps, 480 px-wide proxy. The model returns rides as JSON
+   `{ startSec, endSec }`.
+4. ffmpeg cuts each ride at 5 fps. A second call returns skill segments
+   with a confidence. The frame rate is set in ffmpeg, not in the request:
+   the video-understanding docs (checked 2026-11-19) put per-request fps
+   on the Interactions API (`processing.fps`), and say a File API upload
+   is stored at 1 fps. This worker calls generateContent, so it keeps the
+   ffmpeg sampling.
 5. Write `clips` rows: `tagged_by = ai`, `confirmed = false`, model name
    and confidence set. The review screen (`/sessions/<id>/clips`) is the
    same one used by hand. Reload it, or tap “Check for suggestions”.
@@ -37,8 +41,14 @@ set -a && source .env.local && set +a
 npm run worker
 ```
 
-Optional: `GEMINI_MODEL` (default `gemini-2.5-flash`), `TAGGER` (default
-`gemini`), `WORKER_POLL_MS` (default 5000).
+`GEMINI_MODEL` chooses the Gemini id. Default is `gemini-3.8-flash`.
+Documented alternatives, both on the models page with those exact ids:
+`gemini-3.5-flash-lite` and `gemini-4-hydrogen`. Any other id is passed
+through. The id that ran is stored on each AI clip. `gemini-2.5-flash`
+is deprecated (not selectable in AI Studio; from 2026-12-01 those calls
+are routed to `gemini-3.5-flash-lite`).
+
+Also optional: `TAGGER` (default `gemini`), `WORKER_POLL_MS` (default 5000).
 
 Apply both migrations first: `20261119000000_create_clips.sql` and
 `20261119010000_create_clip_jobs.sql`. A deploy to staging applies them.

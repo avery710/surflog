@@ -1,8 +1,15 @@
 /**
- * Gemini 2.5 Flash over the public generateContent API. Video goes up
- * through the File API (a low-res proxy can still exceed the inline
- * limit), then the file is deleted. The key stays in the request URL
- * and is never logged.
+ * Gemini over the public generateContent API. The model id comes from
+ * GEMINI_MODEL (default gemini-3.8-flash) and is the string stored on
+ * each clip row. Video goes up through the File API (a whole session
+ * can exceed the inline limit), then the file is deleted. The key stays
+ * in the request URL and is never logged.
+ *
+ * Frame rate is not set here. The current video-understanding page
+ * documents per-request fps as `processing.fps` on the Interactions API,
+ * not as videoMetadata on generateContent, and it says a File API upload
+ * is stored at 1 fps. Sampling stays in ffmpeg (1 fps for rides, 5 fps
+ * for a ride clip) so the rate is the one we asked for.
  */
 import { readFile } from "node:fs/promises";
 import { RIDE_PROMPT, SKILL_PROMPT } from "./prompts";

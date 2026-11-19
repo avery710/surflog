@@ -8,7 +8,7 @@ import {
 } from "../worker/parse";
 import { suggestClips, MAX_RIDES } from "../worker/pipeline";
 import { textFromGenerateResponse } from "../worker/gemini";
-import { createTagger } from "../worker/tagger";
+import { createTagger, DEFAULT_GEMINI_MODEL, DOCUMENTED_GEMINI_MODELS } from "../worker/tagger";
 import type { TranscodeRequest } from "../worker/ffmpeg";
 
 const PASS1 = `
@@ -84,12 +84,23 @@ describe("generateContent text", () => {
 });
 
 describe("tagger config", () => {
-  it("requires a key and only knows gemini", () => {
+  it("requires a key, defaults the model, and honours GEMINI_MODEL", () => {
     expect(() => createTagger({ TAGGER: "gemini" })).toThrow(/GEMINI_API_KEY/);
     expect(() => createTagger({ TAGGER: "other", GEMINI_API_KEY: "k" })).toThrow(/Unknown TAGGER/);
-    expect(createTagger({ TAGGER: "gemini", GEMINI_API_KEY: "k", GEMINI_MODEL: "gemini-2.5-flash" }).model).toBe(
-      "gemini-2.5-flash"
+    expect(createTagger({ TAGGER: "gemini", GEMINI_API_KEY: "k" }).model).toBe(DEFAULT_GEMINI_MODEL);
+    expect(createTagger({ TAGGER: "gemini", GEMINI_API_KEY: "k", GEMINI_MODEL: "  " }).model).toBe(DEFAULT_GEMINI_MODEL);
+    expect(createTagger({ TAGGER: "gemini", GEMINI_API_KEY: "k", GEMINI_MODEL: "gemini-3.5-flash-lite" }).model).toBe(
+      "gemini-3.5-flash-lite"
     );
+    expect(createTagger({ TAGGER: "gemini", GEMINI_API_KEY: "k", GEMINI_MODEL: "gemini-4-hydrogen" }).model).toBe(
+      "gemini-4-hydrogen"
+    );
+    expect(DEFAULT_GEMINI_MODEL).toBe("gemini-3.8-flash");
+    expect(DOCUMENTED_GEMINI_MODELS).toEqual([
+      "gemini-3.8-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-4-hydrogen",
+    ]);
   });
 });
 
