@@ -7,6 +7,8 @@ import { LogForm } from "@/components/log-form";
 import { ActivityCalendar } from "@/components/activity-calendar";
 import { SessionList } from "@/components/session-list";
 import { SessionFilterBar } from "@/components/session-filter";
+import { SessionVideoDraft } from "@/components/session-video-draft";
+import { Button } from "@/components/ui/button";
 import type { SessionStat } from "@/lib/session-stats";
 import { useSessionFeed } from "@/lib/use-session-feed";
 import { PatternsTable } from "@/components/patterns-table";
@@ -120,6 +122,7 @@ export function Journal({
   const [requestDialog, setRequestDialog] = useState<{ name: string } | null>(null);
   const openRequestDialog = useCallback((name: string) => setRequestDialog({ name }), []);
   const [formOpen, setFormOpen] = useState(openLogForm);
+  const [videoOpen, setVideoOpen] = useState(false);
   // Drop the ?log=1 that opened it, so a reload or the back button doesn't
   // pop the form open again. No state involved, just the address bar.
   useEffect(() => {
@@ -130,7 +133,7 @@ export function Journal({
   // The log-session dialog opens from a plain button, not a Radix
   // DialogTrigger inside the header, so the hook can't see it on its own
   // (see use-auto-hide-header.ts's own comment) — forceVisible covers it.
-  const headerRef = useAutoHideHeader<HTMLElement>({ forceVisible: formOpen });
+  const headerRef = useAutoHideHeader<HTMLElement>({ forceVisible: formOpen || videoOpen });
 
   const addSpot = useCallback(
     (s: Spot) => setSpots((prev) => (prev.some((x) => x.slug === s.slug) ? prev : [...prev, s])),
@@ -396,6 +399,20 @@ export function Journal({
           </DialogContent>
         </Dialog>
 
+        <Dialog
+          open={videoOpen}
+          onOpenChange={(open) => {
+            if (!formBusy) setVideoOpen(open);
+          }}
+        >
+          <DialogContent className="max-w-xl" closeLabel={t("entry.close")}>
+            <DialogHeader>
+              <DialogTitle>{t("video.title")}</DialogTitle>
+            </DialogHeader>
+            <SessionVideoDraft onBusyChange={setFormBusy} />
+          </DialogContent>
+        </Dialog>
+
         <section className="mt-4 sm:mt-5">
           {stats.length === 0 ? (
             <div className="pl-1 font-sans text-[13px] font-bold text-[var(--on-page)]">{t("section.sessions")}</div>
@@ -406,11 +423,12 @@ export function Journal({
               stats={stats}
               boards={boards}
               matching={feed.total}
+              onUploadVideo={() => setVideoOpen(true)}
             />
           )}
           <div ref={listBox} style={feed.status === "loading" ? { minHeight: heldHeight } : undefined}>
             {stats.length === 0 ? (
-              <EmptyState />
+              <EmptyState onUpload={() => setVideoOpen(true)} />
             ) : feed.total === 0 ? (
               <NoMatches />
             ) : (
@@ -445,12 +463,15 @@ function NoMatches() {
     </div>;
 }
 
-function EmptyState() {
+function EmptyState({ onUpload }: { onUpload: () => void }) {
   const { t } = useLang();
   return (
     <div className="mt-3 pl-1 sm:mt-4">
       <h3 className="text-[15px] leading-snug font-bold">{t("empty.title")}</h3>
       <p className="mt-1 text-[13px] leading-relaxed text-[var(--on-page)]">{t("empty.body")}</p>
+      <Button type="button" className="mt-3 rounded-full px-6" onClick={onUpload}>
+        {t("video.upload")}
+      </Button>
     </div>
   );
 }

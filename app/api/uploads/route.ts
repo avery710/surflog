@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { createUpload, MAX_UPLOAD_BYTES } from "@/lib/blob";
+import { createUpload, MAX_SESSION_VIDEO_BYTES, MAX_UPLOAD_BYTES } from "@/lib/blob";
 
 /** POST /api/uploads — { type, size } → { id, url }: a one-time URL the
  *  browser PUTs the file to (straight to Supabase Storage; Vercel caps a
@@ -15,11 +15,15 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const type = typeof body?.type === "string" ? body.type : "";
   const size = typeof body?.size === "number" ? body.size : NaN;
-  if (!type.startsWith("image/") && !type.startsWith("video/")) {
+  const sessionVideo = body?.kind === "session-video";
+  const notMedia = !type.startsWith("image/") && !type.startsWith("video/");
+  if (sessionVideo ? !type.startsWith("video/") : notMedia) {
     return NextResponse.json({ error: "only images/video are accepted", code: "bad_type" }, { status: 415 });
   }
-  if (!(size > 0) || size > MAX_UPLOAD_BYTES) {
-    return NextResponse.json({ error: "file too large (50MB max)", code: "too_large" }, { status: 413 });
+  const max = sessionVideo ? MAX_SESSION_VIDEO_BYTES : MAX_UPLOAD_BYTES;
+  if (!(size > 0) || size > max) {
+    const mb = Math.round(max / (1024 * 1024));
+    return NextResponse.json({ error: `file too large (${mb} MB max)`, code: "too_large" }, { status: 413 });
   }
 
   return NextResponse.json(await createUpload(), { status: 201 });

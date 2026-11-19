@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CalendarDays, ChevronDown, Hash, MapPin, WandSparkles, X } from "lucide-react";
+import { CalendarDays, ChevronDown, Hash, MapPin, Video, WandSparkles, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/date-picker";
 import { Tooltip } from "@/components/tooltip";
 import {
@@ -57,6 +58,7 @@ export function SessionFilterBar({
   stats,
   boards,
   matching,
+  onUploadVideo,
 }: {
   filter: SessionFilter;
   onChange: (next: SessionFilter) => void;
@@ -65,6 +67,8 @@ export function SessionFilterBar({
   boards: Board[];
   /** How many sessions pass the filter. */
   matching: number;
+  /** Opens the session-video draft. Omitted on the dev dashboard copy. */
+  onUploadVideo?: () => void;
 }) {
   const { lang, t } = useLang();
   const catalog = useSpotCatalog();
@@ -157,6 +161,12 @@ export function SessionFilterBar({
         </div>
 
         <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 py-0.5 lg:mt-0 lg:justify-end">
+          {onUploadVideo && (
+            <Button type="button" variant="secondary" size="sm" className="rounded-full" onClick={onUploadVideo}>
+              <Video />
+              {t("video.upload")}
+            </Button>
+          )}
           <Chip
             icon={<CalendarDays className="size-3" aria-hidden />}
             label={t("filter.byDate")}

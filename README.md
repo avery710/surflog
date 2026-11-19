@@ -229,6 +229,21 @@ using it. By hand, as a fallback: `supabase link --project-ref <ref>` then
 Run `npm run build` locally before pushing if in doubt — missing env vars
 fail loudly via `lib/supabase.ts`'s explicit check. Open-Meteo needs no key.
 
+## Session videos and clips
+
+"Upload a video" on the journal starts a session from a video file. The
+browser reads the capture time and GPS (when the file still has them) and
+fills a draft; the session is saved only when you tap "Save session". The
+bytes go straight to the `photos` bucket (a signed upload, resumable above
+6 MB), then the review screen at `/sessions/<id>/clips` is where you trim,
+label and confirm clips. Clips are rows, not new video files.
+
+Apply `supabase/migrations/20261119000000_create_clips.sql` before using it
+(a push to `staging` / `main` runs migrations the same way as the others).
+Whole-session videos are often larger than this project's 50 MB Storage
+limit: raise **File size limit** in the Supabase dashboard (Storage →
+Settings) or the upload is refused. The app itself allows up to 1 GB.
+
 ## Licence note
 
 Open-Meteo is free for non-commercial use. Keep it that way, or get a key.

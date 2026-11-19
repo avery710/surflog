@@ -349,6 +349,25 @@ real edit panel: toggling, adding, the 8 limit) and on a temporary page for the
 filter chip; **not checked against real Supabase, signed in, or on a phone,
 and the log form's picker was not opened.**
 
+**Session video and clips** (2026-11-19): "Upload a video" on the journal
+reads creation time and GPS in the browser (`lib/video-meta.ts`, mediabunny)
+and pre-fills a draft (half-hour time in the spot's zone, nearest catalogue
+break within 30 km via `POST /api/spots/nearest` — the admin
+`/api/spots/locate` route geocodes a pasted pin and is not this). Nothing is
+saved until "Save session". The file then goes straight to Storage (signed
+PUT, or TUS resumable above 6 MB with the signed token); it is not
+re-encoded. A failed upload deletes the session it just created. The app
+allows 1 GB; this project's Storage limit was measured at 50 MB, so a larger
+file is refused until that limit is raised. A clip is a row
+(`20261119000000_create_clips.sql`, not applied here): session, source
+video, start/end ms, skill (`takeoff`, `bottom_turn`, `trim`, `cutback`,
+`other`, `not_a_ride`), `tagged_by` (`ai`|`user`), nullable model and
+confidence, confirmed, reaction (`nailed_it`, `late`, `fell`, `not_sure`).
+Review is `/sessions/<id>/clips`. An unconfirmed AI clip under
+`CONFIDENCE_CUTOFF` (0.55) shows "Unsure, what's this?" instead of the
+guess. Confirmed clips group by skill. The manual path does not call a
+model. Not checked signed in, on a phone, or against Storage.
+
 **Boards** (`boards`: brand, `length_in`, `volume_l`, rocker, note,
 `photo_id`, `is_favorite`, `sort_order`). `sessions.board_id` is `on
 delete set null`. Any number of 常用 / go-to boards; `sortBoards()`

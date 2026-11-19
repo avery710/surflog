@@ -1,8 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
+import { Clapperboard, MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -68,6 +69,8 @@ export function EntryCard({
   plain?: boolean;
 }) {
   const { lang, t } = useLang();
+  const router = useRouter();
+  const hasVideo = session.photos.some((p) => p.type.startsWith("video/"));
   const [editing, setEditing] = useState(false);
   // The edit panel is much taller than the card, so closing it shrinks the
   // page under the reader and the browser's scroll anchoring lands on a
@@ -313,6 +316,12 @@ export function EntryCard({
               <Pencil />
               {t("entry.edit")}
             </DropdownMenuItem>
+            {hasVideo && (
+              <DropdownMenuItem onSelect={() => router.push(`/sessions/${session.id}/clips`)}>
+                <Clapperboard />
+                {t("entry.clips")}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={() => setShareOpen(true)}>
               <Share2 />
               {t("entry.share")}
