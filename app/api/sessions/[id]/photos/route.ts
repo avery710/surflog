@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSession, updateSession } from "@/lib/db";
 import { MAX_SESSION_VIDEO_BYTES, registerUpload } from "@/lib/blob";
+import { enqueueClipJob, JobsNotReady } from "@/lib/clip-jobs";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -33,6 +34,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const photos = [...existing.photos, { id: uploadId, type: upload.mimeType }];
   const saved = await updateSession(id, { photos });
+  if (sessionVideo) {
+    try {
+      await enqueueClipJob({ ownerId: session.user.id, sessionId: id, mediaId: uploadId });
+    } catch (e) {
+      if (!(e instanceof JobsNotReady)) console.error("[clips] could not queue suggestions:", e);
+    }
+  }
   return NextResponse.json({ session: saved }, { status: 201 });
 }
 

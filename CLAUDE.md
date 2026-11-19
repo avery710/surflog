@@ -366,7 +366,10 @@ confidence, confirmed, reaction (`nailed_it`, `late`, `fell`, `not_sure`).
 Review is `/sessions/<id>/clips`. An unconfirmed AI clip under
 `CONFIDENCE_CUTOFF` (0.55) shows "Unsure, what's this?" instead of the
 guess. Confirmed clips group by skill. The manual path does not call a
-model. Not checked signed in, on a phone, or against Storage.
+model. Suggestions are a separate Node worker (`worker/`, `npm run worker`)
+that polls `clip_jobs` — not a Vercel function. It needs `GEMINI_API_KEY`
+and ffmpeg, writes `tagged_by = ai` rows, and is off until that process
+is running. Not checked signed in, on a phone, or against Storage.
 
 **Boards** (`boards`: brand, `length_in`, `volume_l`, rocker, note,
 `photo_id`, `is_favorite`, `sort_order`). `sessions.board_id` is `on

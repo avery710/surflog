@@ -244,6 +244,11 @@ Whole-session videos are often larger than this project's 50 MB Storage
 limit: raise **File size limit** in the Supabase dashboard (Storage →
 Settings) or the upload is refused. The app itself allows up to 1 GB.
 
+Skill suggestions are a separate process, not a Vercel function. After the
+video is saved it queues a `clip_jobs` row; `npm run worker` (see
+`worker/README.md`) polls that table, and needs `GEMINI_API_KEY` plus
+ffmpeg. The key is not a Vercel env var.
+
 ## Licence note
 
 Open-Meteo is free for non-commercial use. Keep it that way, or get a key.

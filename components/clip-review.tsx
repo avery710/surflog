@@ -231,6 +231,25 @@ export function ClipReview({
     }
   }
 
+  async function reloadSuggestions() {
+    if (preview) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/sessions/${session.id}/clips`);
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(json?.clips)) throw new Error();
+      const next = json.clips as Clip[];
+      setClips(next);
+      setSelectedId((cur) =>
+        cur && next.some((c) => c.id === cur) ? cur : (next.find((c) => !c.confirmed)?.id ?? next[0]?.id ?? null)
+      );
+    } catch {
+      toast.error(t("clip.failed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className={`${PAGE_COLUMN} py-4 sm:py-6`}>
       <Link href="/" className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--on-page)]">
@@ -382,7 +401,19 @@ export function ClipReview({
       )}
 
       <section className="mt-6">
-        <h2 className="pl-1 text-[13px] font-bold text-[var(--on-page)]">{t("clip.toReview")}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 pl-1">
+          <h2 className="text-[13px] font-bold text-[var(--on-page)]">{t("clip.toReview")}</h2>
+          {!preview && (
+            <button
+              type="button"
+              className="text-[13px] font-medium text-[var(--on-page)] underline-offset-2 hover:underline"
+              disabled={busy}
+              onClick={() => void reloadSuggestions()}
+            >
+              {t("clip.check")}
+            </button>
+          )}
+        </div>
         {queue.length === 0 ? (
           <p className="mt-2 pl-1 text-[13px] text-[var(--on-page)]">{clips.length === 0 ? t("clip.empty") : t("clip.reviewed")}</p>
         ) : (

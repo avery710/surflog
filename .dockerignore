@@ -1,0 +1,8 @@
+# Docker build context. The worker image runs `npm ci` itself.
+node_modules
+.next
+.git
+.env
+.env.*
+reports
+data/swelleye-readings
