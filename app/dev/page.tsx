@@ -14,6 +14,12 @@ const PAGES = [
       "components/roadmap.tsx and the goal card's roadmap part on a fake in-memory API: a level-1 user mid-way, or a first visit. Add, rename (own blocks only), drag, move, copy, remove + Undo, library, reset, level up. en/zh-TW. Nothing is saved.",
   },
   {
+    href: "/dev/clips",
+    title: "Clip review",
+    description:
+      "components/clip-review.tsx — playhead, trim handles, skill chips, reactions and the per-skill list, on synthetic clips (one under the confidence cutoff). Changes stay in the page.",
+  },
+  {
     href: "/dev/page-skeleton",
     title: "Loading skeleton",
     description:

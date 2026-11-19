@@ -110,6 +110,7 @@ export function SpotPicker({
   onRequestSpot,
   pendingRequests: givenPending,
   className,
+  placeholder,
 }: {
   id?: string;
   value: string;
@@ -126,6 +127,8 @@ export function SpotPicker({
   pendingRequests?: PendingRequest[];
   /** Extra classes for the trigger, e.g. `bg-background` in the edit panel. */
   className?: string;
+  /** Shown, muted, while `value` is empty. */
+  placeholder?: string;
 }) {
   const { lang, t } = useLang();
   const catalog = useSpotCatalog();
@@ -223,8 +226,10 @@ export function SpotPicker({
               className
             )}
           >
-            <span className="truncate">
-              {pendingRequests.find((p) => p.value === value)?.name ?? catalog.label(value, lang)}
+            <span className={cn("truncate", !value && "text-muted-foreground")}>
+              {value
+                ? (pendingRequests.find((p) => p.value === value)?.name ?? catalog.label(value, lang))
+                : (placeholder ?? catalog.label(value, lang))}
             </span>
             <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           </button>

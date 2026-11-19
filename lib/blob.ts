@@ -8,13 +8,22 @@
  * client, which is what makes access to the private bucket possible at all.
  */
 import { getSupabase } from "./supabase";
+import { MAX_SESSION_VIDEO_BYTES, MAX_UPLOAD_BYTES } from "./upload-limits";
 
 const BUCKET = "photos";
 const TABLE = "photo_blobs";
 
-/** Images and video, 50 MB each — Supabase Storage's own per-file ceiling
- *  on this project (measured 2026-10-05: 45 MB accepted, 55 MB refused). */
-export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+export { MAX_SESSION_VIDEO_BYTES, MAX_UPLOAD_BYTES };
+
+/** TUS endpoint for a direct resumable upload. Hosted projects use the
+ *  storage hostname; a local Supabase keeps its own origin. */
+export function resumableUploadEndpoint(supabaseUrl: string): string {
+  const u = new URL(supabaseUrl);
+  if (u.hostname.endsWith(".supabase.co") && !u.hostname.startsWith("storage.")) {
+    u.hostname = u.hostname.replace(/\.supabase\.co$/, ".storage.supabase.co");
+  }
+  return `${u.origin}/storage/v1/upload/resumable`;
+}
 
 /**
  * Direct upload, step 1: a one-time URL the browser PUTs the file to, so the
@@ -23,11 +32,22 @@ export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
  * larger). The id is unguessable, and nothing can read the object until
  * `registerUpload` records who owns it.
  */
-export async function createUpload(): Promise<{ id: string; url: string }> {
+export async function createUpload(): Promise<{
+  id: string;
+  url: string;
+  token: string;
+  resumableUrl: string;
+}> {
   const id = crypto.randomUUID().replace(/-/g, "");
   const { data, error } = await getSupabase().storage.from(BUCKET).createSignedUploadUrl(id);
   if (error || !data) throw new Error(`Supabase Storage: ${error?.message ?? "no upload URL"}`);
-  return { id, url: data.signedUrl };
+  const base = process.env.SUPABASE_URL ?? "";
+  return {
+    id,
+    url: data.signedUrl,
+    token: data.token,
+    resumableUrl: base ? resumableUploadEndpoint(base) : "",
+  };
 }
 
 /**
@@ -41,7 +61,8 @@ export async function registerUpload(
   id: string,
   ownerId: string,
   parent: { sessionId: string } | { boardId: string },
-  allowedPrefixes: string[]
+  allowedPrefixes: string[],
+  maxBytes: number = MAX_UPLOAD_BYTES
 ): Promise<{ ok: true; mimeType: string } | { ok: false; reason: "missing" | "too_large" | "bad_type" }> {
   if (!/^[0-9a-f]{32}$/.test(id)) return { ok: false, reason: "missing" };
   const sb = getSupabase();
@@ -56,7 +77,7 @@ export async function registerUpload(
   if (claimed.data) return { ok: false, reason: "missing" };
 
   const badType = !allowedPrefixes.some((p) => mimeType.startsWith(p));
-  if (badType || size > MAX_UPLOAD_BYTES) {
+  if (badType || size > maxBytes) {
     await sb.storage.from(BUCKET).remove([id]);
     return { ok: false, reason: badType ? "bad_type" : "too_large" };
   }

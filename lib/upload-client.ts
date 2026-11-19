@@ -9,6 +9,10 @@
 
 import type { Session } from "./types";
 import { compressVideo, VideoTooLongError } from "./video-compress";
+import { videoMime } from "./video-meta";
+import { MAX_SESSION_VIDEO_BYTES, MAX_UPLOAD_BYTES } from "./upload-limits";
+
+export { MAX_UPLOAD_BYTES };
 
 /** Longest edge kept for photos, and the JPEG quality they're re-encoded at.
  *  2560 px / 0.9 is visually lossless at any size the app shows a photo
@@ -18,7 +22,6 @@ const JPEG_QUALITY = 0.9;
 /** A photo already this small and within MAX_EDGE is sent untouched — no
  *  point re-encoding (and losing a generation) to save nothing. */
 const KEEP_AS_IS_BYTES = 3 * 1024 * 1024;
-export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 export type UploadErrorCode = "too_large" | "bad_type" | "failed";
 export class UploadError extends Error {
@@ -83,11 +86,16 @@ export async function shrinkImage(file: File): Promise<File> {
 /** PUT with upload progress — fetch() can't report how much of a request
  *  body has been sent, XMLHttpRequest can. Resolves with the HTTP status
  *  (0 when the request never completed). */
-function putWithProgress(url: string, file: File, onProgress?: (fraction: number) => void): Promise<number> {
+function putWithProgress(
+  url: string,
+  file: File,
+  onProgress?: (fraction: number) => void,
+  contentType = file.type
+): Promise<number> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", url);
-    xhr.setRequestHeader("content-type", file.type);
+    xhr.setRequestHeader("content-type", contentType);
     xhr.setRequestHeader("cache-control", "max-age=31536000");
     xhr.setRequestHeader("x-upsert", "false");
     xhr.upload.onprogress = (e) => {
@@ -142,6 +150,74 @@ export async function uploadFile(
   const status = await putWithProgress(body.url as string, file, uploading);
   if (status < 200 || status >= 300) throw new UploadError(status === 413 ? "too_large" : "failed");
 
+  return body.id as string;
+}
+
+/** Supabase asks for 6 MB TUS chunks. At or under that, one signed PUT is
+ *  the same request the photo path already uses. */
+const TUS_CHUNK = 6 * 1024 * 1024;
+
+/**
+ * Upload a whole session video straight to Storage. Does not create a
+ * session and does not re-encode: a full session is too long for the
+ * short-clip compressor, and the review player wants the original.
+ * Files over 6 MB use a resumable (TUS) upload with the signed token.
+ */
+export async function uploadSessionVideo(
+  original: File,
+  onProgress?: (fraction: number) => void
+): Promise<string> {
+  const type = videoMime(original);
+  if (!type) throw new UploadError("bad_type");
+  if (original.size <= 0 || original.size > MAX_SESSION_VIDEO_BYTES) throw new UploadError("too_large");
+  onProgress?.(0);
+
+  const res = await fetch("/api/uploads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, size: original.size, kind: "session-video" }),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok || !body?.url || !body?.id) {
+    throw new UploadError(body?.code === "too_large" || body?.code === "bad_type" ? body.code : "failed");
+  }
+
+  if (original.size <= TUS_CHUNK) {
+    const status = await putWithProgress(body.url as string, original, onProgress, type);
+    if (status < 200 || status >= 300) throw new UploadError(status === 413 ? "too_large" : "failed");
+    return body.id as string;
+  }
+
+  if (!body.token || !body.resumableUrl) throw new UploadError("failed");
+  const tus = await import("tus-js-client");
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(original, {
+      endpoint: body.resumableUrl as string,
+      retryDelays: [0, 2000, 5000, 10000],
+      headers: {
+        "x-signature": body.token as string,
+        "x-upsert": "false",
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: TUS_CHUNK,
+      metadata: {
+        bucketName: "photos",
+        objectName: body.id as string,
+        contentType: type,
+        cacheControl: "31536000",
+      },
+      onError: (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        reject(new UploadError(/413|maximum size|too large|entity/i.test(message) ? "too_large" : "failed"));
+      },
+      onProgress: (sent, total) => {
+        if (total > 0) onProgress?.(sent / total);
+      },
+      onSuccess: () => resolve(),
+    });
+    upload.start();
+  });
   return body.id as string;
 }
 
