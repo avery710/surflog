@@ -19,6 +19,28 @@ motion) lives in `DESIGN.md`**, generated from the Surflog Design System
 artifact: read it before changing UI, never edit it by hand, and keep it in
 step through `push-stag` (see Project agents).
 
+## Git workflow
+
+(2026-11-19.) Feature branches start from `staging`, never `main`. PRs
+target `staging`.
+
+Every change gets merged into `staging` first. A push to `staging` — a
+merge is one — runs `.github/workflows/deploy-staging.yml` (it can also be
+started by hand with `workflow_dispatch`). The run applies pending
+migrations to the staging database, then lints, typechecks, tests, builds
+and deploys the Vercel Preview, aliased to `stag-wipeout.surflog.tw`. The
+real end-to-end verification is that staging deploy, after the merge.
+Before opening a PR, run what's possible locally (tests, typecheck, lint,
+build). Each PR description includes a short "verify on staging after
+merge" checklist (env vars, migrations, workers, exact user steps).
+
+`main` is production. Promotion from `staging` to `main` happens only with
+Avery's explicit go-ahead. A push to `main` runs
+`.github/workflows/deploy-production.yml` (also `workflow_dispatch`): it
+dry-runs pending migrations against production, applies them straight away
+when any are pending, then lints, typechecks, tests, builds and deploys
+Production at `surflog.tw`.
+
 ## Status
 
 - Next.js (App Router) + shadcn/ui + Supabase (Postgres + Storage), Google
@@ -40,10 +62,12 @@ step through `push-stag` (see Project agents).
   `SIGNIN_ALLOWED_EMAILS`; Production keeps the originals plus
   `SPOT_ADMIN_EMAILS` (set by Avery, not read back). The staging workflow
   refuses `STAGING_DOMAIN` = `surflog.tw`. **Release flow**
-  (2026-10-23, by request; was a direct `git push origin staging:main`): push
-  `staging`, check it, then a **PR `staging` → `main`** (`release-main` agent),
-  which Avery reviews and merges with **Create a merge commit** (squash/rebase
-  would give `main` commits `staging` lacks); the merge deploys production. **Vercel
+  (2026-10-23, by request; was a direct `git push origin staging:main`):
+  everyday work follows Git workflow (into `staging` first). Promotion is a
+  **PR `staging` → `main`** (`release-main` agent) only with Avery's
+  explicit go-ahead; Avery merges with **Create a merge commit**
+  (squash/rebase would give `main` commits `staging` lacks). That merge
+  pushes `main` and deploys production. **Vercel
   Authentication is on, Standard Protection** (2026-10-21): every URL except
   the production custom domains needs a Vercel login, so staging,
   `surflog-staging.vercel.app` and all `surflog-<hash>….vercel.app` URLs
